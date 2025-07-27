@@ -26,7 +26,7 @@ export function ExpenseForm({ open, onOpenChange }: ExpenseFormProps) {
   const form = useForm({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
-      amount: 0,
+      amount: '' as any, // Start with empty string, will be converted to number on submission
       date: format(new Date(), 'yyyy-MM-dd'),
       time: format(new Date(), 'HH:mm'),
       category: '',
@@ -64,6 +64,7 @@ export function ExpenseForm({ open, onOpenChange }: ExpenseFormProps) {
     try {
       await addExpenseMutation.mutateAsync({
         ...data,
+        amount: parseFloat(data.amount) || 0, // Convert string to number
         attachments,
       });
       
@@ -86,12 +87,7 @@ export function ExpenseForm({ open, onOpenChange }: ExpenseFormProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Add Expense</DialogTitle>
-            <Button variant="ghost" size="icon" onClick={handleClose}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+          <DialogTitle>Add Expense</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -108,12 +104,12 @@ export function ExpenseForm({ open, onOpenChange }: ExpenseFormProps) {
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
                       <Input
                         type="number"
-                        placeholder="0.00"
+                        placeholder="Enter amount (e.g., 150.00)"
                         className="pl-8"
                         min="0"
                         step="0.01"
                         {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value) || '')}
                       />
                     </div>
                   </FormControl>
