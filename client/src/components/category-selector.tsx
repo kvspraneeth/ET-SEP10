@@ -30,13 +30,13 @@ export function CategorySelector({
               key={category.id}
               onClick={() => onCategorySelect(category.id)}
               className={cn(
-                "category-pill p-3 rounded-xl text-center text-xs font-medium transition-all hover:scale-105",
+                "category-pill p-3 rounded-xl text-center text-xs font-medium transition-all hover:scale-105 min-h-[80px] flex flex-col items-center justify-center",
                 colors.bg,
                 colors.text
               )}
             >
               <div className="text-lg mb-1">{category.icon}</div>
-              <div>{category.name}</div>
+              <div className="leading-tight text-center break-words max-w-full">{category.name}</div>
             </button>
           );
         })}

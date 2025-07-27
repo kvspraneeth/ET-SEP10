@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { CategorySelector } from './category-selector';
+import { DatePicker } from './date-picker';
 import { useAddExpense } from '@/hooks/use-expenses';
 import { expenseFormSchema } from '@shared/schema';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 interface ExpenseFormProps {
   open: boolean;
@@ -146,7 +147,13 @@ export function ExpenseForm({ open, onOpenChange }: ExpenseFormProps) {
                   <FormItem>
                     <FormLabel>Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <DatePicker
+                        date={field.value ? parseISO(field.value) : new Date()}
+                        onDateChange={(date) => 
+                          field.onChange(date ? format(date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'))
+                        }
+                        placeholder="Select date"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -4,11 +4,12 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Settings as SettingsIcon, Download, Upload, Trash2, Moon, Sun } from 'lucide-react';
+import { Settings as SettingsIcon, Download, Upload, Trash2, Moon, Sun, FileSpreadsheet } from 'lucide-react';
 import { useSettings, useUpdateSettings } from '@/hooks/use-settings';
 import { useTheme } from '@/components/theme-provider';
 import { useToast } from '@/hooks/use-toast';
 import db from '@/lib/db';
+import * as XLSX from 'xlsx';
 
 export function Settings() {
   const settings = useSettings();
@@ -61,6 +62,71 @@ export function Settings() {
     }
   };
 
+  const exportToExcel = async () => {
+    try {
+      const expenses = await db.expenses.toArray();
+      const budgets = await db.budgets.toArray();
+      const categories = await db.categories.toArray();
+
+      // Create workbook with multiple sheets
+      const workbook = XLSX.utils.book_new();
+
+      // Expenses sheet
+      const expensesData = expenses.map(expense => ({
+        Date: expense.date,
+        Time: expense.time,
+        Amount: expense.amount,
+        Category: expense.category,
+        Items: expense.items || '',
+        Location: expense.where || '',
+        'Payment Method': expense.paymentMethod,
+        Account: expense.account,
+        Notes: expense.note || '',
+        'Created At': expense.createdAt,
+      }));
+      const expensesSheet = XLSX.utils.json_to_sheet(expensesData);
+      XLSX.utils.book_append_sheet(workbook, expensesSheet, 'Expenses');
+
+      // Budgets sheet
+      const budgetsData = budgets.map(budget => ({
+        Name: budget.name,
+        Amount: budget.amount,
+        Category: budget.category,
+        Period: budget.period,
+        'Start Date': budget.startDate,
+        'Is Active': budget.isActive ? 'Yes' : 'No',
+        'Created At': budget.createdAt,
+      }));
+      const budgetsSheet = XLSX.utils.json_to_sheet(budgetsData);
+      XLSX.utils.book_append_sheet(workbook, budgetsSheet, 'Budgets');
+
+      // Categories sheet
+      const categoriesData = categories.map(category => ({
+        Name: category.name,
+        Icon: category.icon,
+        Color: category.color,
+        'Is Default': category.isDefault ? 'Yes' : 'No',
+      }));
+      const categoriesSheet = XLSX.utils.json_to_sheet(categoriesData);
+      XLSX.utils.book_append_sheet(workbook, categoriesSheet, 'Categories');
+
+      // Export file
+      const fileName = `expense-tracker-${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+
+      toast({
+        title: "Success",
+        description: "Excel file exported successfully!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export Excel file.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -96,6 +162,103 @@ export function Settings() {
       }
     };
     reader.readAsText(file);
+    
+    // Reset input
+    event.target.value = '';
+  };
+
+  const importFromExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        
+        if (confirm('This will replace all your current data. Are you sure?')) {
+          // Clear existing data
+          await db.expenses.clear();
+          await db.budgets.clear();
+          await db.categories.clear();
+          
+          // Import expenses
+          if (workbook.SheetNames.includes('Expenses')) {
+            const expensesSheet = workbook.Sheets['Expenses'];
+            const expensesData = XLSX.utils.sheet_to_json(expensesSheet);
+            
+            const expenses = expensesData.map((row: any) => ({
+              id: crypto.randomUUID(),
+              date: row.Date || new Date().toISOString().split('T')[0],
+              time: row.Time || '00:00',
+              amount: parseFloat(row.Amount) || 0,
+              category: row.Category || 'other',
+              items: row.Items || '',
+              where: row.Location || '',
+              paymentMethod: row['Payment Method'] || 'UPI',
+              account: row.Account || 'Other',
+              note: row.Notes || '',
+              isRecurring: false,
+              isTemplate: false,
+              attachments: [],
+              createdAt: row['Created At'] || new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }));
+            
+            await db.expenses.bulkAdd(expenses);
+          }
+          
+          // Import budgets
+          if (workbook.SheetNames.includes('Budgets')) {
+            const budgetsSheet = workbook.Sheets['Budgets'];
+            const budgetsData = XLSX.utils.sheet_to_json(budgetsSheet);
+            
+            const budgets = budgetsData.map((row: any) => ({
+              id: crypto.randomUUID(),
+              name: row.Name || 'Budget',
+              amount: parseFloat(row.Amount) || 0,
+              category: row.Category || 'other',
+              period: row.Period || 'monthly',
+              startDate: row['Start Date'] || new Date().toISOString().split('T')[0],
+              isActive: row['Is Active'] === 'Yes',
+              createdAt: row['Created At'] || new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }));
+            
+            await db.budgets.bulkAdd(budgets);
+          }
+          
+          // Import categories
+          if (workbook.SheetNames.includes('Categories')) {
+            const categoriesSheet = workbook.Sheets['Categories'];
+            const categoriesData = XLSX.utils.sheet_to_json(categoriesSheet);
+            
+            const categories = categoriesData.map((row: any) => ({
+              id: crypto.randomUUID(),
+              name: row.Name || 'Category',
+              icon: row.Icon || '📝',
+              color: row.Color || 'gray',
+              isDefault: row['Is Default'] === 'Yes',
+            }));
+            
+            await db.categories.bulkAdd(categories);
+          }
+          
+          toast({
+            title: "Success",
+            description: "Excel data imported successfully!",
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to import Excel file. Please check the file format.",
+          variant: "destructive",
+        });
+      }
+    };
+    reader.readAsBinaryString(file);
     
     // Reset input
     event.target.value = '';
@@ -239,36 +402,65 @@ export function Settings() {
           <CardTitle className="text-base">Data Management</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Export Data */}
+          {/* JSON Export/Import */}
           <div>
-            <Button onClick={exportData} variant="outline" className="w-full justify-start">
-              <Download className="w-4 h-4 mr-2" />
-              Export Data
-            </Button>
+            <h4 className="font-medium mb-2">JSON Format</h4>
+            <div className="space-y-2">
+              <Button onClick={exportData} variant="outline" className="w-full justify-start">
+                <Download className="w-4 h-4 mr-2" />
+                Export as JSON
+              </Button>
+              
+              <Label htmlFor="import-json-file">
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <span>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Import from JSON
+                  </span>
+                </Button>
+              </Label>
+              <input
+                id="import-json-file"
+                type="file"
+                accept=".json"
+                onChange={importData}
+                className="hidden"
+              />
+            </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Download all your expenses and settings as a JSON file
+              JSON format preserves all data including settings
             </p>
           </div>
 
-          {/* Import Data */}
+          <Separator />
+
+          {/* Excel Export/Import */}
           <div>
-            <Label htmlFor="import-file">
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <span>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Import Data
-                </span>
+            <h4 className="font-medium mb-2">Excel Format</h4>
+            <div className="space-y-2">
+              <Button onClick={exportToExcel} variant="outline" className="w-full justify-start">
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Export as Excel
               </Button>
-            </Label>
-            <input
-              id="import-file"
-              type="file"
-              accept=".json"
-              onChange={importData}
-              className="hidden"
-            />
+              
+              <Label htmlFor="import-excel-file">
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <span>
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    Import from Excel
+                  </span>
+                </Button>
+              </Label>
+              <input
+                id="import-excel-file"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={importFromExcel}
+                className="hidden"
+              />
+            </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Restore data from a previously exported JSON file
+              Excel format with separate sheets for expenses, budgets, and categories
             </p>
           </div>
 
