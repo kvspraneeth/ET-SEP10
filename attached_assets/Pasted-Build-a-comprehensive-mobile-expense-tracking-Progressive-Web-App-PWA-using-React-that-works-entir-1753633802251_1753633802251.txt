@@ -1,0 +1,58 @@
+Build a comprehensive mobile expense tracking Progressive Web App (PWA) using React that works entirely offline and is installable on mobile devices. The app should include:
+
+**Core Features:**
+- Expense entry form with fields: amount (required), date, time, location, items, notes, payment method (UPI/Card/Net Banking), account (ICICI/SBI/Other), category selection (required)
+- File attachment support for receipts/bills (images, PDFs, documents) - optional, max 5MB per file
+- Local storage using IndexedDB for offline functionality
+- Charts and analytics with spending visualization (pie charts for categories, bar charts for daily spending, top locations)
+- Budget tracking with category-based budgets and progress indicators
+- Recurring expenses and expense templates
+- Search and filter functionality for expenses
+- Data export/import capabilities
+- Multi-currency support (default ₹ Indian Rupees)
+
+**Technical Requirements:**
+- React 18 with TypeScript
+- Mobile-first responsive design with bottom navigation
+- Dark/light theme toggle with persistent preferences
+- PWA features: service worker, manifest file, installable on mobile
+- Offline-first architecture using Dexie.js (IndexedDB wrapper)
+- Form validation using React Hook Form with Zod schemas
+- UI components using shadcn/ui and Tailwind CSS
+- Charts using Recharts library
+- File handling with base64 encoding for offline storage
+
+**UI/UX Specifications:**
+- Modern gradient header with app branding
+- Bottom navigation with Home, Expenses, Charts, Budget, Settings
+- Floating action button for quick expense entry
+- Card-based layout with rounded corners and shadows
+- Category buttons with icons and colors
+- Stats overview showing today/week/month totals
+- Recent expenses list with category indicators
+- Proper error handling and loading states
+
+**Database Schema:**
+- Expenses: id, amount, date, time, where, items, note, account, paymentMethod, category, isRecurring, isTemplate, attachments[]
+- Categories: id, name, color, icon
+- Budgets: id, name, amount, category, period, startDate
+- Settings: currency, theme, language
+
+**Default Categories with Icons:**
+- Groceries (🛒 green), Food (🍽️ purple), Transport (⛽ blue), Bills (📄 red), Entertainment (🎬 orange), Healthcare (❤️ cyan), Shopping (🛍️ pink)
+
+**Validation Rules:**
+- Amount field must be required and positive
+- Category selection must be required
+- File uploads limited to images, PDFs, and documents under 5MB
+- Form should show helpful placeholder text and validation errors
+
+**Additional Features:**
+- Expense grouping by date (Today, Yesterday, specific dates)
+- Budget progress tracking with visual indicators
+- Insights showing most used payment methods and top spending locations
+- Template system for frequently used expenses
+- Real-time UI updates after adding/editing expenses
+- Proper form reset after successful submission
+
+The app should work completely offline, be installable like a native app on mobile devices, and provide a smooth user experience with proper loading states and error handling.
