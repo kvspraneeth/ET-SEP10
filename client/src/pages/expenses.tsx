@@ -12,7 +12,7 @@ import { useSettings } from '@/hooks/use-settings';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
 
 interface ExpensesProps {
-  onOpenExpenseForm: () => void;
+  onOpenExpenseForm: (selectedCategory?: string) => void;
 }
 
 export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
@@ -92,7 +92,7 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
             Total: {currency}{totalAmount.toLocaleString()} ({filteredExpenses.length} transactions)
           </p>
         </div>
-        <Button onClick={onOpenExpenseForm} className="bg-primary hover:bg-primary/90">
+        <Button onClick={() => onOpenExpenseForm()} className="bg-primary hover:bg-primary/90">
           <Plus className="w-4 h-4 mr-2" />
           Add
         </Button>

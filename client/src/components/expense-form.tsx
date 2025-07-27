@@ -18,9 +18,10 @@ import { format, parseISO } from 'date-fns';
 interface ExpenseFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  preSelectedCategory?: string;
 }
 
-export function ExpenseForm({ open, onOpenChange }: ExpenseFormProps) {
+export function ExpenseForm({ open, onOpenChange, preSelectedCategory }: ExpenseFormProps) {
   const [attachments, setAttachments] = useState<string[]>([]);
   const addExpenseMutation = useAddExpense();
 
@@ -41,6 +42,11 @@ export function ExpenseForm({ open, onOpenChange }: ExpenseFormProps) {
       attachments: [],
     },
   });
+
+  // Update category when preSelectedCategory changes
+  if (preSelectedCategory && form.getValues('category') !== preSelectedCategory) {
+    form.setValue('category', preSelectedCategory);
+  }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;

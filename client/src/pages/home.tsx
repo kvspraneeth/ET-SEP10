@@ -9,13 +9,13 @@ import { PieChart, Plus } from 'lucide-react';
 
 interface HomeProps {
   onTabChange: (tab: string) => void;
-  onOpenExpenseForm: () => void;
+  onOpenExpenseForm: (selectedCategory?: string) => void;
 }
 
 export function Home({ onTabChange, onOpenExpenseForm }: HomeProps) {
   const handleCategorySelect = (categoryId: string) => {
     // Quick add expense with pre-selected category
-    onOpenExpenseForm();
+    onOpenExpenseForm(categoryId);
   };
 
   const handleViewAllExpenses = () => {
@@ -43,7 +43,7 @@ export function Home({ onTabChange, onOpenExpenseForm }: HomeProps) {
           />
           <div className="mt-3 text-center">
             <button
-              onClick={onOpenExpenseForm}
+              onClick={() => onOpenExpenseForm()}
               className="category-pill bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 p-3 rounded-xl text-center text-xs font-medium w-16"
             >
               <div className="text-lg mb-1">

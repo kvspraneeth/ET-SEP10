@@ -17,13 +17,26 @@ import { Settings } from "@/pages/settings";
 function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
+
+  const handleOpenExpenseForm = (categoryId?: string) => {
+    setSelectedCategory(categoryId);
+    setIsExpenseFormOpen(true);
+  };
+
+  const handleCloseExpenseForm = (open: boolean) => {
+    setIsExpenseFormOpen(open);
+    if (!open) {
+      setSelectedCategory(undefined);
+    }
+  };
 
   const renderCurrentPage = () => {
     switch (activeTab) {
       case 'home':
-        return <Home onTabChange={setActiveTab} onOpenExpenseForm={() => setIsExpenseFormOpen(true)} />;
+        return <Home onTabChange={setActiveTab} onOpenExpenseForm={handleOpenExpenseForm} />;
       case 'expenses':
-        return <Expenses onOpenExpenseForm={() => setIsExpenseFormOpen(true)} />;
+        return <Expenses onOpenExpenseForm={handleOpenExpenseForm} />;
       case 'charts':
         return <Charts />;
       case 'budget':
@@ -31,7 +44,7 @@ function App() {
       case 'settings':
         return <Settings />;
       default:
-        return <Home onTabChange={setActiveTab} onOpenExpenseForm={() => setIsExpenseFormOpen(true)} />;
+        return <Home onTabChange={setActiveTab} onOpenExpenseForm={handleOpenExpenseForm} />;
     }
   };
 
@@ -46,10 +59,14 @@ function App() {
               {renderCurrentPage()}
             </main>
 
-            <FloatingActionButton onClick={() => setIsExpenseFormOpen(true)} />
+            <FloatingActionButton onClick={() => handleOpenExpenseForm()} />
             <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
             
-            <ExpenseForm open={isExpenseFormOpen} onOpenChange={setIsExpenseFormOpen} />
+            <ExpenseForm 
+              open={isExpenseFormOpen} 
+              onOpenChange={handleCloseExpenseForm}
+              preSelectedCategory={selectedCategory}
+            />
           </div>
           
           <Toaster />
