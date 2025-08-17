@@ -1,13 +1,13 @@
 import { Category } from '@shared/schema';
 
 export const DEFAULT_CATEGORIES: Category[] = [
-  { id: 'groceries', name: 'Groceries', icon: '🛒', color: 'green', isDefault: true },
-  { id: 'food', name: 'Food', icon: '🍽️', color: 'purple', isDefault: true },
-  { id: 'transport', name: 'Transport', icon: '⛽', color: 'blue', isDefault: true },
-  { id: 'bills', name: 'Bills', icon: '📄', color: 'red', isDefault: true },
-  { id: 'entertainment', name: 'Entertainment', icon: '🎬', color: 'orange', isDefault: true },
-  { id: 'healthcare', name: 'Healthcare', icon: '❤️', color: 'cyan', isDefault: true },
-  { id: 'shopping', name: 'Shopping', icon: '🛍️', color: 'pink', isDefault: true },
+  { id: 'groceries', name: 'Groceries', icon: 'shopping-cart', color: 'green', isDefault: true },
+  { id: 'food', name: 'Food', icon: 'utensils', color: 'purple', isDefault: true },
+  { id: 'transport', name: 'Transport', icon: 'car', color: 'blue', isDefault: true },
+  { id: 'bills', name: 'Bills', icon: 'file-text', color: 'red', isDefault: true },
+  { id: 'entertainment', name: 'Entertainment', icon: 'tv', color: 'orange', isDefault: true },
+  { id: 'healthcare', name: 'Healthcare', icon: 'heart', color: 'cyan', isDefault: true },
+  { id: 'shopping', name: 'Shopping', icon: 'shopping-bag', color: 'pink', isDefault: true },
 ];
 
 export const getCategoryColor = (color: string) => {

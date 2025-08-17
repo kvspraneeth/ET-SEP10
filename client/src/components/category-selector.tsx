@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import db from '@/lib/db';
 import { getCategoryColor } from '@/lib/categories';
 import { cn } from '@/lib/utils';
+import { ShoppingCart, Utensils, Car, FileText, Tv, Heart, ShoppingBag, LucideIcon } from 'lucide-react';
 
 interface CategorySelectorProps {
   selectedCategory?: string;
@@ -10,6 +11,16 @@ interface CategorySelectorProps {
   variant?: 'pill' | 'button';
   limit?: number;
 }
+
+const iconMap: Record<string, LucideIcon> = {
+  'shopping-cart': ShoppingCart,
+  'utensils': Utensils,
+  'car': Car,
+  'file-text': FileText,
+  'tv': Tv,
+  'heart': Heart,
+  'shopping-bag': ShoppingBag,
+};
 
 export function CategorySelector({ 
   selectedCategory, 
@@ -19,6 +30,11 @@ export function CategorySelector({
 }: CategorySelectorProps) {
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
   const displayCategories = limit ? categories.slice(0, limit) : categories;
+
+  const getIconComponent = (iconName: string) => {
+    const IconComponent = iconMap[iconName];
+    return IconComponent ? <IconComponent className="w-5 h-5" /> : <FileText className="w-5 h-5" />;
+  };
 
   if (variant === 'pill') {
     return (
@@ -35,7 +51,7 @@ export function CategorySelector({
                 colors.text
               )}
             >
-              <div className="text-lg mb-1">{category.icon}</div>
+              <div className="text-lg mb-1">{getIconComponent(category.icon)}</div>
               <div className="leading-tight text-center break-words max-w-full">{category.name}</div>
             </button>
           );
@@ -59,7 +75,7 @@ export function CategorySelector({
               : "border-gray-200 dark:border-gray-600"
           )}
         >
-          <div className="text-lg mb-1">{category.icon}</div>
+          <div className="text-lg mb-1">{getIconComponent(category.icon)}</div>
           <div>{category.name}</div>
         </Button>
       ))}

@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Plus } from 'lucide-react';
-import { useExpenses, useDeleteExpense } from '@/hooks/use-expenses';
+import { Search, Filter, Plus, Edit2, Trash2, ChevronDown, ChevronUp, ShoppingCart, Utensils, Car, FileText, Tv, Heart, ShoppingBag, LucideIcon } from 'lucide-react';
+import { useExpenses, useDeleteExpense, useUpdateExpense } from '@/hooks/use-expenses';
 import { useLiveQuery } from 'dexie-react-hooks';
 import db from '@/lib/db';
 import { getCategoryColor } from '@/lib/categories';
@@ -15,17 +15,56 @@ interface ExpensesProps {
   onOpenExpenseForm: (selectedCategory?: string) => void;
 }
 
+const iconMap: Record<string, LucideIcon> = {
+  'shopping-cart': ShoppingCart,
+  'utensils': Utensils,
+  'car': Car,
+  'file-text': FileText,
+  'tv': Tv,
+  'heart': Heart,
+  'shopping-bag': ShoppingBag,
+};
+
 export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
+  const [expandedExpenses, setExpandedExpenses] = useState<Set<string>>(new Set());
+  const [editingExpense, setEditingExpense] = useState<string | null>(null);
   
   const expenses = useExpenses();
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
   const settings = useSettings();
   const deleteExpenseMutation = useDeleteExpense();
+  const updateExpenseMutation = useUpdateExpense();
   
   const currency = settings?.currency || '₹';
+
+  const getIconComponent = (iconName: string) => {
+    const IconComponent = iconMap[iconName];
+    return IconComponent ? <IconComponent className="w-5 h-5" /> : <FileText className="w-5 h-5" />;
+  };
+
+  const toggleExpand = (expenseId: string) => {
+    setExpandedExpenses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(expenseId)) {
+        newSet.delete(expenseId);
+      } else {
+        newSet.add(expenseId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleEditExpense = (expenseId: string) => {
+    // For now, we'll just show an alert. In a real app, you'd open an edit form
+    const expense = expenses.find(e => e.id === expenseId);
+    if (expense) {
+      // You could pass the expense data to open the form with pre-filled data
+      onOpenExpenseForm(expense.category);
+    }
+  };
 
   // Filter expenses based on search and filters
   const filteredExpenses = expenses.filter(expense => {
@@ -123,7 +162,10 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
                   <SelectItem value="all">All Categories</SelectItem>
                   {categories.map(category => (
                     <SelectItem key={category.id} value={category.id}>
-                      {category.icon} {category.name}
+                      <div className="flex items-center space-x-2">
+                        {getIconComponent(category.icon)}
+                        <span>{category.name}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -173,39 +215,98 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
                     {dateExpenses.map((expense) => {
                       const category = getCategoryInfo(expense.category);
                       const colors = getCategoryColor(category.color);
+                      const isExpanded = expandedExpenses.has(expense.id);
+                      const hasDetails = expense.note || expense.attachments?.length > 0;
                       
                       return (
-                        <div
-                          key={expense.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all hover:scale-[1.02]"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors.bg} ${colors.text}`}>
-                              <span>{category.icon}</span>
+                        <div key={expense.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg transition-all">
+                          <div className="flex items-center justify-between p-3">
+                            <div className="flex items-center space-x-3 flex-1">
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors.bg} ${colors.text}`}>
+                                {getIconComponent(category.icon)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{expense.items || category.name}</p>
+                                {expense.where && (
+                                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{expense.where}</p>
+                                )}
+                                <p className="text-xs text-gray-400 dark:text-gray-500">
+                                  {expense.time} • {expense.paymentMethod} • {expense.account}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium">{expense.items || category.name}</p>
-                              {expense.where && (
-                                <p className="text-sm text-gray-500 dark:text-gray-400">{expense.where}</p>
+                            
+                            <div className="flex items-center space-x-2">
+                              <div className="text-right">
+                                <p className="font-semibold text-red-600 dark:text-red-400">
+                                  {formatAmount(expense.amount)}
+                                </p>
+                              </div>
+                              
+                              <div className="flex space-x-1">
+                                {hasDetails && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleExpand(expense.id)}
+                                    className="text-gray-400 hover:text-blue-500 p-1 h-auto"
+                                    data-testid={`button-expand-${expense.id}`}
+                                  >
+                                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                  </Button>
+                                )}
+                                
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditExpense(expense.id)}
+                                  className="text-gray-400 hover:text-blue-500 p-1 h-auto"
+                                  data-testid={`button-edit-${expense.id}`}
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                                
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteExpense(expense.id)}
+                                  className="text-gray-400 hover:text-red-500 p-1 h-auto"
+                                  data-testid={`button-delete-${expense.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Expanded Details */}
+                          {isExpanded && hasDetails && (
+                            <div className="border-t border-gray-200 dark:border-gray-600 px-3 py-2">
+                              {expense.note && (
+                                <div className="mb-2">
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Notes:</p>
+                                  <p className="text-sm">{expense.note}</p>
+                                </div>
                               )}
-                              <p className="text-xs text-gray-400 dark:text-gray-500">
-                                {expense.time} • {expense.paymentMethod} • {expense.account}
-                              </p>
+                              
+                              {expense.attachments && expense.attachments.length > 0 && (
+                                <div>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Attachments:</p>
+                                  <div className="flex space-x-2">
+                                    {expense.attachments.map((attachment, index) => (
+                                      <img
+                                        key={index}
+                                        src={attachment}
+                                        alt={`Attachment ${index + 1}`}
+                                        className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80"
+                                        onClick={() => window.open(attachment, '_blank')}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-red-600 dark:text-red-400">
-                              {formatAmount(expense.amount)}
-                            </p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteExpense(expense.id)}
-                              className="text-xs text-gray-400 hover:text-red-500 p-1 h-auto"
-                            >
-                              Delete
-                            </Button>
-                          </div>
+                          )}
                         </div>
                       );
                     })}

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock } from 'lucide-react';
+import { Clock, ShoppingCart, Utensils, Car, FileText, Tv, Heart, ShoppingBag, LucideIcon } from 'lucide-react';
 import { useExpenses } from '@/hooks/use-expenses';
 import { useLiveQuery } from 'dexie-react-hooks';
 import db from '@/lib/db';
@@ -13,6 +13,16 @@ interface RecentExpensesProps {
   limit?: number;
 }
 
+const iconMap: Record<string, LucideIcon> = {
+  'shopping-cart': ShoppingCart,
+  'utensils': Utensils,
+  'car': Car,
+  'file-text': FileText,
+  'tv': Tv,
+  'heart': Heart,
+  'shopping-bag': ShoppingBag,
+};
+
 export function RecentExpenses({ onViewAll, limit = 5 }: RecentExpensesProps) {
   const expenses = useExpenses();
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
@@ -21,11 +31,16 @@ export function RecentExpenses({ onViewAll, limit = 5 }: RecentExpensesProps) {
   const currency = settings?.currency || '₹';
   const recentExpenses = expenses.slice(0, limit);
 
+  const getIconComponent = (iconName: string) => {
+    const IconComponent = iconMap[iconName];
+    return IconComponent ? <IconComponent className="w-4 h-4" /> : <FileText className="w-4 h-4" />;
+  };
+
   const getCategoryInfo = (categoryId: string) => {
     return categories.find(cat => cat.id === categoryId) || {
       id: categoryId,
       name: 'Other',
-      icon: '📝',
+      icon: 'file-text',
       color: 'gray'
     };
   };
@@ -92,7 +107,7 @@ export function RecentExpenses({ onViewAll, limit = 5 }: RecentExpensesProps) {
               >
                 <div className="flex items-center space-x-3">
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors.bg} ${colors.text}`}>
-                    <span>{category.icon}</span>
+                    {getIconComponent(category.icon)}
                   </div>
                   <div>
                     <p className="font-medium">{expense.items || category.name}</p>
