@@ -1,8 +1,7 @@
 [build]
   base = "."
   command = "vite build"
-  publish = "dist/public"
-  external = ["@rollup/rollup-linux-x64-gnu"]
+  publish = "dist"   # usually just "dist" for Vite, not "dist/public"
 
 [build.environment]
   NODE_VERSION = "18"
