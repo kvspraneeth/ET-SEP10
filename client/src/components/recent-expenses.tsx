@@ -6,11 +6,13 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import db from '@/lib/db';
 import { getCategoryColor } from '@/lib/categories';
 import { useSettings } from '@/hooks/use-settings';
-import { format, parseISO, isToday, isYesterday } from 'date-fns';
+import { format, parseISO, isToday, isYesterday, startOfDay, endOfDay } from 'date-fns';
+import { DateRange } from 'react-day-picker';
 
 interface RecentExpensesProps {
   onViewAll: () => void;
   limit?: number;
+  dateRange?: DateRange;
 }
 
 const iconMap: Record<string, LucideIcon> = {
@@ -23,12 +25,22 @@ const iconMap: Record<string, LucideIcon> = {
   'shopping-bag': ShoppingBag,
 };
 
-export function RecentExpenses({ onViewAll, limit = 5 }: RecentExpensesProps) {
-  const expenses = useExpenses();
+export function RecentExpenses({ onViewAll, limit = 5, dateRange }: RecentExpensesProps) {
+  const allExpenses = useExpenses();
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
   const settings = useSettings();
   
   const currency = settings?.currency || '₹';
+
+  const expenses = dateRange?.from 
+    ? allExpenses.filter(e => {
+        const expenseDate = new Date(e.date);
+        const from = startOfDay(dateRange.from!);
+        const to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from!);
+        return expenseDate >= from && expenseDate <= to;
+      })
+    : allExpenses;
+
   const recentExpenses = expenses.slice(0, limit);
 
   const getIconComponent = (iconName: string) => {
@@ -68,13 +80,13 @@ export function RecentExpenses({ onViewAll, limit = 5 }: RecentExpensesProps) {
         <CardHeader>
           <CardTitle className="flex items-center text-base">
             <Clock className="w-4 h-4 mr-2 text-primary" />
-            Recent Expenses
+            {dateRange?.from ? 'Expenses in Range' : 'Recent Expenses'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-            <p>No expenses yet</p>
-            <p className="text-sm">Add your first expense to get started!</p>
+            <p>No expenses found</p>
+            <p className="text-sm">{dateRange?.from ? 'Try a different date range.' : 'Add your first expense!'}</p>
           </div>
         </CardContent>
       </Card>
@@ -87,7 +99,7 @@ export function RecentExpenses({ onViewAll, limit = 5 }: RecentExpensesProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center text-base">
             <Clock className="w-4 h-4 mr-2 text-primary" />
-            Recent Expenses
+             {dateRange?.from ? 'Expenses in Range' : 'Recent Expenses'}
           </CardTitle>
           <Button variant="ghost" size="sm" onClick={onViewAll} className="text-primary">
             View All

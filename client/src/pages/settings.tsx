@@ -9,7 +9,7 @@ import { useSettings, useUpdateSettings } from '@/hooks/use-settings';
 import { useTheme } from '@/components/theme-provider';
 import { useToast } from '@/hooks/use-toast';
 import db from '@/lib/db';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export function Settings() {
   const settings = useSettings();
@@ -68,57 +68,65 @@ export function Settings() {
       const budgets = await db.budgets.toArray();
       const categories = await db.categories.toArray();
 
-      // Create workbook with multiple sheets
-      const workbook = XLSX.utils.book_new();
+      const workbook = new ExcelJS.Workbook();
 
       // Expenses sheet
-      const expensesData = expenses.map(expense => ({
-        Date: expense.date,
-        Time: expense.time,
-        Amount: expense.amount,
-        Category: expense.category,
-        Items: expense.items || '',
-        Location: expense.where || '',
-        'Payment Method': expense.paymentMethod,
-        Account: expense.account,
-        Notes: expense.note || '',
-        'Created At': expense.createdAt,
-      }));
-      const expensesSheet = XLSX.utils.json_to_sheet(expensesData);
-      XLSX.utils.book_append_sheet(workbook, expensesSheet, 'Expenses');
+      const expensesSheet = workbook.addWorksheet('Expenses');
+      expensesSheet.columns = [
+        { header: 'Date', key: 'date', width: 15 },
+        { header: 'Time', key: 'time', width: 10 },
+        { header: 'Amount', key: 'amount', width: 15 },
+        { header: 'Category', key: 'category', width: 20 },
+        { header: 'Items', key: 'items', width: 30 },
+        { header: 'Location', key: 'where', width: 20 },
+        { header: 'Payment Method', key: 'paymentMethod', width: 15 },
+        { header: 'Account', key: 'account', width: 15 },
+        { header: 'Notes', key: 'note', width: 30 },
+        { header: 'Created At', key: 'createdAt', width: 20 },
+      ];
+      expenses.forEach(exp => expensesSheet.addRow(exp));
 
       // Budgets sheet
-      const budgetsData = budgets.map(budget => ({
-        Name: budget.name,
-        Amount: budget.amount,
-        Category: budget.category,
-        Period: budget.period,
-        'Start Date': budget.startDate,
-        'Is Active': budget.isActive ? 'Yes' : 'No',
-        'Created At': budget.createdAt,
-      }));
-      const budgetsSheet = XLSX.utils.json_to_sheet(budgetsData);
-      XLSX.utils.book_append_sheet(workbook, budgetsSheet, 'Budgets');
+      const budgetsSheet = workbook.addWorksheet('Budgets');
+      budgetsSheet.columns = [
+        { header: 'Name', key: 'name', width: 20 },
+        { header: 'Amount', key: 'amount', width: 15 },
+        { header: 'Category', key: 'category', width: 20 },
+        { header: 'Period', key: 'period', width: 15 },
+        { header: 'Start Date', key: 'startDate', width: 15 },
+        { header: 'Is Active', key: 'isActive', width: 10 },
+        { header: 'Created At', key: 'createdAt', width: 20 },
+      ];
+      budgets.forEach(b => budgetsSheet.addRow(b));
 
       // Categories sheet
-      const categoriesData = categories.map(category => ({
-        Name: category.name,
-        Icon: category.icon,
-        Color: category.color,
-        'Is Default': category.isDefault ? 'Yes' : 'No',
-      }));
-      const categoriesSheet = XLSX.utils.json_to_sheet(categoriesData);
-      XLSX.utils.book_append_sheet(workbook, categoriesSheet, 'Categories');
+      const categoriesSheet = workbook.addWorksheet('Categories');
+      categoriesSheet.columns = [
+        { header: 'Name', key: 'name', width: 20 },
+        { header: 'Icon', key: 'icon', width: 10 },
+        { header: 'Color', key: 'color', width: 15 },
+        { header: 'Is Default', key: 'isDefault', width: 10 },
+      ];
+      categories.forEach(c => categoriesSheet.addRow(c));
 
-      // Export file
-      const fileName = `expense-tracker-${new Date().toISOString().split('T')[0]}.xlsx`;
-      XLSX.writeFile(workbook, fileName);
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `expense-tracker-${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
       toast({
         title: "Success",
         description: "Excel file exported successfully!",
       });
     } catch (error) {
+      console.error(error);
       toast({
         title: "Error",
         description: "Failed to export Excel file.",
@@ -137,12 +145,10 @@ export function Settings() {
         const data = JSON.parse(e.target?.result as string);
         
         if (confirm('This will replace all your current data. Are you sure?')) {
-          // Clear existing data
           await db.expenses.clear();
           await db.budgets.clear();
           await db.categories.clear();
           
-          // Import new data
           if (data.expenses) await db.expenses.bulkAdd(data.expenses);
           if (data.budgets) await db.budgets.bulkAdd(data.budgets);
           if (data.categories) await db.categories.bulkAdd(data.categories);
@@ -162,8 +168,6 @@ export function Settings() {
       }
     };
     reader.readAsText(file);
-    
-    // Reset input
     event.target.value = '';
   };
 
@@ -174,83 +178,94 @@ export function Settings() {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
-        
+        const buffer = e.target?.result as ArrayBuffer;
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(buffer);
+
         if (confirm('This will replace all your current data. Are you sure?')) {
-          // Clear existing data
           await db.expenses.clear();
           await db.budgets.clear();
           await db.categories.clear();
-          
-          // Import expenses
-          if (workbook.SheetNames.includes('Expenses')) {
-            const expensesSheet = workbook.Sheets['Expenses'];
-            const expensesData = XLSX.utils.sheet_to_json(expensesSheet);
-            
-            const expenses = expensesData.map((row: any) => ({
-              id: crypto.randomUUID(),
-              date: row.Date || new Date().toISOString().split('T')[0],
-              time: row.Time || '00:00',
-              amount: parseFloat(row.Amount) || 0,
-              category: row.Category || 'other',
-              items: row.Items || '',
-              where: row.Location || '',
-              paymentMethod: row['Payment Method'] || 'UPI',
-              account: row.Account || 'Other',
-              note: row.Notes || '',
-              isRecurring: false,
-              isTemplate: false,
-              attachments: [],
-              createdAt: row['Created At'] || new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }));
-            
+
+          // Expenses
+          const expensesSheet = workbook.getWorksheet('Expenses');
+          if (expensesSheet) {
+            const expenses: any[] = [];
+            expensesSheet.eachRow((row, rowNumber) => {
+              if (rowNumber === 1) return; // skip header
+              const [
+                Date, Time, Amount, Category, Items, Location,
+                PaymentMethod, Account, Notes, CreatedAt
+              ] = row.values as any[];
+
+              expenses.push({
+                id: crypto.randomUUID(),
+                date: Date || new Date().toISOString().split('T')[0],
+                time: Time || '00:00',
+                amount: parseFloat(Amount) || 0,
+                category: Category || 'other',
+                items: Items || '',
+                where: Location || '',
+                paymentMethod: PaymentMethod || 'UPI',
+                account: Account || 'Other',
+                note: Notes || '',
+                isRecurring: false,
+                isTemplate: false,
+                attachments: [],
+                createdAt: CreatedAt || new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              });
+            });
             await db.expenses.bulkAdd(expenses);
           }
-          
-          // Import budgets
-          if (workbook.SheetNames.includes('Budgets')) {
-            const budgetsSheet = workbook.Sheets['Budgets'];
-            const budgetsData = XLSX.utils.sheet_to_json(budgetsSheet);
-            
-            const budgets = budgetsData.map((row: any) => ({
-              id: crypto.randomUUID(),
-              name: row.Name || 'Budget',
-              amount: parseFloat(row.Amount) || 0,
-              category: row.Category || 'other',
-              period: row.Period || 'monthly',
-              startDate: row['Start Date'] || new Date().toISOString().split('T')[0],
-              isActive: row['Is Active'] === 'Yes',
-              createdAt: row['Created At'] || new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }));
-            
+
+          // Budgets
+          const budgetsSheet = workbook.getWorksheet('Budgets');
+          if (budgetsSheet) {
+            const budgets: any[] = [];
+            budgetsSheet.eachRow((row, rowNumber) => {
+              if (rowNumber === 1) return;
+              const [Name, Amount, Category, Period, StartDate, IsActive, CreatedAt] = row.values as any[];
+              budgets.push({
+                id: crypto.randomUUID(),
+                name: Name || 'Budget',
+                amount: parseFloat(Amount) || 0,
+                category: Category || 'other',
+                period: Period || 'monthly',
+                startDate: StartDate || new Date().toISOString().split('T')[0],
+                isActive: IsActive === 'Yes' || IsActive === true,
+                createdAt: CreatedAt || new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              });
+            });
             await db.budgets.bulkAdd(budgets);
           }
-          
-          // Import categories
-          if (workbook.SheetNames.includes('Categories')) {
-            const categoriesSheet = workbook.Sheets['Categories'];
-            const categoriesData = XLSX.utils.sheet_to_json(categoriesSheet);
-            
-            const categories = categoriesData.map((row: any) => ({
-              id: crypto.randomUUID(),
-              name: row.Name || 'Category',
-              icon: row.Icon || '📝',
-              color: row.Color || 'gray',
-              isDefault: row['Is Default'] === 'Yes',
-            }));
-            
+
+          // Categories
+          const categoriesSheet = workbook.getWorksheet('Categories');
+          if (categoriesSheet) {
+            const categories: any[] = [];
+            categoriesSheet.eachRow((row, rowNumber) => {
+              if (rowNumber === 1) return;
+              const [Name, Icon, Color, IsDefault] = row.values as any[];
+              categories.push({
+                id: crypto.randomUUID(),
+                name: Name || 'Category',
+                icon: Icon || '📝',
+                color: Color || 'gray',
+                isDefault: IsDefault === 'Yes' || IsDefault === true,
+              });
+            });
             await db.categories.bulkAdd(categories);
           }
-          
+
           toast({
             title: "Success",
             description: "Excel data imported successfully!",
           });
         }
       } catch (error) {
+        console.error(error);
         toast({
           title: "Error",
           description: "Failed to import Excel file. Please check the file format.",
@@ -258,9 +273,7 @@ export function Settings() {
         });
       }
     };
-    reader.readAsBinaryString(file);
-    
-    // Reset input
+    reader.readAsArrayBuffer(file);
     event.target.value = '';
   };
 
@@ -271,7 +284,6 @@ export function Settings() {
         await db.budgets.clear();
         await db.categories.clear();
         
-        // Reset settings to defaults
         await updateSettingsMutation.mutateAsync({
           currency: '₹',
           theme: 'light',
@@ -492,7 +504,7 @@ export function Settings() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-500 dark:text-gray-400">Version</span>
-              <span>1.0.0</span>
+              <span>1.5.0</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500 dark:text-gray-400">Build</span>

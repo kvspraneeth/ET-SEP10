@@ -1,194 +1,173 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useExpenses } from '@/hooks/use-expenses';
 import { useLiveQuery } from 'dexie-react-hooks';
 import db from '@/lib/db';
-import { startOfWeek, format, parseISO, eachDayOfInterval, endOfWeek } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, format, parseISO, eachDayOfInterval, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { DateRange } from 'react-day-picker';
+import { DateRangePicker } from './date-range-picker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 const COLORS = ['#22c55e', '#8b5cf6', '#3b82f6', '#ef4444', '#f59e0b', '#06b6d4', '#ec4899'];
 
 export function ExpenseCharts() {
   const expenses = useExpenses();
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
+  const [aggregation, setAggregation] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('month');
+  const [filterType, setFilterType] = useState<'category' | 'account' | 'paymentMethod'>('category');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  // Category data for pie chart
-  const categoryData = categories.map((category) => {
-    const categoryExpenses = expenses.filter(expense => expense.category === category.id);
-    const total = categoryExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    
-    return {
-      name: category.name,
-      value: total,
-      icon: category.icon,
-    };
-  }).filter(item => item.value > 0);
 
-  // Daily spending data for bar chart
   const now = new Date();
-  const weekStart = startOfWeek(now);
-  const weekEnd = endOfWeek(now);
-  const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
+  let interval: { start: Date, end: Date };
 
-  const dailyData = days.map((day) => {
+  switch (aggregation) {
+    case 'today':
+      interval = { start: startOfDay(now), end: endOfDay(now) };
+      break;
+    case 'week':
+      interval = { start: startOfWeek(now), end: endOfWeek(now) };
+      break;
+    case 'month':
+      interval = { start: startOfMonth(now), end: endOfMonth(now) };
+      break;
+    case 'year':
+      interval = { start: startOfYear(now), end: endOfYear(now) };
+      break;
+    case 'custom':
+      interval = { 
+        start: dateRange?.from ? startOfDay(dateRange.from) : startOfDay(now),
+        end: dateRange?.to ? endOfDay(dateRange.to) : (dateRange?.from ? endOfDay(dateRange.from) : endOfDay(now))
+      };
+      break;
+    default:
+      interval = { start: startOfMonth(now), end: endOfMonth(now) };
+  }
+
+  const filteredExpenses = expenses.filter(e => {
+    const expenseDate = new Date(e.date);
+    return expenseDate >= interval.start && expenseDate <= interval.end;
+  });
+
+  const chartData = filteredExpenses.reduce((acc, expense) => {
+    const key = expense[filterType] as string;
+    if (!acc[key]) {
+      acc[key] = { name: key, value: 0 };
+    }
+    acc[key].value += expense.amount;
+    return acc;
+  }, {} as Record<string, { name: string, value: number }>);
+
+  const pieData = Object.values(chartData).map(item => {
+    if (filterType === 'category') {
+      const category = categories.find(c => c.id === item.name);
+      return { ...item, name: category?.name || 'Other' };
+    }
+    return item;
+  });
+
+  const barChartData = eachDayOfInterval(interval).map((day) => {
     const dayStr = format(day, 'yyyy-MM-dd');
-    const dayExpenses = expenses.filter(expense => expense.date === dayStr);
+    const dayExpenses = filteredExpenses.filter(expense => expense.date === dayStr);
     const total = dayExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    
     return {
-      name: format(day, 'EEE'),
+      name: format(day, 'MMM d'),
       amount: total,
     };
   });
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-          <p className="font-medium">{`${label}: ₹${payload[0].value.toLocaleString()}`}</p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const PieTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-          <p className="font-medium">{`${data.icon} ${data.name}: ₹${data.value.toLocaleString()}`}</p>
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Category Pie Chart */}
+    <div className="space-y-6 p-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Analytics</h1>
+          <p className="text-gray-500 dark:text-gray-400">
+            Visualize your spending patterns
+          </p>
+        </div>
+        <div className="flex flex-col md:flex-row gap-2">
+            <Select value={aggregation} onValueChange={(value) => setAggregation(value as any)}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                    <SelectValue placeholder="Select period" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="week">This Week</SelectItem>
+                    <SelectItem value="month">This Month</SelectItem>
+                    <SelectItem value="year">This Year</SelectItem>
+                    <SelectItem value="custom">Custom Range</SelectItem>
+                </SelectContent>
+            </Select>
+            <Select value={filterType} onValueChange={(value) => setFilterType(value as any)}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                    <SelectValue placeholder="Filter by" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="category">By Category</SelectItem>
+                    <SelectItem value="account">By Account</SelectItem>
+                    <SelectItem value="paymentMethod">By Payment Method</SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
+      </div>
+      
+      {aggregation === 'custom' && (
+        <DateRangePicker date={dateRange} onDateChange={setDateRange} />
+      )}
+
       <Card className="bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center text-base">
-            <span className="w-4 h-4 mr-2">📊</span>
-            Spending by Category
+          <CardTitle className="flex items-center text-base capitalize">
+            {filterType.replace(/([A-Z])/g, ' $1')} Breakdown
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          {categoryData.length > 0 ? (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<PieTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+        <CardContent className="p-4">
+          {pieData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={60} outerRadius={80} paddingAngle={5}>
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: any) => `₹${Number(value).toLocaleString()}`} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
           ) : (
             <div className="h-80 flex items-center justify-center text-gray-500 dark:text-gray-400">
-              <p>No expenses to display</p>
+              <p>No expenses for this period</p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Daily Bar Chart */}
       <Card className="bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center text-base">
-            <span className="w-4 h-4 mr-2">📊</span>
-            Daily Spending Trend
+            Spending Trend
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dailyData}>
+        <CardContent className="p-4">
+          {barChartData.some(d => d.amount > 0) ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={barChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="amount" fill="#6366f1" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip formatter={(value: any) => `₹${Number(value).toLocaleString()}`} />
+                <Bar dataKey="amount" fill="#8b5cf6" />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          ) : (
+            <div className="h-48 flex items-center justify-center text-gray-500 dark:text-gray-400">
+              <p>No data for selected range</p>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {/* Top Spending Locations */}
-      <Card className="bg-white dark:bg-gray-800 shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center text-base">
-            <span className="w-4 h-4 mr-2">📍</span>
-            Top Spending Locations
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <TopLocations expenses={expenses} />
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function TopLocations({ expenses }: { expenses: any[] }) {
-  const locationData = expenses
-    .filter(expense => expense.where)
-    .reduce((acc, expense) => {
-      const location = expense.where;
-      if (!acc[location]) {
-        acc[location] = { total: 0, count: 0 };
-      }
-      acc[location].total += expense.amount;
-      acc[location].count += 1;
-      return acc;
-    }, {} as Record<string, { total: number; count: number }>);
-
-  const topLocations = Object.entries(locationData)
-    .map(([location, data]) => ({
-      location,
-      total: data.total,
-      count: data.count,
-    }))
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 5);
-
-  if (topLocations.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-        <p>No location data available</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {topLocations.map((item, index) => (
-        <div
-          key={item.location}
-          className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-        >
-          <div>
-            <p className="font-medium">{item.location}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {item.count} transaction{item.count !== 1 ? 's' : ''}
-            </p>
-          </div>
-          <p className="font-semibold text-red-600 dark:text-red-400">
-            ₹{item.total.toLocaleString()}
-          </p>
-        </div>
-      ))}
     </div>
   );
 }

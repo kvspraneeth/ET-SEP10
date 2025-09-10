@@ -3,46 +3,36 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Plus, Edit2, Trash2, ChevronDown, ChevronUp, ShoppingCart, Utensils, Car, FileText, Tv, Heart, ShoppingBag, LucideIcon } from 'lucide-react';
-import { useExpenses, useDeleteExpense, useUpdateExpense } from '@/hooks/use-expenses';
+import { Search, Plus, Edit2, Trash2, ChevronDown, ChevronUp, FileText, LucideIcon } from 'lucide-react';
+import { useExpenses, useDeleteExpense } from '@/hooks/use-expenses';
 import { useLiveQuery } from 'dexie-react-hooks';
 import db from '@/lib/db';
-import { getCategoryColor } from '@/lib/categories';
+import { getCategoryColor, DEFAULT_CATEGORIES } from '@/lib/categories';
 import { useSettings } from '@/hooks/use-settings';
-import { format, parseISO, isToday, isYesterday } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { Expense } from '@shared/schema';
 
 interface ExpensesProps {
-  onOpenExpenseForm: (selectedCategory?: string) => void;
+  onOpenExpenseForm: (payload?: string | any) => void;
 }
-
-const iconMap: Record<string, LucideIcon> = {
-  'shopping-cart': ShoppingCart,
-  'utensils': Utensils,
-  'car': Car,
-  'file-text': FileText,
-  'tv': Tv,
-  'heart': Heart,
-  'shopping-bag': ShoppingBag,
-};
 
 export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [expandedExpenses, setExpandedExpenses] = useState<Set<string>>(new Set());
-  const [editingExpense, setEditingExpense] = useState<string | null>(null);
-  
+
   const expenses = useExpenses();
-  const categories = useLiveQuery(() => db.categories.toArray()) || [];
+  const categories = useLiveQuery(() => db.categories.toArray(), [], DEFAULT_CATEGORIES);
   const settings = useSettings();
   const deleteExpenseMutation = useDeleteExpense();
-  const updateExpenseMutation = useUpdateExpense();
-  
+
   const currency = settings?.currency || '₹';
 
   const getIconComponent = (iconName: string) => {
-    const IconComponent = iconMap[iconName];
-    return IconComponent ? <IconComponent className="w-5 h-5" /> : <FileText className="w-5 h-5" />;
+    // This is a placeholder for your actual icon map from categories.ts
+    // For this example, we'll just return a default icon.
+    return <FileText className="w-5 h-5" />;
   };
 
   const toggleExpand = (expenseId: string) => {
@@ -57,29 +47,29 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
     });
   };
 
-  const handleEditExpense = (expenseId: string) => {
-    // For now, we'll just show an alert. In a real app, you'd open an edit form
-    const expense = expenses.find(e => e.id === expenseId);
-    if (expense) {
-      // You could pass the expense data to open the form with pre-filled data
-      onOpenExpenseForm(expense.category);
+  const handleEditExpense = (expense: Expense) => {
+    onOpenExpenseForm(expense);
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this expense?')) {
+      await deleteExpenseMutation.mutateAsync(id);
     }
   };
 
-  // Filter expenses based on search and filters
   const filteredExpenses = expenses.filter(expense => {
-    const matchesSearch = !searchTerm || 
-      expense.items?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.where?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.note?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    const matchesSearch = !searchTerm ||
+      expense.items?.toLowerCase().includes(lowerCaseSearchTerm) ||
+      expense.where?.toLowerCase().includes(lowerCaseSearchTerm) ||
+      expense.note?.toLowerCase().includes(lowerCaseSearchTerm);
+
     const matchesCategory = categoryFilter === 'all' || expense.category === categoryFilter;
     const matchesPayment = paymentFilter === 'all' || expense.paymentMethod === paymentFilter;
-    
+
     return matchesSearch && matchesCategory && matchesPayment;
   });
 
-  // Group expenses by date
   const groupedExpenses = filteredExpenses.reduce((groups, expense) => {
     const date = expense.date;
     if (!groups[date]) {
@@ -87,43 +77,12 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
     }
     groups[date].push(expense);
     return groups;
-  }, {} as Record<string, typeof expenses>);
-
-  const getCategoryInfo = (categoryId: string) => {
-    return categories.find(cat => cat.id === categoryId) || {
-      id: categoryId,
-      name: 'Other',
-      icon: '📝',
-      color: 'gray'
-    };
-  };
-
-  const formatDate = (dateStr: string) => {
-    const date = parseISO(dateStr);
-    if (isToday(date)) {
-      return 'Today';
-    } else if (isYesterday(date)) {
-      return 'Yesterday';
-    } else {
-      return format(date, 'MMMM d, yyyy');
-    }
-  };
-
-  const formatAmount = (amount: number) => {
-    return `-${currency}${amount.toLocaleString()}`;
-  };
-
-  const handleDeleteExpense = async (id: string) => {
-    if (confirm('Are you sure you want to delete this expense?')) {
-      await deleteExpenseMutation.mutateAsync(id);
-    }
-  };
+  }, {} as Record<string, Expense[]>);
 
   const totalAmount = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
   return (
     <div className="p-4 space-y-4">
-      {/* Header with total */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Expenses</h1>
@@ -137,184 +96,110 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
         </Button>
       </div>
 
-      {/* Search and Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="space-y-3">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search expenses..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Input
+            placeholder="Search expenses..."
+            className="pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Filter by category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Filter by payment method" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Payment Methods</SelectItem>
+            <SelectItem value="UPI">UPI</SelectItem>
+            <SelectItem value="Cash">Cash</SelectItem>
+            <SelectItem value="Card">Card</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-            {/* Filters */}
-            <div className="grid grid-cols-2 gap-3">
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center space-x-2">
-                        {getIconComponent(category.icon)}
-                        <span>{category.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Payments" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Payments</SelectItem>
-                  <SelectItem value="UPI">UPI</SelectItem>
-                  <SelectItem value="Card">Card</SelectItem>
-                  <SelectItem value="Net Banking">Net Banking</SelectItem>
-                  <SelectItem value="Cash">Cash</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Expenses List */}
       {Object.keys(groupedExpenses).length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <p className="text-gray-500 dark:text-gray-400">No expenses found</p>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-              {searchTerm || categoryFilter !== 'all' || paymentFilter !== 'all'
-                ? 'Try adjusting your filters'
-                : 'Add your first expense to get started!'
-              }
-            </p>
+            <p className="text-gray-500 dark:text-gray-400">No expenses found for the selected filters.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
-          {Object.entries(groupedExpenses)
-            .sort(([a], [b]) => b.localeCompare(a)) // Sort by date desc
-            .map(([date, dateExpenses]) => (
-              <Card key={date}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">{formatDate(date)}</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-3">
-                    {dateExpenses.map((expense) => {
-                      const category = getCategoryInfo(expense.category);
-                      const colors = getCategoryColor(category.color);
-                      const isExpanded = expandedExpenses.has(expense.id);
-                      const hasDetails = expense.note || expense.attachments?.length > 0;
-                      
-                      return (
-                        <div key={expense.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg transition-all">
-                          <div className="flex items-center justify-between p-3">
-                            <div className="flex items-center space-x-3 flex-1">
-                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors.bg} ${colors.text}`}>
-                                {getIconComponent(category.icon)}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{expense.items || category.name}</p>
-                                {expense.where && (
-                                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{expense.where}</p>
-                                )}
-                                <p className="text-xs text-gray-400 dark:text-gray-500">
-                                  {expense.time} • {expense.paymentMethod} • {expense.account}
-                                </p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center space-x-2">
-                              <div className="text-right">
-                                <p className="font-semibold text-red-600 dark:text-red-400">
-                                  {formatAmount(expense.amount)}
-                                </p>
-                              </div>
-                              
-                              <div className="flex space-x-1">
-                                {hasDetails && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => toggleExpand(expense.id)}
-                                    className="text-gray-400 hover:text-blue-500 p-1 h-auto"
-                                    data-testid={`button-expand-${expense.id}`}
-                                  >
-                                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                                  </Button>
-                                )}
-                                
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleEditExpense(expense.id)}
-                                  className="text-gray-400 hover:text-blue-500 p-1 h-auto"
-                                  data-testid={`button-edit-${expense.id}`}
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </Button>
-                                
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeleteExpense(expense.id)}
-                                  className="text-gray-400 hover:text-red-500 p-1 h-auto"
-                                  data-testid={`button-delete-${expense.id}`}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
+          {Object.entries(groupedExpenses).sort(([dateA], [dateB]) => new Date(dateB).getTime() - new Date(dateA).getTime()).map(([date, items]) => (
+            <Card key={date}>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  {format(parseISO(date), 'MMMM d, yyyy')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="divide-y divide-gray-200 dark:divide-gray-700">
+                {items.map((expense) => {
+                  const category = categories.find(c => c.id === expense.category) || { id: expense.category, name: 'Other', icon: 'file-text', color: 'gray' };
+                  const isExpanded = expandedExpenses.has(expense.id);
+
+                  return (
+                    <div key={expense.id} className="py-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <div className={`w-10 h-10 rounded-md flex items-center justify-center ${getCategoryColor(category.color).bg} ${getCategoryColor(category.color).text}`}>
+                            {getIconComponent(category.icon)}
                           </div>
-                          
-                          {/* Expanded Details */}
-                          {isExpanded && hasDetails && (
-                            <div className="border-t border-gray-200 dark:border-gray-600 px-3 py-2">
-                              {expense.note && (
-                                <div className="mb-2">
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Notes:</p>
-                                  <p className="text-sm">{expense.note}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{expense.items || category.name}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                              {expense.where || expense.time}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 ml-2">
+                          <p className="font-semibold text-red-600 dark:text-red-400">{`-${currency}${expense.amount.toLocaleString()}`}</p>
+                          <Button variant="ghost" size="icon" onClick={() => toggleExpand(expense.id)} className="h-8 w-8 text-gray-400 hover:text-blue-500">
+                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleEditExpense(expense)} className="h-8 w-8 text-gray-400 hover:text-blue-500">
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteExpense(expense.id)} className="h-8 w-8 text-gray-400 hover:text-red-500">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <div className="mt-3 pl-14 text-sm">
+                            <p className="text-gray-500 dark:text-gray-400"><strong>Paid with:</strong> {expense.paymentMethod} ({expense.account})</p>
+                          {expense.note && (
+                            <p className="mt-2 text-gray-700 dark:text-gray-300"><strong>Note:</strong> {expense.note}</p>
+                          )}
+                          {expense.attachments && expense.attachments.length > 0 && (
+                            <div className="mt-2">
+                                <p className="font-medium mb-1">Receipts:</p>
+                                <div className="grid grid-cols-3 gap-2">
+                                {expense.attachments.map((att, i) => (
+                                    <img key={i} src={att} className="w-full h-20 object-cover rounded" alt={`attachment ${i + 1}`} />
+                                ))}
                                 </div>
-                              )}
-                              
-                              {expense.attachments && expense.attachments.length > 0 && (
-                                <div>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Attachments:</p>
-                                  <div className="flex space-x-2">
-                                    {expense.attachments.map((attachment, index) => (
-                                      <img
-                                        key={index}
-                                        src={attachment}
-                                        alt={`Attachment ${index + 1}`}
-                                        className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80"
-                                        onClick={() => window.open(attachment, '_blank')}
-                                      />
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
                             </div>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          }
+                      )}
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>

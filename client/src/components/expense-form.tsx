@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, Upload, Loader2 } from 'lucide-react';
@@ -11,24 +11,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { CategorySelector } from './category-selector';
 import { DatePicker } from './date-picker';
-import { useAddExpense } from '@/hooks/use-expenses';
-import { expenseFormSchema } from '@shared/schema';
+import { useAddExpense, useUpdateExpense } from '@/hooks/use-expenses';
+import { expenseFormSchema, Expense } from '@shared/schema';
 import { format, parseISO } from 'date-fns';
+
 
 interface ExpenseFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   preSelectedCategory?: string;
+  editingExpense?: Expense | null;
 }
 
-export function ExpenseForm({ open, onOpenChange, preSelectedCategory }: ExpenseFormProps) {
+export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingExpense }: ExpenseFormProps) {
   const [attachments, setAttachments] = useState<string[]>([]);
   const addExpenseMutation = useAddExpense();
+  const updateExpenseMutation = useUpdateExpense();
 
   const form = useForm({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
-      amount: '' as any, // Start with empty string, will be converted to number on submission
+      amount: '' as any,
       date: format(new Date(), 'yyyy-MM-dd'),
       time: format(new Date(), 'HH:mm'),
       category: '',
@@ -36,28 +39,50 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory }: Expense
       where: '',
       note: '',
       paymentMethod: 'UPI' as const,
-      account: 'ICICI' as const,
+      account: '' as any,
       isRecurring: false,
       isTemplate: false,
       attachments: [],
+      id: '' as any,
     },
   });
 
-  // Update category when preSelectedCategory changes
-  if (preSelectedCategory && form.getValues('category') !== preSelectedCategory) {
-    form.setValue('category', preSelectedCategory);
-  }
+  // This effect correctly resets the form state based on the props when the dialog opens.
+  useEffect(() => {
+    // We only want this effect to run when the dialog is opened.
+    if (open) {
+      if (editingExpense) {
+        // When editing, populate the form with the existing expense data.
+        form.reset(editingExpense);
+        setAttachments(editingExpense.attachments || []);
+      } else {
+        // When adding a new expense, reset to default values.
+        // Use preSelectedCategory if it's passed as a prop.
+        form.reset({
+          amount: '' as any,
+          date: format(new Date(), 'yyyy-MM-dd'),
+          time: format(new Date(), 'HH:mm'),
+          category: preSelectedCategory || '',
+          items: '',
+          where: '',
+          note: '',
+          paymentMethod: 'UPI' as const,
+          account: '' as any,
+          isRecurring: false,
+          isTemplate: false,
+          attachments: [],
+          id: undefined,
+        });
+        setAttachments([]);
+      }
+    }
+  }, [open, editingExpense, preSelectedCategory, form]); // Corrected dependency array
+
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
-
     Array.from(files).forEach((file) => {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        alert('File size must be less than 5MB');
-        return;
-      }
-
       const reader = new FileReader();
       reader.onload = (e) => {
         const base64 = e.target?.result as string;
@@ -67,34 +92,29 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory }: Expense
     });
   };
 
-  const onSubmit = async (data: any) => {
-    try {
-      await addExpenseMutation.mutateAsync({
-        ...data,
-        amount: parseFloat(data.amount) || 0, // Convert string to number
-        attachments,
-      });
-      
-      // Reset form and close modal
-      form.reset();
-      setAttachments([]);
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to submit expense:', error);
-    }
-  };
-
   const handleClose = () => {
-    form.reset();
-    setAttachments([]);
     onOpenChange(false);
   };
 
+  const onSubmit = async (data: any) => {
+    try {
+      const payload = { ...data, attachments };
+      if (editingExpense && editingExpense.id) {
+        await updateExpenseMutation.mutateAsync({ ...payload, id: editingExpense.id });
+      } else {
+        await addExpenseMutation.mutateAsync(payload);
+      }
+      handleClose();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Expense</DialogTitle>
+          <DialogTitle>{editingExpense ? 'Edit Expense' : 'Add Expense'}</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -108,16 +128,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory }: Expense
                   <FormLabel>Amount <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
-                      <Input
-                        type="number"
-                        placeholder="Enter amount (e.g., 150.00)"
-                        className="pl-8"
-                        min="0"
-                        step="0.01"
-                        {...field}
-                        onChange={(e) => field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value) || '')}
-                      />
+                      <Input {...field} placeholder="0.00" type="number" step="0.01" />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -125,18 +136,48 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory }: Expense
               )}
             />
 
-            {/* Category Selection */}
+            {/* Date */}
+             <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                   <DatePicker
+                      date={field.value ? parseISO(field.value) : undefined}
+                      onDateChange={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                    />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Time */}
+            <FormField
+              control={form.control}
+              name="time"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Time</FormLabel>
+                  <FormControl>
+                    <Input {...field} type="time" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Category */}
             <FormField
               control={form.control}
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category <span className="text-red-500">*</span></FormLabel>
+                  <FormLabel>Category</FormLabel>
                   <FormControl>
                     <CategorySelector
                       selectedCategory={field.value}
                       onCategorySelect={field.onChange}
-                      variant="button"
                     />
                   </FormControl>
                   <FormMessage />
@@ -144,131 +185,33 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory }: Expense
               )}
             />
 
-            {/* Date and Time */}
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date</FormLabel>
-                    <FormControl>
-                      <DatePicker
-                        date={field.value ? parseISO(field.value) : new Date()}
-                        onDateChange={(date) => 
-                          field.onChange(date ? format(date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'))
-                        }
-                        placeholder="Select date"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Time</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Items/Description */}
+            {/* Items/Where/Note */}
             <FormField
               control={form.control}
               name="items"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>What did you buy?</FormLabel>
+                  <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="e.g., Weekly groceries, Lunch, Movie tickets"
-                      {...field}
-                    />
+                    <Input {...field} placeholder="What did you buy?" />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Location */}
             <FormField
               control={form.control}
               name="where"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Where?</FormLabel>
+                  <FormLabel>Where</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="e.g., Big Bazaar, Restaurant name"
-                      {...field}
-                    />
+                    <Input {...field} placeholder="Vendor or place" />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Payment Method */}
-            <FormField
-              control={form.control}
-              name="paymentMethod"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Method</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select payment method" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="UPI">UPI</SelectItem>
-                      <SelectItem value="Card">Debit/Credit Card</SelectItem>
-                      <SelectItem value="Net Banking">Net Banking</SelectItem>
-                      <SelectItem value="Cash">Cash</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Account */}
-            <FormField
-              control={form.control}
-              name="account"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Account</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select account" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="ICICI">ICICI Bank</SelectItem>
-                      <SelectItem value="SBI">State Bank of India</SelectItem>
-                      <SelectItem value="HDFC">HDFC Bank</SelectItem>
-                      <SelectItem value="Axis">Axis Bank</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Notes */}
             <FormField
               control={form.control}
               name="note"
@@ -276,64 +219,103 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory }: Expense
                 <FormItem>
                   <FormLabel>Notes (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Any additional notes..."
-                      rows={3}
-                      {...field}
-                    />
+                    <Textarea {...field} placeholder="Any additional notes..." rows={3} />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* File Attachment */}
-            <div>
-              <Label>Attach Receipt (Optional)</Label>
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center hover:border-primary transition-colors mt-2">
-                <input
-                  type="file"
-                  id="fileUpload"
-                  multiple
-                  accept="image/*,.pdf,.doc,.docx"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-                <label htmlFor="fileUpload" className="cursor-pointer">
-                  <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">Tap to upload receipt</p>
-                  <p className="text-xs text-gray-400">Images, PDF, DOC (Max 5MB)</p>
-                </label>
-              </div>
-              {attachments.length > 0 && (
-                <p className="text-sm text-gray-600 mt-2">
-                  {attachments.length} file(s) attached
-                </p>
-              )}
+            {/* Payment Method and Account */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="paymentMethod"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Payment Method</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a method" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="UPI">UPI</SelectItem>
+                        <SelectItem value="Cash">Cash</SelectItem>
+                        <SelectItem value="Card">Card</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="account"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Account</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an account" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="ICICI">ICICI</SelectItem>
+                        <SelectItem value="HDFC">HDFC</SelectItem>
+                        <SelectItem value="SBI">SBI</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
-            {/* Submit Buttons */}
-            <div className="flex space-x-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={handleClose}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1"
-                disabled={addExpenseMutation.isPending}
-              >
-                {addExpenseMutation.isPending ? (
+
+            {/* Attachments */}
+            <div>
+              <Label htmlFor="attachments">Attachments</Label>
+              <div className="mt-2 flex items-center justify-center w-full">
+                <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Upload className="w-8 h-8 mb-2 text-gray-500 dark:text-gray-400" />
+                    <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                  </div>
+                  <input id="file-upload" type="file" className="hidden" onChange={handleFileUpload} multiple />
+                </label>
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {attachments.map((att, i) => (
+                  <div key={i} className="relative">
+                    <img src={att} className="w-full h-20 object-cover rounded" alt={`attachment ${i + 1}`} />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6"
+                      onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+
+            <div className="flex justify-end pt-4">
+              <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={addExpenseMutation.isPending || updateExpenseMutation.isPending}>
+                {addExpenseMutation.isPending || updateExpenseMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Saving...
                   </>
                 ) : (
-                  'Save Expense'
+                  editingExpense ? 'Update Expense' : 'Save Expense'
                 )}
               </Button>
             </div>
@@ -343,3 +325,4 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory }: Expense
     </Dialog>
   );
 }
+

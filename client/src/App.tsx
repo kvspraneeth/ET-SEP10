@@ -13,21 +13,38 @@ import { Expenses } from "@/pages/expenses";
 import { Charts } from "@/pages/charts";
 import { Budget } from "@/pages/budget";
 import { Settings } from "@/pages/settings";
+import { Expense } from "@shared/schema";
 
 function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
-  const handleOpenExpenseForm = (categoryId?: string) => {
-    setSelectedCategory(categoryId);
+  const handleOpenExpenseForm = (payload?: string | any) => {
+    // payload can be either a categoryId (string) or an Expense object for editing
+    if (payload && typeof payload === 'object' && payload.id) {
+      // Create a deep copy to avoid reference issues
+      setEditingExpense(JSON.parse(JSON.stringify(payload)));
+      setSelectedCategory(payload.category);
+    } else if (typeof payload === 'string') {
+      setSelectedCategory(payload);
+      setEditingExpense(null);
+    } else {
+      setSelectedCategory(undefined);
+      setEditingExpense(null);
+    }
     setIsExpenseFormOpen(true);
   };
 
   const handleCloseExpenseForm = (open: boolean) => {
     setIsExpenseFormOpen(open);
+    // We delay resetting the editingExpense to allow the closing animation to finish
     if (!open) {
-      setSelectedCategory(undefined);
+      setTimeout(() => {
+        setEditingExpense(null);
+        setSelectedCategory(undefined);
+      }, 200); // 200ms delay
     }
   };
 
@@ -61,15 +78,16 @@ function App() {
 
             <FloatingActionButton onClick={() => handleOpenExpenseForm()} />
             <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-            
-            <ExpenseForm 
+       
+            <ExpenseForm
               open={isExpenseFormOpen} 
               onOpenChange={handleCloseExpenseForm}
               preSelectedCategory={selectedCategory}
+              editingExpense={editingExpense}
             />
-          </div>
           
           <Toaster />
+          </div>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

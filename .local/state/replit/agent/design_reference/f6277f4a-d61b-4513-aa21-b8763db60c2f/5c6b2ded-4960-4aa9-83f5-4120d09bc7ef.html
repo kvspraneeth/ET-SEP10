@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpenseTracker - Your Personal Finance Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#5b21b6',
+                            700: '#4c1d95',
+                            900: '#312e81'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            },
+            darkMode: 'class'
+        }
+    };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ExpenseTracker">
+    
+    <style>
+        @media (max-width: 640px) {
+            .mobile-safe-area {
+                padding-bottom: env(safe-area-inset-bottom, 0px);
+            }
+        }
+        
+        .gradient-header {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        }
+        
+        .category-pill {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .category-pill:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .expense-card {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .expense-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .floating-action-btn {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            z-index: 50;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .floating-action-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .dark .floating-action-btn {
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            backdrop-filter: blur(10px);
+        }
+        
+        .chart-container {
+            height: 300px;
+        }
+        
+        @media (max-width: 640px) {
+            .chart-container {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+    <!-- @COMPONENT: App [root component managing theme and navigation] -->
+    <div id="app" class="min-h-screen">
+        
+        <!-- @COMPONENT: Header [gradient header with app branding and theme toggle] -->
+        <header class="gradient-header text-white p-4 sticky top-0 z-40 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-wallet text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold">ExpenseTracker</h1>
+                        <p class="text-sm opacity-90">Your Finance Manager</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <!-- @FUNCTIONALITY: Theme toggle should persist preference in localStorage -->
+                    <button id="themeToggle" class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center hover:bg-opacity-30 transition-all">
+                        <i class="fas fa-moon" id="themeIcon"></i>
+                    </button>
+                    <!-- @FUNCTIONALITY: Notifications for expense reminders and budget alerts -->
+                    <button class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center hover:bg-opacity-30 transition-all relative">
+                        <i class="fas fa-bell"></i>
+                        <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center" data-mock="true">2</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+        <!-- @END_COMPONENT: Header -->
+
+        <!-- @COMPONENT: MainContent [main app content area with routing] -->
+        <main class="pb-20 mobile-safe-area">
+            
+            <!-- @COMPONENT: HomeView [dashboard with stats and recent expenses] -->
+            <div id="homeView" class="p-4 space-y-6">
+                
+                <!-- Stats Overview Cards -->
+                <div class="grid grid-cols-3 gap-3">
+                    <!-- @STATE: todayTotal, weekTotal, monthTotal from expense calculations -->
+                    <div class="stats-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm text-center">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Today</p>
+                        <p class="text-lg font-bold text-red-600 dark:text-red-400" data-bind="stats.todayTotal">₹2,450</p>
+                    </div>
+                    <div class="stats-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm text-center">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">This Week</p>
+                        <p class="text-lg font-bold text-blue-600 dark:text-blue-400" data-bind="stats.weekTotal">₹12,890</p>
+                    </div>
+                    <div class="stats-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm text-center">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">This Month</p>
+                        <p class="text-lg font-bold text-purple-600 dark:text-purple-400" data-bind="stats.monthTotal">₹45,670</p>
+                    </div>
+                </div>
+
+                <!-- Quick Category Overview -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+                    <h3 class="font-semibold mb-3 flex items-center">
+                        <i class="fas fa-chart-pie mr-2 text-primary-500"></i>
+                        Quick Add
+                    </h3>
+                    <!-- @MAP: categories.slice(0, 7).map(category => ( -->
+                    <div class="grid grid-cols-4 gap-3">
+                        <button class="category-pill bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 p-3 rounded-xl text-center text-xs font-medium" data-event="click:selectCategory" data-category="groceries">
+                            <div class="text-lg mb-1">🛒</div>
+                            <div>Groceries</div>
+                        </button>
+                        <button class="category-pill bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 p-3 rounded-xl text-center text-xs font-medium" data-event="click:selectCategory" data-category="food">
+                            <div class="text-lg mb-1">🍽️</div>
+                            <div>Food</div>
+                        </button>
+                        <button class="category-pill bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 p-3 rounded-xl text-center text-xs font-medium" data-event="click:selectCategory" data-category="transport">
+                            <div class="text-lg mb-1">⛽</div>
+                            <div>Transport</div>
+                        </button>
+                        <button class="category-pill bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 p-3 rounded-xl text-center text-xs font-medium" data-event="click:selectCategory" data-category="bills">
+                            <div class="text-lg mb-1">📄</div>
+                            <div>Bills</div>
+                        </button>
+                        <button class="category-pill bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 p-3 rounded-xl text-center text-xs font-medium" data-event="click:selectCategory" data-category="entertainment">
+                            <div class="text-lg mb-1">🎬</div>
+                            <div>Entertainment</div>
+                        </button>
+                        <button class="category-pill bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300 p-3 rounded-xl text-center text-xs font-medium" data-event="click:selectCategory" data-category="healthcare">
+                            <div class="text-lg mb-1">❤️</div>
+                            <div>Healthcare</div>
+                        </button>
+                        <button class="category-pill bg-pink-100 dark:bg-pink-900 text-pink-700 dark:text-pink-300 p-3 rounded-xl text-center text-xs font-medium" data-event="click:selectCategory" data-category="shopping">
+                            <div class="text-lg mb-1">🛍️</div>
+                            <div>Shopping</div>
+                        </button>
+                        <button class="category-pill bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 p-3 rounded-xl text-center text-xs font-medium" data-event="click:showAllCategories">
+                            <div class="text-lg mb-1">➕</div>
+                            <div>More</div>
+                        </button>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+
+                <!-- Recent Expenses -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold flex items-center">
+                            <i class="fas fa-clock mr-2 text-primary-500"></i>
+                            Recent Expenses
+                        </h3>
+                        <button class="text-primary-500 text-sm font-medium" data-event="click:viewAllExpenses">View All</button>
+                    </div>
+                    
+                    <!-- @MAP: recentExpenses.slice(0, 5).map(expense => ( -->
+                    <div class="space-y-3">
+                        <div class="expense-card flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" data-bind="expense">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-lg flex items-center justify-center">
+                                    <span data-bind="expense.categoryIcon">🛒</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium" data-bind="expense.items">Weekly Groceries</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400" data-bind="expense.where">Big Bazaar, MG Road</p>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500" data-bind="expense.dateTime">Today, 2:30 PM</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold text-red-600 dark:text-red-400" data-bind="expense.amount">-₹1,250</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400" data-bind="expense.paymentMethod">UPI</p>
+                            </div>
+                        </div>
+                        
+                        <div class="expense-card flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" data-mock="true">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-lg flex items-center justify-center">
+                                    <span>🍽️</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Lunch at Pizza Hut</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Pizza Hut, Forum Mall</p>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500">Yesterday, 1:15 PM</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold text-red-600 dark:text-red-400">-₹890</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Card</p>
+                            </div>
+                        </div>
+                        
+                        <div class="expense-card flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" data-mock="true">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-lg flex items-center justify-center">
+                                    <span>⛽</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Petrol Fill-up</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Indian Oil, Ring Road</p>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500">Yesterday, 8:30 AM</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold text-red-600 dark:text-red-400">-₹2,100</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">UPI</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+
+                <!-- Budget Overview -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+                    <h3 class="font-semibold mb-3 flex items-center">
+                        <i class="fas fa-piggy-bank mr-2 text-primary-500"></i>
+                        Budget Overview
+                    </h3>
+                    
+                    <!-- @MAP: budgets.slice(0, 3).map(budget => ( -->
+                    <div class="space-y-3">
+                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" data-bind="budget">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-medium text-sm" data-bind="budget.name">Groceries Budget</span>
+                                <span class="text-sm" data-bind="budget.progress">₹3,200 / ₹5,000</span>
+                            </div>
+                            <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 64%" data-bind="budget.progressPercentage"></div>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" data-bind="budget.remaining">₹1,800 remaining this month</p>
+                        </div>
+                        
+                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" data-mock="true">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-medium text-sm">Entertainment Budget</span>
+                                <span class="text-sm">₹4,100 / ₹3,000</span>
+                            </div>
+                            <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                                <div class="bg-red-500 h-2 rounded-full" style="width: 100%"></div>
+                            </div>
+                            <p class="text-xs text-red-500 mt-1">₹1,100 over budget!</p>
+                        </div>
+                        
+                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" data-mock="true">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-medium text-sm">Transport Budget</span>
+                                <span class="text-sm">₹1,200 / ₹4,000</span>
+                            </div>
+                            <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                                <div class="bg-blue-500 h-2 rounded-full" style="width: 30%"></div>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">₹2,800 remaining this month</p>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+            </div>
+            <!-- @END_COMPONENT: HomeView -->
+
+            <!-- @COMPONENT: ExpenseFormModal [floating modal for adding expenses] -->
+            <div id="expenseModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+                <div class="flex items-end justify-center min-h-screen">
+                    <div class="bg-white dark:bg-gray-800 rounded-t-3xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-xl font-bold">Add Expense</h2>
+                                <button id="closeModal" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                                    <i class="fas fa-times text-gray-500"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- @FUNCTIONALITY: Form validation using React Hook Form with Zod schemas -->
+                        <form id="expenseForm" class="p-4 space-y-4" data-event="submit:handleExpenseSubmit">
+                            <!-- Amount Field (Required) -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Amount <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
+                                    <input type="number" id="amount" name="amount" required 
+                                           class="w-full pl-8 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                           placeholder="0.00" min="0" step="0.01">
+                                </div>
+                                <p class="text-red-500 text-xs mt-1 hidden" id="amountError">Please enter a valid amount</p>
+                            </div>
+
+                            <!-- Category Selection (Required) -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Category <span class="text-red-500">*</span></label>
+                                <div class="grid grid-cols-4 gap-2">
+                                    <button type="button" class="category-btn p-3 border-2 border-gray-200 dark:border-gray-600 rounded-lg text-center text-xs hover:border-primary-500 focus:border-primary-500" data-category="groceries">
+                                        <div class="text-lg mb-1">🛒</div>
+                                        <div>Groceries</div>
+                                    </button>
+                                    <button type="button" class="category-btn p-3 border-2 border-gray-200 dark:border-gray-600 rounded-lg text-center text-xs hover:border-primary-500 focus:border-primary-500" data-category="food">
+                                        <div class="text-lg mb-1">🍽️</div>
+                                        <div>Food</div>
+                                    </button>
+                                    <button type="button" class="category-btn p-3 border-2 border-gray-200 dark:border-gray-600 rounded-lg text-center text-xs hover:border-primary-500 focus:border-primary-500" data-category="transport">
+                                        <div class="text-lg mb-1">⛽</div>
+                                        <div>Transport</div>
+                                    </button>
+                                    <button type="button" class="category-btn p-3 border-2 border-gray-200 dark:border-gray-600 rounded-lg text-center text-xs hover:border-primary-500 focus:border-primary-500" data-category="bills">
+                                        <div class="text-lg mb-1">📄</div>
+                                        <div>Bills</div>
+                                    </button>
+                                    <button type="button" class="category-btn p-3 border-2 border-gray-200 dark:border-gray-600 rounded-lg text-center text-xs hover:border-primary-500 focus:border-primary-500" data-category="entertainment">
+                                        <div class="text-lg mb-1">🎬</div>
+                                        <div>Entertainment</div>
+                                    </button>
+                                    <button type="button" class="category-btn p-3 border-2 border-gray-200 dark:border-gray-600 rounded-lg text-center text-xs hover:border-primary-500 focus:border-primary-500" data-category="healthcare">
+                                        <div class="text-lg mb-1">❤️</div>
+                                        <div>Healthcare</div>
+                                    </button>
+                                    <button type="button" class="category-btn p-3 border-2 border-gray-200 dark:border-gray-600 rounded-lg text-center text-xs hover:border-primary-500 focus:border-primary-500" data-category="shopping">
+                                        <div class="text-lg mb-1">🛍️</div>
+                                        <div>Shopping</div>
+                                    </button>
+                                    <button type="button" class="category-btn p-3 border-2 border-gray-200 dark:border-gray-600 rounded-lg text-center text-xs hover:border-primary-500 focus:border-primary-500" data-category="other">
+                                        <div class="text-lg mb-1">📝</div>
+                                        <div>Other</div>
+                                    </button>
+                                </div>
+                                <input type="hidden" id="selectedCategory" name="category" required>
+                                <p class="text-red-500 text-xs mt-1 hidden" id="categoryError">Please select a category</p>
+                            </div>
+
+                            <!-- Date and Time -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Date</label>
+                                    <input type="date" name="date" class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Time</label>
+                                    <input type="time" name="time" class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                </div>
+                            </div>
+
+                            <!-- Items/Description -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">What did you buy?</label>
+                                <input type="text" name="items" 
+                                       class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                       placeholder="e.g., Weekly groceries, Lunch, Movie tickets">
+                            </div>
+
+                            <!-- Location -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Where?</label>
+                                <input type="text" name="where" 
+                                       class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                       placeholder="e.g., Big Bazaar, Restaurant name">
+                            </div>
+
+                            <!-- Payment Method -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Payment Method</label>
+                                <select name="paymentMethod" class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                    <option value="UPI">UPI</option>
+                                    <option value="Card">Debit/Credit Card</option>
+                                    <option value="Net Banking">Net Banking</option>
+                                    <option value="Cash">Cash</option>
+                                </select>
+                            </div>
+
+                            <!-- Account -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Account</label>
+                                <select name="account" class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                    <option value="ICICI">ICICI Bank</option>
+                                    <option value="SBI">State Bank of India</option>
+                                    <option value="HDFC">HDFC Bank</option>
+                                    <option value="Axis">Axis Bank</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <!-- Notes -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Notes (Optional)</label>
+                                <textarea name="note" rows="3" 
+                                          class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                          placeholder="Any additional notes..."></textarea>
+                            </div>
+
+                            <!-- File Attachment -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Attach Receipt (Optional)</label>
+                                <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center hover:border-primary-500 transition-colors">
+                                    <input type="file" id="fileUpload" name="attachments" multiple accept="image/*,.pdf,.doc,.docx" class="hidden" data-implementation="Use FileUpload component with base64 encoding">
+                                    <label for="fileUpload" class="cursor-pointer">
+                                        <i class="fas fa-cloud-upload-alt text-2xl text-gray-400 mb-2"></i>
+                                        <p class="text-sm text-gray-500">Tap to upload receipt</p>
+                                        <p class="text-xs text-gray-400">Images, PDF, DOC (Max 5MB)</p>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Submit Buttons -->
+                            <div class="flex space-x-3 pt-4">
+                                <button type="button" id="cancelBtn" class="flex-1 py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="flex-1 py-3 px-4 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors flex items-center justify-center" data-implementation="Should validate form before submission">
+                                    <span id="submitText">Save Expense</span>
+                                    <i class="fas fa-spinner fa-spin ml-2 hidden" id="submitSpinner"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: ExpenseFormModal -->
+
+            <!-- @COMPONENT: ChartsView [analytics and spending visualization] -->
+            <div id="chartsView" class="p-4 space-y-6 hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+                    <h3 class="font-semibold mb-4 flex items-center">
+                        <i class="fas fa-chart-pie mr-2 text-primary-500"></i>
+                        Spending by Category
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                        <!-- @FUNCTIONALITY: Implement pie chart using Chart.js with category data -->
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+                    <h3 class="font-semibold mb-4 flex items-center">
+                        <i class="fas fa-chart-bar mr-2 text-primary-500"></i>
+                        Daily Spending Trend
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="dailyChart"></canvas>
+                        <!-- @FUNCTIONALITY: Implement bar chart using Chart.js with daily spending data -->
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+                    <h3 class="font-semibold mb-4 flex items-center">
+                        <i class="fas fa-map-marker-alt mr-2 text-primary-500"></i>
+                        Top Spending Locations
+                    </h3>
+                    <!-- @MAP: topLocations.map(location => ( -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" data-bind="location" data-mock="true">
+                            <div>
+                                <p class="font-medium">Big Bazaar, MG Road</p>
+                                <p class="text-sm text-gray-500">12 transactions</p>
+                            </div>
+                            <p class="font-semibold text-red-600 dark:text-red-400">₹8,450</p>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" data-mock="true">
+                            <div>
+                                <p class="font-medium">Forum Mall Food Court</p>
+                                <p class="text-sm text-gray-500">8 transactions</p>
+                            </div>
+                            <p class="font-semibold text-red-600 dark:text-red-400">₹3,200</p>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" data-mock="true">
+                            <div>
+                                <p class="font-medium">Indian Oil Petrol Pump</p>
+                                <p class="text-sm text-gray-500">6 transactions</p>
+                            </div>
+                            <p class="font-semibold text-red-600 dark:text-red-400">₹12,600</p>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+            </div>
+            <!-- @END_COMPONENT: ChartsView -->
+
+        </main>
+        <!-- @END_COMPONENT: MainContent -->
+
+        <!-- @COMPONENT: FloatingActionButton [quick expense entry] -->
+        <button id="fabBtn" class="floating-action-btn w-14 h-14 bg-primary-500 hover:bg-primary-600 text-white rounded-full shadow-lg flex items-center justify-center">
+            <i class="fas fa-plus text-xl"></i>
+        </button>
+        <!-- @END_COMPONENT: FloatingActionButton -->
+
+        <!-- @COMPONENT: BottomNavigation [main app navigation] -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mobile-safe-area z-30">
+            <div class="flex justify-around py-2">
+                <button class="nav-btn flex flex-col items-center py-2 px-3 text-primary-500" data-view="home" data-event="click:switchView">
+                    <i class="fas fa-home text-xl mb-1"></i>
+                    <span class="text-xs font-medium">Home</span>
+                </button>
+                <button class="nav-btn flex flex-col items-center py-2 px-3 text-gray-500 dark:text-gray-400" data-view="expenses" data-event="click:switchView">
+                    <i class="fas fa-list text-xl mb-1"></i>
+                    <span class="text-xs">Expenses</span>
+                </button>
+                <button class="nav-btn flex flex-col items-center py-2 px-3 text-gray-500 dark:text-gray-400" data-view="charts" data-event="click:switchView">
+                    <i class="fas fa-chart-pie text-xl mb-1"></i>
+                    <span class="text-xs">Charts</span>
+                </button>
+                <button class="nav-btn flex flex-col items-center py-2 px-3 text-gray-500 dark:text-gray-400" data-view="budget" data-event="click:switchView">
+                    <i class="fas fa-piggy-bank text-xl mb-1"></i>
+                    <span class="text-xs">Budget</span>
+                </button>
+                <button class="nav-btn flex flex-col items-center py-2 px-3 text-gray-500 dark:text-gray-400" data-view="settings" data-event="click:switchView">
+                    <i class="fas fa-cog text-xl mb-1"></i>
+                    <span class="text-xs">Settings</span>
+                </button>
+            </div>
+        </nav>
+        <!-- @END_COMPONENT: BottomNavigation -->
+
+    </div>
+    <!-- @END_COMPONENT: App -->
+
+    <script>
+        // TODO: Implement business logic, API calls, and state management
+        (function() {
+            // Theme Management
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+            const htmlElement = document.documentElement;
+            
+            // Check for saved theme preference or default to 'light'
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            htmlElement.classList.toggle('dark', currentTheme === 'dark');
+            themeIcon.className = currentTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            
+            themeToggle.addEventListener('click', function() {
+                const isDark = htmlElement.classList.contains('dark');
+                htmlElement.classList.toggle('dark');
+                themeIcon.className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+                localStorage.setItem('theme', isDark ? 'light' : 'dark');
+            });
+
+            // Modal Management
+            const fabBtn = document.getElementById('fabBtn');
+            const expenseModal = document.getElementById('expenseModal');
+            const closeModal = document.getElementById('closeModal');
+            const cancelBtn = document.getElementById('cancelBtn');
+
+            function openModal() {
+                expenseModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                // Set current date and time
+                const now = new Date();
+                document.querySelector('input[name="date"]').value = now.toISOString().split('T')[0];
+                document.querySelector('input[name="time"]').value = now.toTimeString().slice(0, 5);
+            }
+
+            function closeModalFunc() {
+                expenseModal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+                document.getElementById('expenseForm').reset();
+                resetCategorySelection();
+            }
+
+            fabBtn.addEventListener('click', openModal);
+            closeModal.addEventListener('click', closeModalFunc);
+            cancelBtn.addEventListener('click', closeModalFunc);
+
+            // Close modal when clicking outside
+            expenseModal.addEventListener('click', function(e) {
+                if (e.target === expenseModal) {
+                    closeModalFunc();
+                }
+            });
+
+            // Category Selection
+            const categoryButtons = document.querySelectorAll('.category-btn');
+            const selectedCategoryInput = document.getElementById('selectedCategory');
+
+            function resetCategorySelection() {
+                categoryButtons.forEach(btn => {
+                    btn.classList.remove('border-primary-500', 'bg-primary-50', 'dark:bg-primary-900');
+                    btn.classList.add('border-gray-200', 'dark:border-gray-600');
+                });
+                selectedCategoryInput.value = '';
+            }
+
+            categoryButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Reset all buttons
+                    resetCategorySelection();
+                    
+                    // Select current button
+                    this.classList.remove('border-gray-200', 'dark:border-gray-600');
+                    this.classList.add('border-primary-500', 'bg-primary-50', 'dark:bg-primary-900');
+                    
+                    selectedCategoryInput.value = this.getAttribute('data-category');
+                });
+            });
+
+            // Form Validation and Submission
+            const expenseForm = document.getElementById('expenseForm');
+            const amountInput = document.getElementById('amount');
+            const amountError = document.getElementById('amountError');
+            const categoryError = document.getElementById('categoryError');
+
+            function validateForm() {
+                let isValid = true;
+
+                // Validate amount
+                const amount = parseFloat(amountInput.value);
+                if (!amount || amount <= 0) {
+                    amountError.classList.remove('hidden');
+                    amountInput.classList.add('border-red-500');
+                    isValid = false;
+                } else {
+                    amountError.classList.add('hidden');
+                    amountInput.classList.remove('border-red-500');
+                }
+
+                // Validate category
+                if (!selectedCategoryInput.value) {
+                    categoryError.classList.remove('hidden');
+                    isValid = false;
+                } else {
+                    categoryError.classList.add('hidden');
+                }
+
+                return isValid;
+            }
+
+            expenseForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (validateForm()) {
+                    const submitText = document.getElementById('submitText');
+                    const submitSpinner = document.getElementById('submitSpinner');
+                    
+                    // Show loading state
+                    submitText.textContent = 'Saving...';
+                    submitSpinner.classList.remove('hidden');
+                    
+                    // Simulate API call
+                    setTimeout(() => {
+                        submitText.textContent = 'Save Expense';
+                        submitSpinner.classList.add('hidden');
+                        closeModalFunc();
+                        
+                        // Show success message (in real app, update the UI with new expense)
+                        alert('Expense saved successfully!');
+                    }, 1500);
+                }
+            });
+
+            // Navigation Management
+            const navButtons = document.querySelectorAll('.nav-btn');
+            const views = {
+                'home': document.getElementById('homeView'),
+                'charts': document.getElementById('chartsView')
+                // Add other views when implemented
+            };
+
+            function switchView(viewName) {
+                // Hide all views
+                Object.values(views).forEach(view => {
+                    if (view) view.classList.add('hidden');
+                });
+
+                // Show selected view
+                if (views[viewName]) {
+                    views[viewName].classList.remove('hidden');
+                }
+
+                // Update navigation
+                navButtons.forEach(btn => {
+                    if (btn.getAttribute('data-view') === viewName) {
+                        btn.classList.remove('text-gray-500', 'dark:text-gray-400');
+                        btn.classList.add('text-primary-500');
+                    } else {
+                        btn.classList.remove('text-primary-500');
+                        btn.classList.add('text-gray-500', 'dark:text-gray-400');
+                    }
+                });
+            }
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const viewName = this.getAttribute('data-view');
+                    switchView(viewName);
+                });
+            });
+
+            // Initialize Charts (placeholder implementation)
+            function initializeCharts() {
+                const ctx1 = document.getElementById('categoryChart');
+                const ctx2 = document.getElementById('dailyChart');
+                
+                if (ctx1) {
+                    // TODO: Implement real charts with user data
+                    new Chart(ctx1, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Groceries', 'Food', 'Transport', 'Bills', 'Entertainment'],
+                            datasets: [{
+                                data: [30, 25, 20, 15, 10],
+                                backgroundColor: ['#22c55e', '#8b5cf6', '#3b82f6', '#ef4444', '#f59e0b']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                if (ctx2) {
+                    new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                            datasets: [{
+                                label: 'Daily Spending',
+                                data: [1200, 800, 1500, 2000, 1100, 2500, 900],
+                                backgroundColor: '#6366f1'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Initialize app
+            initializeCharts();
+        })();
+    </script>
+</body>
+</html>
