@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import db from '@/lib/db';
 import { getCategoryColor } from '@/lib/categories';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, Utensils, Car, FileText, Tv, Heart, ShoppingBag, LucideIcon } from 'lucide-react';
+import { ShoppingCart, Utensils, Car, FileText, Tv, Heart, ShoppingBag, Plane, LucideIcon } from 'lucide-react';
 
 interface CategorySelectorProps {
   selectedCategory?: string;
@@ -20,6 +20,7 @@ const iconMap: Record<string, LucideIcon> = {
   'tv': Tv,
   'heart': Heart,
   'shopping-bag': ShoppingBag,
+  'plane': Plane,
 };
 
 export function CategorySelector({ 
@@ -82,3 +83,4 @@ export function CategorySelector({
     </div>
   );
 }
+

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, ShoppingCart, Utensils, Car, FileText, Tv, Heart, ShoppingBag, LucideIcon } from 'lucide-react';
+import { Clock, ShoppingCart, Utensils, Car, FileText, Tv, Heart, ShoppingBag, Plane, LucideIcon } from 'lucide-react';
 import { useExpenses } from '@/hooks/use-expenses';
 import { useLiveQuery } from 'dexie-react-hooks';
 import db from '@/lib/db';
@@ -23,6 +23,7 @@ const iconMap: Record<string, LucideIcon> = {
   'tv': Tv,
   'heart': Heart,
   'shopping-bag': ShoppingBag,
+  'plane': Plane,
 };
 
 export function RecentExpenses({ onViewAll, limit = 5, dateRange }: RecentExpensesProps) {
@@ -147,3 +148,4 @@ export function RecentExpenses({ onViewAll, limit = 5, dateRange }: RecentExpens
     </Card>
   );
 }
+

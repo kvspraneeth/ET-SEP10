@@ -8,6 +8,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'entertainment', name: 'Entertainment', icon: 'tv', color: 'orange', isDefault: true },
   { id: 'healthcare', name: 'Healthcare', icon: 'heart', color: 'cyan', isDefault: true },
   { id: 'shopping', name: 'Shopping', icon: 'shopping-bag', color: 'pink', isDefault: true },
+  { id: 'travel', name: 'Travel', icon: 'plane', color: 'indigo', isDefault: true },
 ];
 
 export const getCategoryColor = (color: string) => {
@@ -19,7 +20,9 @@ export const getCategoryColor = (color: string) => {
     orange: { bg: 'bg-orange-100 dark:bg-orange-900', text: 'text-orange-700 dark:text-orange-300' },
     cyan: { bg: 'bg-cyan-100 dark:bg-cyan-900', text: 'text-cyan-700 dark:text-cyan-300' },
     pink: { bg: 'bg-pink-100 dark:bg-pink-900', text: 'text-pink-700 dark:text-pink-300' },
+    indigo: { bg: 'bg-indigo-100 dark:bg-indigo-900', text: 'text-indigo-700 dark:text-indigo-300' },
     gray: { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-300' },
   };
   return colors[color as keyof typeof colors] || colors.gray;
 };
+

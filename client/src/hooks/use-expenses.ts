@@ -1,8 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLiveQuery } from 'dexie-react-hooks';
 import db from '@/lib/db';
 import { Expense, InsertExpense } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+import { DateRange } from 'react-day-picker';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 
 export function useExpenses() {
   const expenses = useLiveQuery(() => 
@@ -77,13 +79,13 @@ export function useUpdateExpense() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Expense> }) => {
+    mutationFn: async (expense: Expense) => {
       const updatedExpense = {
-        ...updates,
+        ...expense,
         updatedAt: new Date().toISOString(),
       };
       
-      await db.expenses.update(id, updatedExpense);
+      await db.expenses.update(expense.id, updatedExpense);
       return updatedExpense;
     },
     onSuccess: () => {
@@ -130,33 +132,48 @@ export function useDeleteExpense() {
   });
 }
 
-export function useExpenseStats() {
+export function useExpenseTotals(dateRange?: DateRange) {
   const expenses = useExpenses();
   
-  const today = new Date().toISOString().split('T')[0];
-  const startOfWeek = new Date();
-  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-  const weekStart = startOfWeek.toISOString().split('T')[0];
-  
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  const monthStart = startOfMonth.toISOString().split('T')[0];
+  const now = new Date();
 
   const todayTotal = expenses
-    .filter(expense => expense.date === today)
+    .filter(e => {
+        const expenseDate = parseISO(e.date);
+        return expenseDate >= startOfDay(now) && expenseDate <= endOfDay(now);
+    })
     .reduce((sum, expense) => sum + expense.amount, 0);
 
   const weekTotal = expenses
-    .filter(expense => expense.date >= weekStart)
+    .filter(e => {
+        const expenseDate = parseISO(e.date);
+        return expenseDate >= startOfWeek(now) && expenseDate <= endOfWeek(now);
+    })
     .reduce((sum, expense) => sum + expense.amount, 0);
 
   const monthTotal = expenses
-    .filter(expense => expense.date >= monthStart)
+    .filter(e => {
+        const expenseDate = parseISO(e.date);
+        return expenseDate >= startOfMonth(now) && expenseDate <= endOfMonth(now);
+    })
     .reduce((sum, expense) => sum + expense.amount, 0);
+  
+  const rangeTotal = dateRange?.from
+    ? expenses
+        .filter(e => {
+            const expenseDate = parseISO(e.date);
+            const from = startOfDay(dateRange.from!);
+            const to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from!);
+            return expenseDate >= from && expenseDate <= to;
+        })
+        .reduce((sum, expense) => sum + expense.amount, 0)
+    : 0;
+
 
   return {
     todayTotal,
     weekTotal,
     monthTotal,
+    rangeTotal,
   };
 }
