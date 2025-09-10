@@ -2,6 +2,7 @@
   base = "."
   command = "vite build"
   publish = "dist/public"
+  external = ["@rollup/rollup-linux-x64-gnu"]
 
 [build.environment]
   NODE_VERSION = "18"
@@ -14,7 +15,3 @@
 [dev]
   command = "npm run dev"
   port = 5000
-
-[build]
-  command = "vite build"
-  external = ["@rollup/rollup-linux-x64-gnu"]
