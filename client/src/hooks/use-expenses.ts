@@ -7,7 +7,7 @@ import { DateRange } from 'react-day-picker';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 
 export function useExpenses() {
-  const expenses = useLiveQuery(() => 
+  const expenses = useLiveQuery(() =>
     db.expenses
       .orderBy('createdAt')
       .reverse()
@@ -18,7 +18,7 @@ export function useExpenses() {
 }
 
 export function useExpensesByDateRange(startDate: string, endDate: string) {
-  const expenses = useLiveQuery(() => 
+  const expenses = useLiveQuery(() =>
     db.expenses
       .where('date')
       .between(startDate, endDate, true, true)
@@ -29,7 +29,7 @@ export function useExpensesByDateRange(startDate: string, endDate: string) {
 }
 
 export function useExpensesByCategory(category: string) {
-  const expenses = useLiveQuery(() => 
+  const expenses = useLiveQuery(() =>
     db.expenses
       .where('category')
       .equals(category)
@@ -38,6 +38,17 @@ export function useExpensesByCategory(category: string) {
 
   return expenses;
 }
+
+export function useExpensesByAccount(account: string) {
+    const expenses = useLiveQuery(() =>
+      db.expenses
+        .where('account')
+        .equals(account)
+        .toArray()
+    ) || [];
+
+    return expenses;
+  }
 
 export function useAddExpense() {
   const queryClient = useQueryClient();

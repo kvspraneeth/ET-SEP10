@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, Edit2, Trash2, ChevronDown, ChevronUp, FileText, LucideIcon } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, ChevronDown, ChevronUp, FileText, LucideIcon, X } from 'lucide-react';
 import { useExpenses, useDeleteExpense } from '@/hooks/use-expenses';
 import { useLiveQuery } from 'dexie-react-hooks';
 import db from '@/lib/db';
@@ -11,15 +11,30 @@ import { getCategoryColor, DEFAULT_CATEGORIES } from '@/lib/categories';
 import { useSettings } from '@/hooks/use-settings';
 import { format, parseISO } from 'date-fns';
 import { Expense } from '@shared/schema';
+import { DateRange } from 'react-day-picker';
+import { DateRangePicker } from '@/components/date-range-picker';
 
 interface ExpensesProps {
   onOpenExpenseForm: (payload?: string | any) => void;
 }
 
+const iconMap: Record<string, LucideIcon> = {
+    'shopping-cart': Search,
+    'utensils': Plus,
+    'car': Edit2,
+    'file-text': Trash2,
+    'tv': ChevronDown,
+    'heart': ChevronUp,
+    'shopping-bag': FileText,
+    'plane': X,
+  };
+
 export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
+  const [accountFilter, setAccountFilter] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [expandedExpenses, setExpandedExpenses] = useState<Set<string>>(new Set());
 
   const expenses = useExpenses();
@@ -30,9 +45,8 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
   const currency = settings?.currency || '₹';
 
   const getIconComponent = (iconName: string) => {
-    // This is a placeholder for your actual icon map from categories.ts
-    // For this example, we'll just return a default icon.
-    return <FileText className="w-5 h-5" />;
+    const IconComponent = iconMap[iconName] || FileText;
+    return <IconComponent className="w-5 h-5" />;
   };
 
   const toggleExpand = (expenseId: string) => {
@@ -66,8 +80,15 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
 
     const matchesCategory = categoryFilter === 'all' || expense.category === categoryFilter;
     const matchesPayment = paymentFilter === 'all' || expense.paymentMethod === paymentFilter;
+    const matchesAccount = accountFilter === 'all' || expense.account === accountFilter;
+    
+    const expenseDate = parseISO(expense.date);
+    const matchesDate = !dateRange || (
+      expenseDate >= (dateRange.from || new Date(0)) &&
+      expenseDate <= (dateRange.to || new Date())
+    );
 
-    return matchesSearch && matchesCategory && matchesPayment;
+    return matchesSearch && matchesCategory && matchesPayment && matchesAccount && matchesDate;
   });
 
   const groupedExpenses = filteredExpenses.reduce((groups, expense) => {
@@ -96,7 +117,7 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <Input
@@ -106,6 +127,7 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        <DateRangePicker date={dateRange} onDateChange={setDateRange} />
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
           <SelectTrigger>
             <SelectValue placeholder="Filter by category" />
@@ -126,6 +148,18 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
             <SelectItem value="Card">Card</SelectItem>
             <SelectItem value="Other">Other</SelectItem>
           </SelectContent>
+        </Select>
+        <Select value={accountFilter} onValueChange={setAccountFilter}>
+            <SelectTrigger>
+                <SelectValue placeholder="Filter by account" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">All Accounts</SelectItem>
+                <SelectItem value="ICICI">ICICI</SelectItem>
+                <SelectItem value="HDFC">HDFC</SelectItem>
+                <SelectItem value="SBI">SBI</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
         </Select>
       </div>
 
