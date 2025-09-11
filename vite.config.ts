@@ -25,7 +25,7 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname, "client"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: path.resolve(import.meta.dirname, "dist"), // ✅ build directly into dist/
     emptyOutDir: true,
   },
   server: {
@@ -34,4 +34,5 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
+  base: "/", // ✅ ensures correct asset paths
 });
