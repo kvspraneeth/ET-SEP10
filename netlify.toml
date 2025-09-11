@@ -8,7 +8,7 @@
 
 [[redirects]]
   from = "/*"
-  to = "dist/public/index.html"
+  to = "/dist/public/index.html"
   status = 200
 
 [dev]
