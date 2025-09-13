@@ -1,13 +1,17 @@
 {
-  "name": "ExpenseTracker - Personal Finance Manager",
-  "short_name": "ExpenseTracker",
+  "name": "BudgetPilot - Personal Finance Manager",
+  "short_name": "BudgetPilot",
   "description": "Track your expenses, manage budgets, and analyze spending patterns offline",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#8b5cf6",
   "orientation": "portrait-primary",
-  "categories": ["finance", "productivity", "business"],
+  "categories": [
+    "finance",
+    "productivity",
+    "business"
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
