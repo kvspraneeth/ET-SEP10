@@ -4,3 +4,11 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Local environment files (do NOT commit secrets)
+.env
+.env.*
+.env.local
+
+# Google OAuth client secret (do NOT commit)
+client_secret_533075987884-al64mq9ilm0sag9d5711pm6b02vk1mi8.apps.googleusercontent.com.json
