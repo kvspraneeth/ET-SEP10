@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Filter, Search, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Filter, Search, Pencil, Trash2, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { getCategoryColor } from '@/lib/categories';
 import { getIconComponent } from '@/components/category-selector';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +16,6 @@ interface ExpensesProps {
   onOpenExpenseForm: (expense?: Expense | string) => void;
 }
 
-// Helper component for individual expense rows to manage their own expand/collapse state
 function ExpenseItemCard({ expense, category, onEdit, onDelete, currencySymbol }: any) {
   const [isExpanded, setIsExpanded] = useState(false);
   const colors = getCategoryColor(category?.color || 'gray');
@@ -32,7 +31,6 @@ function ExpenseItemCard({ expense, category, onEdit, onDelete, currencySymbol }
             {getIconComponent(category?.icon || 'tag', "w-4 h-4")}
           </div>
           <div className="overflow-hidden">
-            {/* The 'items' field acts as the title based on the schema */}
             <p className="font-medium truncate text-sm sm:text-base">
               {expense.items || 'Unnamed Expense'}
             </p>
@@ -78,7 +76,6 @@ function ExpenseItemCard({ expense, category, onEdit, onDelete, currencySymbol }
         </div>
       </div>
 
-      {/* Expanded Data Section */}
       {isExpanded && (
         <div className="px-4 pb-4 pt-2 text-sm bg-gray-50 dark:bg-gray-800/40 border-t dark:border-gray-800/60 text-muted-foreground animate-in slide-in-from-top-2 duration-200">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 pl-[3.25rem]">
@@ -94,7 +91,41 @@ function ExpenseItemCard({ expense, category, onEdit, onDelete, currencySymbol }
             {expense.time && (
               <div><span className="font-medium text-foreground">Time:</span> {expense.time}</div>
             )}
-            {!expense.where && !expense.note && (
+            {expense.attachments?.length > 0 && (
+              <div className="col-span-1 md:col-span-2">
+                <span className="font-medium text-foreground">Attachments:</span>
+                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {((expense.attachments ?? []) as string[]).map((attachment, idx) => {
+                    const isPdf = attachment.startsWith('data:application/pdf');
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(attachment, '_blank');
+                        }}
+                        className="group flex h-24 w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border border-border bg-white p-2 text-center transition hover:border-primary hover:bg-primary/5"
+                      >
+                        {isPdf ? (
+                          <>
+                            <FileText className="h-6 w-6 text-primary" />
+                            <span className="text-xs font-medium text-foreground">Open PDF</span>
+                          </>
+                        ) : (
+                          <img
+                            src={attachment}
+                            alt={`Expense attachment ${idx + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {!expense.where && !expense.note && (!expense.attachments || expense.attachments.length === 0) && (
               <div className="italic">No additional details provided.</div>
             )}
           </div>
@@ -107,16 +138,13 @@ function ExpenseItemCard({ expense, category, onEdit, onDelete, currencySymbol }
 export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
   const { toast } = useToast();
   
-  // Fetch data
   const expenses = useLiveQuery(() => db.expenses.orderBy('date').reverse().toArray()) || [];
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
   const settings = useLiveQuery(() => db.settings.toArray()) || [];
   
-  // Resolve Currency (defaulting to ₹ if not set)
   const userCurrency = settings[0]?.currency || 'INR';
   const currencySymbol = userCurrency === 'INR' ? '₹' : userCurrency === 'USD' ? '$' : userCurrency === 'EUR' ? '€' : userCurrency === 'GBP' ? '£' : userCurrency;
 
-  // Filter States
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -145,10 +173,19 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
     setAccountFilter('ALL');
   };
 
-  // Apply all active filters
+  // Dynamically extract unique payment methods and accounts for the filter dropdowns
+  const uniquePaymentMethods = Array.from(new Set([
+    'UPI', 'Cash', 'Card', 
+    ...expenses.map(e => e.paymentMethod).filter(Boolean)
+  ]));
+  
+  const uniqueAccounts = Array.from(new Set([
+    'ICICI', 'HDFC', 'SBI', 
+    ...expenses.map(e => (e as any).account).filter(Boolean)
+  ]));
+
   const filteredExpenses = useMemo(() => {
     return expenses.filter(expense => {
-      // Allow searching by Title, Notes, or Where
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = 
         (expense.items && expense.items.toLowerCase().includes(searchLower)) || 
@@ -157,16 +194,14 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
       
       const expenseDate = expense.date.split('T')[0];
       const matchesDate = (!dateFrom || expenseDate >= dateFrom) && (!dateTo || expenseDate <= dateTo);
-      
       const matchesCategory = categoryFilter === 'ALL' || expense.category === categoryFilter;
       const matchesPayment = paymentMethodFilter === 'ALL' || expense.paymentMethod === paymentMethodFilter;
-      const matchesAccount = accountFilter === 'ALL' || expense.account === accountFilter;
+      const matchesAccount = accountFilter === 'ALL' || (expense as any).account === accountFilter;
 
       return matchesSearch && matchesDate && matchesCategory && matchesPayment && matchesAccount;
     });
   }, [expenses, searchTerm, dateFrom, dateTo, categoryFilter, paymentMethodFilter, accountFilter]);
 
-  // Group filtered expenses by date
   const groupedExpenses = useMemo(() => {
     const groups: Record<string, Expense[]> = {};
     filteredExpenses.forEach(expense => {
@@ -177,7 +212,6 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
     return groups;
   }, [filteredExpenses]);
 
-  // Count active filters for the badge indicator
   const activeFilterCount = (searchTerm ? 1 : 0) + 
                             (dateFrom ? 1 : 0) + 
                             (dateTo ? 1 : 0) + 
@@ -187,7 +221,6 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
 
   return (
     <div className="p-4 space-y-6 pb-24">
-      {/* Header & Filter Toggle */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Expenses</h1>
         <Button 
@@ -205,7 +238,6 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
         </Button>
       </div>
 
-      {/* Collapsible Filter Section */}
       {showFilters && (
         <Card className="border-primary/20 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
           <CardContent className="p-4 space-y-4">
@@ -231,21 +263,11 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">From Date</label>
-                <Input 
-                  type="date" 
-                  value={dateFrom} 
-                  onChange={(e) => setDateFrom(e.target.value)} 
-                  className="dark:[color-scheme:dark]" /* Fixes invisible calendar icon in dark mode */
-                />
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="dark:[color-scheme:dark]" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">To Date</label>
-                <Input 
-                  type="date" 
-                  value={dateTo} 
-                  onChange={(e) => setDateTo(e.target.value)} 
-                  className="dark:[color-scheme:dark]" /* Fixes invisible calendar icon in dark mode */
-                />
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="dark:[color-scheme:dark]" />
               </div>
             </div>
 
@@ -274,10 +296,9 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
                   <SelectTrigger><SelectValue placeholder="All Methods" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Methods</SelectItem>
-                    <SelectItem value="UPI">UPI</SelectItem>
-                    <SelectItem value="Cash">Cash</SelectItem>
-                    <SelectItem value="Card">Card</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    {uniquePaymentMethods.map(method => (
+                      <SelectItem key={method} value={method}>{method}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -288,10 +309,9 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
                   <SelectTrigger><SelectValue placeholder="All Accounts" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Accounts</SelectItem>
-                    <SelectItem value="ICICI">ICICI</SelectItem>
-                    <SelectItem value="HDFC">HDFC</SelectItem>
-                    <SelectItem value="SBI">SBI</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    {uniqueAccounts.map(acc => (
+                      <SelectItem key={acc} value={acc}>{acc}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -300,7 +320,6 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
         </Card>
       )}
 
-      {/* Expense List Grouped by Date */}
       <div className="space-y-6">
         {Object.keys(groupedExpenses).length === 0 ? (
           <div className="text-center py-10 text-muted-foreground bg-white dark:bg-gray-800/50 rounded-xl border border-dashed">
@@ -316,7 +335,6 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
               <div className="space-y-2">
                 {groupedExpenses[date].map(expense => {
                   const category = categories.find(c => c.id === expense.category);
-                  
                   return (
                     <ExpenseItemCard 
                       key={expense.id}

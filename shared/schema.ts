@@ -18,7 +18,7 @@ export const debtRecords = pgTable('debt_records', {
   personName: text('person_name').notNull(),
   notes: text('notes'),
   datetime: timestamp('datetime'),
-  status: text('status').default('pending').notNull(), // NEW: Tracks if settled
+  status: text('status').default('pending').notNull(), 
   createdAt: timestamp('created_at').defaultNow()
 });
 
@@ -32,7 +32,7 @@ export const users = pgTable("users", {
 });
 
 export const expenses = pgTable("expenses", {
-  id: text("id").primaryKey(), // Using client-generated UUIDs from Dexie
+  id: text("id").primaryKey(), 
   userId: text("user_id").notNull(),
   amount: real("amount").notNull(),
   date: text("date").notNull(),
@@ -59,16 +59,6 @@ export const categories = pgTable("categories", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export type CategoryJSON = {
-  id: string;
-  userId: string;
-  name: string;
-  icon: string;
-  color: string;
-  isDefault: boolean;
-  updatedAt: string;
-};
-
 export const budgets = pgTable("budgets", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull(),
@@ -93,7 +83,7 @@ export const settings = pgTable("settings", {
 });
 
 // ============================================================================
-// Types & Zod Schemas (Kept compatible with your frontend)
+// Types & Zod Schemas
 // ============================================================================
 
 export type User = typeof users.$inferSelect;
@@ -108,8 +98,11 @@ export const expenseFormSchema = z.object({
   items: z.string().optional(),
   where: z.string().optional(),
   note: z.string().optional(),
-  paymentMethod: z.enum(['UPI', 'Cash', 'Card', 'Other']),
-  account: z.enum(['ICICI', 'HDFC', 'SBI', 'Other']),
+  
+  // CHANGED: These are now flexible strings instead of strict enums
+  paymentMethod: z.string().min(1, 'Payment method is required'),
+  account: z.string().min(1, 'Account is required'),
+  
   isRecurring: z.boolean().default(false),
   isTemplate: z.boolean().default(false),
   attachments: z.array(z.string()).optional(),
