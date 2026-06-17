@@ -13,8 +13,8 @@ export function Header() {
             <Wallet className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">ExpenseTracker</h1>
-            <p className="text-sm opacity-90">Your Finance Manager</p>
+            <h1 className="text-xl font-bold">Budget Pilot</h1>
+            <p className="text-sm opacity-90">Your Personal Finance Manager</p>
           </div>
         </div>
         

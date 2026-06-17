@@ -495,6 +495,14 @@ export function Settings() {
         </CardContent>
       </Card>
 
+      <div className="flex justify-center">
+        <div className="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 flex items-center space-x-2">
+          <span>Made with</span>
+          <span className="text-red-500">❤️</span>
+          <span>by Jack</span>
+        </div>
+      </div>
+
       {/* App Info */}
       <Card>
         <CardHeader>
@@ -504,7 +512,7 @@ export function Settings() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-500 dark:text-gray-400">Version</span>
-              <span>1.5.0</span>
+              <span>2.0.0</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500 dark:text-gray-400">Build</span>
