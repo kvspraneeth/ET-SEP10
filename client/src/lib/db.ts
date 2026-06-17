@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import { Expense, categories, budgets, settings } from '@shared/schema';
+import { Expense, Category, categories, budgets, settings } from '@shared/schema';
 import { DEFAULT_CATEGORIES } from './categories';
 
 interface Setting {
@@ -27,7 +27,7 @@ export interface DebtRecord {
 
 export interface AppDB extends Dexie {
   expenses: Table<Expense>;
-  categories: Table<typeof categories>;
+  categories: Table<Category>;
   budgets: Table<typeof budgets>;
   settings: Table<Setting>;
   debts: Table<DebtRecord>; // NEW: Added Debts table

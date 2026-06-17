@@ -14,7 +14,10 @@ export function Home({ onTabChange, onOpenExpenseForm }: HomeProps) {
       <StatsOverview />
       
       <div>
-        <h2 className="text-lg font-semibold mb-3">Quick Add</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">Quick Add</h2>
+        </div>
+        
         <CategorySelector 
           onCategorySelect={(category) => onOpenExpenseForm(category)} 
           variant="pill"

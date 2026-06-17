@@ -1,3 +1,4 @@
+import type { ChangeEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,7 @@ import { useSettings, useUpdateSettings } from '@/hooks/use-settings';
 import { useTheme } from '@/components/theme-provider';
 import { useToast } from '@/hooks/use-toast';
 import db from '@/lib/db';
+import { DEFAULT_CATEGORIES } from '@/lib/categories';
 import ExcelJS from 'exceljs';
 
 export function Settings() {
@@ -135,7 +137,7 @@ export function Settings() {
     }
   };
 
-  const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const importData = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -171,7 +173,7 @@ export function Settings() {
     event.target.value = '';
   };
 
-  const importFromExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const importFromExcel = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -283,6 +285,7 @@ export function Settings() {
         await db.expenses.clear();
         await db.budgets.clear();
         await db.categories.clear();
+        await db.categories.bulkAdd(DEFAULT_CATEGORIES);
         
         await updateSettingsMutation.mutateAsync({
           currency: '₹',

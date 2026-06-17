@@ -6,14 +6,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
 import { BottomNavigation } from "@/components/bottom-navigation";
-import { FloatingActionButton } from "@/components/floating-action-button";
 import { ExpenseForm } from "@/components/expense-form";
 import { Home } from "@/pages/home";
 import { Expenses } from "@/pages/expenses";
 import { Charts } from "@/pages/charts";
 import { Budget } from "@/pages/budget";
 import { Settings } from "@/pages/settings";
-import DuesReceivables from "./pages/duesreceivables"; // Ensure this import matches your filename
+import DuesReceivables from "./pages/duesreceivables"; 
 import { Expense } from "@shared/schema";
 
 function App() {
@@ -24,12 +23,15 @@ function App() {
 
   const handleOpenExpenseForm = (payload?: string | any) => {
     if (payload && typeof payload === 'object' && payload.id) {
+      // Editing an existing expense
       setEditingExpense(JSON.parse(JSON.stringify(payload)));
       setSelectedCategory(payload.category);
-    } else if (typeof payload === 'string') {
+    } else if (typeof payload === 'string' && payload.trim() !== '') {
+      // Opening with a specific category from Quick Add
       setSelectedCategory(payload);
       setEditingExpense(null);
     } else {
+      // Opening a blank new expense form
       setSelectedCategory(undefined);
       setEditingExpense(null);
     }
@@ -69,18 +71,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
-<div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
             <Header />
             
-            {/* FIX: Increased padding from pb-20 to pb-28 for mobile, relaxed to pb-12 on desktop */}
             <main className="pb-28 md:pb-12 w-full max-w-screen-2xl mx-auto">
               {renderCurrentPage()}
             </main>
-
-            {/* Only show the Add Expense FAB if we are NOT on the Dues/Receivables tab */}
-            {activeTab !== 'debts' && (
-              <FloatingActionButton onClick={() => handleOpenExpenseForm()} />
-            )}
             
             <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
        

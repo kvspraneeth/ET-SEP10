@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { pgTable, text, serial, timestamp, boolean, real, varchar, numeric, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+export type Category = typeof categories.$inferSelect;
+export type InsertCategory = typeof categories.$inferInsert;
 
 // ============================================================================
 // Drizzle Cloud Database Tables
@@ -56,6 +58,16 @@ export const categories = pgTable("categories", {
   isDefault: boolean("is_default").default(false),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export type CategoryJSON = {
+  id: string;
+  userId: string;
+  name: string;
+  icon: string;
+  color: string;
+  isDefault: boolean;
+  updatedAt: string;
+};
 
 export const budgets = pgTable("budgets", {
   id: text("id").primaryKey(),
