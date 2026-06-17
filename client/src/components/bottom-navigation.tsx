@@ -1,4 +1,4 @@
-import { Home, List, PieChart, Wallet, Settings } from 'lucide-react';
+import { Home, List, PieChart, Wallet, Settings, ArrowRightLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BottomNavigationProps {
@@ -10,6 +10,8 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'expenses', label: 'Expenses', icon: List },
+    // NEW: Added the Debts/Dues tab right in the middle
+    { id: 'debts', label: 'Dues', icon: ArrowRightLeft }, 
     { id: 'charts', label: 'Charts', icon: PieChart },
     { id: 'budget', label: 'Budget', icon: Wallet },
     { id: 'settings', label: 'Settings', icon: Settings },
@@ -17,20 +19,20 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mobile-safe-area z-30">
-      <div className="flex justify-around py-2">
+      <div className="flex justify-around py-2 overflow-x-auto">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => onTabChange(id)}
             className={cn(
-              "flex flex-col items-center py-2 px-3 transition-colors",
+              "flex flex-col items-center py-2 px-2 transition-colors min-w-[60px]",
               activeTab === id
                 ? "text-primary"
                 : "text-gray-500 dark:text-gray-400"
             )}
           >
-            <Icon className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">{label}</span>
+            <Icon className="w-5 h-5 mb-1" />
+            <span className="text-[10px] font-medium">{label}</span>
           </button>
         ))}
       </div>

@@ -14,7 +14,6 @@ import { useBudgets, useBudgetProgress, useAddBudget } from '@/hooks/use-budgets
 import { useLiveQuery } from 'dexie-react-hooks';
 import db from '@/lib/db';
 import { useSettings } from '@/hooks/use-settings';
-import { insertBudgetSchema } from '@shared/schema';
 import { format } from 'date-fns';
 
 export function Budget() {
@@ -27,7 +26,6 @@ export function Budget() {
   const currency = settings?.currency || '₹';
 
   const form = useForm({
-    resolver: zodResolver(insertBudgetSchema),
     defaultValues: {
       name: '',
       amount: 0,
