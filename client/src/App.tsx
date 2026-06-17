@@ -13,6 +13,7 @@ import { Expenses } from "@/pages/expenses";
 import { Charts } from "@/pages/charts";
 import { Budget } from "@/pages/budget";
 import { Settings } from "@/pages/settings";
+import DuesReceivables from "./pages/duesreceivables"; // Ensure this import matches your filename
 import { Expense } from "@shared/schema";
 
 function App() {
@@ -22,9 +23,7 @@ function App() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   const handleOpenExpenseForm = (payload?: string | any) => {
-    // payload can be either a categoryId (string) or an Expense object for editing
     if (payload && typeof payload === 'object' && payload.id) {
-      // Create a deep copy to avoid reference issues
       setEditingExpense(JSON.parse(JSON.stringify(payload)));
       setSelectedCategory(payload.category);
     } else if (typeof payload === 'string') {
@@ -39,12 +38,11 @@ function App() {
 
   const handleCloseExpenseForm = (open: boolean) => {
     setIsExpenseFormOpen(open);
-    // We delay resetting the editingExpense to allow the closing animation to finish
     if (!open) {
       setTimeout(() => {
         setEditingExpense(null);
         setSelectedCategory(undefined);
-      }, 200); // 200ms delay
+      }, 200); 
     }
   };
 
@@ -54,6 +52,8 @@ function App() {
         return <Home onTabChange={setActiveTab} onOpenExpenseForm={handleOpenExpenseForm} />;
       case 'expenses':
         return <Expenses onOpenExpenseForm={handleOpenExpenseForm} />;
+      case 'debts':
+        return <DuesReceivables />;
       case 'charts':
         return <Charts />;
       case 'budget':
@@ -76,7 +76,11 @@ function App() {
               {renderCurrentPage()}
             </main>
 
-            <FloatingActionButton onClick={() => handleOpenExpenseForm()} />
+            {/* Only show the Add Expense FAB if we are NOT on the Dues/Receivables tab */}
+            {activeTab !== 'debts' && (
+              <FloatingActionButton onClick={() => handleOpenExpenseForm()} />
+            )}
+            
             <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
        
             <ExpenseForm

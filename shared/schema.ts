@@ -1,10 +1,24 @@
 import { z } from 'zod';
-import { pgTable, text, serial, timestamp, boolean, real, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, real, varchar, numeric, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 // ============================================================================
 // Drizzle Cloud Database Tables
 // ============================================================================
+
+export const debtRecords = pgTable('debt_records', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(), 
+  type: text('type').notNull(),
+  amount: numeric('amount').notNull(),
+  purpose: text('purpose').notNull(),
+  location: text('location'),
+  personName: text('person_name').notNull(),
+  notes: text('notes'),
+  datetime: timestamp('datetime'),
+  status: text('status').default('pending').notNull(), // NEW: Tracks if settled
+  createdAt: timestamp('created_at').defaultNow()
+});
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
