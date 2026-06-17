@@ -69,10 +69,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+<div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
             <Header />
             
-            <main className="pb-20 mobile-safe-area">
+            {/* FIX: Increased padding from pb-20 to pb-28 for mobile, relaxed to pb-12 on desktop */}
+            <main className="pb-28 md:pb-12 w-full max-w-screen-2xl mx-auto">
               {renderCurrentPage()}
             </main>
 
@@ -90,7 +91,7 @@ function App() {
               editingExpense={editingExpense}
             />
           
-          <Toaster />
+            <Toaster />
           </div>
         </TooltipProvider>
       </ThemeProvider>

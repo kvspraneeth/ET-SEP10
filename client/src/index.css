@@ -126,3 +126,23 @@
 [data-progress-background] {
   background-color: var(--progress-background);
 }
+
+/* Add this to the bottom of client/src/index.css */
+
+@layer utilities {
+  .mobile-safe-area {
+    /* Ensures the bottom nav itself extends down behind the swipe indicator */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .mobile-safe-content {
+    /* Ensures content doesn't get hidden behind the swipe indicator */
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Optional global fix to ensure html/body don't trap scroll momentum on iOS */
+html, body {
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+}
