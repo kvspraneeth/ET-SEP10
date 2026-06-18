@@ -5,7 +5,7 @@
 📲 Download Android App
 Install Budget Pilot on your Android device
 
-➡️ [Download the App](https://budgetpilotv2.netlify.app/)
+[![Download APK](https://img.shields.io/badge/Android-Download%20APK-success?style=for-the-badge&logo=android)](https://budgetpilotv2.netlify.app/BudgetPilot-v2.apk)
 
 After downloading:
 
