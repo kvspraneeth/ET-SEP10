@@ -1,7 +1,7 @@
 {
-  "name": "ExpenseTracker - Personal Finance Manager",
-  "short_name": "ExpenseTracker",
-  "description": "Track your expenses, manage budgets, and analyze spending patterns offline",
+  "name": "Budget Pilot-V2",
+  "short_name": "Budget Pilot",
+  "description": "Track your expenses, manage budgets and dues, and analyze spending patterns offline",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

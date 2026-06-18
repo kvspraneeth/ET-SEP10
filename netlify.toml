@@ -6,6 +6,11 @@
   NODE_VERSION = "18"
 
 [[redirects]]
+  from = "/budget-pilotv2.apk"
+  to = "/budget-pilotv2.apk"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
