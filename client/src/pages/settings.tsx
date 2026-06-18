@@ -1,22 +1,166 @@
 import type { ChangeEvent } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Settings as SettingsIcon, Download, Upload, Trash2, Moon, Sun, FileSpreadsheet } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Download, Upload, Trash2, Pencil, Check, X, ChevronRight, Tags, FileSpreadsheet } from 'lucide-react';
 import { useSettings, useUpdateSettings } from '@/hooks/use-settings';
 import { useTheme } from '@/components/theme-provider';
 import { useToast } from '@/hooks/use-toast';
 import db from '@/lib/db';
 import { DEFAULT_CATEGORIES } from '@/lib/categories';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { getIconComponent } from '@/components/category-selector';
+import { getCategoryColor } from '@/lib/categories';
 import ExcelJS from 'exceljs';
+
+// A sub-component to handle the Manage Categories Dialog cleanly
+function ManageCategoriesDialog({ children }: { children: React.ReactNode }) {
+  const categories = useLiveQuery(() => db.categories.toArray()) || [];
+  const { toast } = useToast();
+  
+  const [isOpen, setIsOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+
+  const handleDeleteCategory = async (id: string, name: string) => {
+    if (confirm(`Are you sure you want to delete the "${name}" category?`)) {
+      try {
+        await db.categories.delete(id);
+        toast({ title: "Category deleted" });
+      } catch (e) {
+        toast({ title: "Failed to delete category", variant: "destructive" });
+      }
+    }
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    if (!editName.trim()) {
+      setEditingId(null);
+      return;
+    }
+    try {
+      await db.categories.update(id, { 
+        name: editName.trim(), 
+        updatedAt: new Date()
+      });
+      setEditingId(null);
+      toast({ title: "Category updated successfully" });
+    } catch (e) {
+      toast({ title: "Failed to update category", variant: "destructive" });
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open);
+      if (!open) setEditingId(null); // Reset editing state when closed
+    }}>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
+      {/* The Dialog overlays on top of the page and natively includes a Close (X) button */}
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Manage Categories</DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex-1 overflow-y-auto pr-2 space-y-2 mt-4 pb-4">
+          {categories.map((category) => {
+            const colors = getCategoryColor(category.color);
+            const isEditing = editingId === category.id;
+
+            return (
+              <div key={category.id} className="flex items-center justify-between p-3 border rounded-lg dark:border-gray-800">
+                
+                {/* Left Side: Name or Edit Input */}
+                {isEditing ? (
+                  <div className="flex items-center gap-2 flex-1 mr-2">
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="h-8"
+                      autoFocus
+                      onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(category.id)}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <div className={`p-2 rounded-full shrink-0 ${colors.bg} ${colors.text}`}>
+                      {getIconComponent(category.icon, "w-4 h-4")}
+                    </div>
+                    <span className="font-medium truncate">{category.name}</span>
+                    {category.isDefault && (
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider ml-1 border px-1.5 rounded-full">
+                        Default
+                      </span>
+                    )}
+                  </div>
+                )}
+                
+                {/* Right Side: Action Buttons */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {isEditing ? (
+                    <>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleSaveEdit(category.id)}
+                        className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                      >
+                        <Check className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => setEditingId(null)}
+                        className="h-8 w-8 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => { setEditingId(category.id); setEditName(category.name); }}
+                        className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      
+                      {!category.isDefault && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleDeleteCategory(category.id, category.name)}
+                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+
+              </div>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export function Settings() {
   const settings = useSettings();
   const updateSettingsMutation = useUpdateSettings();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const { toast } = useToast();
 
   const handleSettingChange = async (key: string, value: any) => {
@@ -314,100 +458,43 @@ export function Settings() {
   }
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-gray-500 dark:text-gray-400">
-          Customize your app preferences and manage data
-        </p>
-      </div>
+    <div className="p-4 space-y-6 pb-24">
+      <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
-      {/* General Settings */}
+      {/* Preferences */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center text-base">
-            <SettingsIcon className="w-4 h-4 mr-2" />
-            General
-          </CardTitle>
+          <CardTitle>Preferences</CardTitle>
+          <CardDescription>Customize your app experience</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Theme */}
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="text-base">Theme</Label>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Choose between light and dark mode
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleTheme}
-              className="flex items-center space-x-2"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              <span className="capitalize">{theme}</span>
-            </Button>
-          </div>
-
-          <Separator />
-
-          {/* Currency */}
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="text-base">Currency</Label>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Default currency for expenses
-              </p>
-            </div>
-            <Select
-              value={settings.currency}
-              onValueChange={(value) => handleSettingChange('currency', value)}
-            >
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="₹">₹ INR</SelectItem>
-                <SelectItem value="$">$ USD</SelectItem>
-                <SelectItem value="€">€ EUR</SelectItem>
-                <SelectItem value="£">£ GBP</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Separator />
-
-          {/* Notifications */}
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="text-base">Notifications</Label>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Enable app notifications
-              </p>
-            </div>
-            <Switch
-              checked={settings.notifications}
-              onCheckedChange={(checked) => handleSettingChange('notifications', checked)}
+        <CardContent className="space-y-4">
+          
+          <div className="flex items-center justify-between py-2">
+            <Label htmlFor="dark-mode" className="text-base cursor-pointer">Dark Mode</Label>
+            <Switch 
+              id="dark-mode" 
+              checked={theme === 'dark'}
+              onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
             />
           </div>
-
-          <Separator />
-
-          {/* Budget Alerts */}
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="text-base">Budget Alerts</Label>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Get notified when approaching budget limits
-              </p>
-            </div>
-            <Switch
-              checked={settings.budgetAlerts}
-              onCheckedChange={(checked) => handleSettingChange('budgetAlerts', checked)}
-            />
+          
+          <div className="border-t dark:border-gray-800 pt-4">
+            <ManageCategoriesDialog>
+              <Button 
+                variant="outline" 
+                className="w-full justify-between font-normal h-12 text-base hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/10 p-1.5 rounded-md text-primary">
+                    <Tags className="w-4 h-4" />
+                  </div>
+                  <span>Manage Categories</span>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </Button>
+            </ManageCategoriesDialog>
           </div>
+
         </CardContent>
       </Card>
 

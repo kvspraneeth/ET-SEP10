@@ -212,6 +212,11 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
     return groups;
   }, [filteredExpenses]);
 
+  // Calculate total of currently filtered expenses
+  const filteredTotal = useMemo(() => {
+    return filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+  }, [filteredExpenses]);
+
   const activeFilterCount = (searchTerm ? 1 : 0) + 
                             (dateFrom ? 1 : 0) + 
                             (dateTo ? 1 : 0) + 
@@ -320,17 +325,36 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
         </Card>
       )}
 
+      {/* Filtered Total Display */}
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">
+          {filteredExpenses.length} {filteredExpenses.length === 1 ? 'transaction' : 'transactions'} found
+        </span>
+        <span className="text-muted-foreground">
+          Total: <strong className="text-foreground text-base">{currencySymbol}{filteredTotal.toFixed(2)}</strong>
+        </span>
+      </div>
+
       <div className="space-y-6">
         {Object.keys(groupedExpenses).length === 0 ? (
           <div className="text-center py-10 text-muted-foreground bg-white dark:bg-gray-800/50 rounded-xl border border-dashed">
             {expenses.length === 0 ? "No expenses recorded yet." : "No expenses match your filters."}
           </div>
         ) : (
-          Object.keys(groupedExpenses).sort((a, b) => b.localeCompare(a)).map(date => (
+          Object.keys(groupedExpenses).sort((a, b) => b.localeCompare(a)).map(date => {
+            // Calculate Daily Total
+            const dailyTotal = groupedExpenses[date].reduce((sum, exp) => sum + Number(exp.amount), 0);
+
+            return (
             <div key={date} className="space-y-3">
-              <h3 className="font-medium text-sm text-muted-foreground border-b border-gray-200 dark:border-gray-800 pb-1">
-                {format(parseISO(date), 'MMMM d, yyyy')}
-              </h3>
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-1">
+                <h3 className="font-medium text-sm text-muted-foreground">
+                  {format(parseISO(date), 'MMMM d, yyyy')}
+                </h3>
+                <span className="font-semibold text-sm">
+                  {currencySymbol}{dailyTotal.toFixed(2)}
+                </span>
+              </div>
               
               <div className="space-y-2">
                 {groupedExpenses[date].map(expense => {
@@ -348,7 +372,8 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
                 })}
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

@@ -110,6 +110,7 @@ export function CategorySelector({
   limit 
 }: CategorySelectorProps) {
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
+  console.log(categories); 
   const [isAddOpen, setIsAddOpen] = useState(false);
 
   // Home Page Quick Access Variant
