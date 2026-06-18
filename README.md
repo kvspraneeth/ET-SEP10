@@ -2,6 +2,20 @@
 
 ![Budget Pilot Hero](Budget_pilot_thumbnail.png)
 
+📲 Download Android App
+Install Budget Pilot on your Android device
+
+➡️ Download Budget Pilot APK
+
+After downloading:
+
+Open the APK file.
+Allow installation from unknown sources if prompted.
+Install Budget Pilot.
+Launch and start tracking your expenses.
+
+Note: Android may display a warning because the APK is not published through Google Play Store.
+
 [![Live Demo](https://img.shields.io/badge/Netlify-Live%20Demo-brightgreen?style=flat&logo=netlify&logoColor=white)](https://budget-pilot-v2.netlify.app)
 [![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=flat&logo=react&logoColor=white)](https://reactjs.org)
 [![Vite](https://img.shields.io/badge/Vite-5.4.19-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev)
