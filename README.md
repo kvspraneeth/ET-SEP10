@@ -119,7 +119,7 @@ This repo includes `netlify.toml` for automatic Netlify publish settings:
 - Add Google OAuth login and user accounts
 - Connect live Postgres or Neon database for shared budgets
 - Add expense export/import (CSV / Excel)
-- Add push notifications or reminders
+- Add push notifications or reminders.
 
 ---
 
