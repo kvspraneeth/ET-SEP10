@@ -8,6 +8,7 @@ import { startOfDay, endOfDay, startOfWeek, format, parseISO, eachDayOfInterval,
 import { DateRange } from 'react-day-picker';
 import { DateRangePicker } from './date-range-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { findCategory } from '@/lib/categories';
 
 
 const COLORS = ['#22c55e', '#8b5cf6', '#3b82f6', '#ef4444', '#f59e0b', '#06b6d4', '#ec4899'];
@@ -62,8 +63,8 @@ export function ExpenseCharts() {
 
   const pieData = Object.values(chartData).map(item => {
     if (filterType === 'category') {
-      const category = categories.find(c => c.id === item.name);
-      return { ...item, name: category?.name || 'Other' };
+      const category = findCategory(categories, item.name);
+      return { ...item, name: category?.name || item.name || 'Other' };
     }
     return item;
   });

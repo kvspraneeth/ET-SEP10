@@ -1,7 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import db from '@/lib/db';
-import { Settings, InsertSettings } from '@shared/schema';
+import db, { Setting } from '@/lib/db';
 import { useToast } from '@/hooks/use-toast';
 
 export function useSettings() {
@@ -17,7 +16,7 @@ export function useUpdateSettings() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (updates: Partial<Settings>) => {
+    mutationFn: async (updates: Partial<Setting>) => {
       await db.settings.update('default', updates);
       return updates;
     },

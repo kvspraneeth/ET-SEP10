@@ -89,6 +89,12 @@ export const settings = pgTable("settings", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
+export type Budget = typeof budgets.$inferSelect;
+export type InsertBudget = typeof budgets.$inferInsert;
+
+export type Settings = typeof settings.$inferSelect;
+export type InsertSettings = typeof settings.$inferInsert;
+
 export const expenseFormSchema = z.object({
   id: z.string().optional(),
   amount: z.coerce.number().positive('Amount must be positive'),
@@ -105,7 +111,9 @@ export const expenseFormSchema = z.object({
   
   isRecurring: z.boolean().default(false),
   isTemplate: z.boolean().default(false),
+  recurringRuleId: z.string().optional(),
   attachments: z.array(z.string()).optional(),
 });
 
+export type InsertExpense = z.infer<typeof expenseFormSchema>;
 export type Expense = z.infer<typeof expenseFormSchema> & { id: string; createdAt: string; updatedAt: string };

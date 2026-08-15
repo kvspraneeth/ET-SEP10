@@ -3,79 +3,101 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import db from '@/lib/db';
 import { Budget, InsertBudget } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
-import { useExpensesByCategory } from './use-expenses';
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO } from 'date-fns';
 
 export function useBudgets() {
-  const budgets = useLiveQuery(() => 
-    db.budgets
-      .where('isActive')
-      .equals(1)
-      .toArray()
-  ) || [];
+  const allBudgets = useLiveQuery(() => db.budgets.toArray()) || [];
+  return allBudgets;
+}
 
-  return budgets;
+export function useActiveBudgets() {
+  const allBudgets = useBudgets();
+  return allBudgets.filter(b => b.isActive !== false);
 }
 
 export function useBudgetProgress(budget: Budget) {
-  const expenses = useExpensesByCategory(budget.category);
+  const pastExpenses = useLiveQuery(() => db.expenses.toArray()) || [];
   
   const now = new Date();
-  const startDate = new Date(budget.startDate);
-  
   let periodStart: Date;
   let periodEnd: Date;
 
   switch (budget.period) {
     case 'weekly':
-      periodStart = new Date(startDate);
-      periodStart.setDate(startDate.getDate() - startDate.getDay());
-      periodEnd = new Date(periodStart);
-      periodEnd.setDate(periodStart.getDate() + 6);
-      break;
-    case 'monthly':
-      periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      periodStart = startOfWeek(now, { weekStartsOn: 1 });
+      periodEnd = endOfWeek(now, { weekStartsOn: 1 });
       break;
     case 'yearly':
-      periodStart = new Date(now.getFullYear(), 0, 1);
-      periodEnd = new Date(now.getFullYear(), 11, 31);
+      periodStart = startOfYear(now);
+      periodEnd = endOfYear(now);
       break;
+    case 'monthly':
     default:
-      periodStart = startDate;
-      periodEnd = now;
+      periodStart = startOfMonth(now);
+      periodEnd = endOfMonth(now);
+      break;
   }
 
-  const periodExpenses = expenses.filter(expense => {
-    const expenseDate = new Date(expense.date);
-    return expenseDate >= periodStart && expenseDate <= periodEnd;
+  // Filter expenses matching category (or all if category is 'ALL') and within period
+  const matchingExpenses = pastExpenses.filter(expense => {
+    if (!expense.date) return false;
+    const isCategoryMatch = budget.category === 'ALL' || expense.category === budget.category;
+    if (!isCategoryMatch) return false;
+
+    try {
+      const expDate = parseISO(expense.date);
+      return expDate >= periodStart && expDate <= periodEnd;
+    } catch {
+      return false;
+    }
   });
 
-  const spent = periodExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const remaining = Math.max(0, budget.amount - spent);
-  const percentage = Math.min(100, (spent / budget.amount) * 100);
-  const isOverBudget = spent > budget.amount;
+  const spent = matchingExpenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
+  const budgetAmount = Number(budget.amount) || 0;
+  const remaining = Math.max(0, budgetAmount - spent);
+  const rawPercentage = budgetAmount > 0 ? (spent / budgetAmount) * 100 : 0;
+  const percentage = Math.min(100, rawPercentage);
+  const isOverBudget = spent > budgetAmount;
+  const overAmount = isOverBudget ? spent - budgetAmount : 0;
 
   return {
     spent,
     remaining,
     percentage,
+    rawPercentage,
     isOverBudget,
+    overAmount,
     periodStart: periodStart.toISOString().split('T')[0],
     periodEnd: periodEnd.toISOString().split('T')[0],
+    transactionCount: matchingExpenses.length,
   };
 }
+
+export type InsertBudgetPayload = {
+  name: string;
+  amount: number;
+  category: string;
+  period: string;
+  startDate: string;
+  isActive?: boolean;
+};
 
 export function useAddBudget() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (budget: InsertBudget) => {
-      const now = new Date().toISOString();
+    mutationFn: async (budget: InsertBudgetPayload) => {
+      const now = new Date();
       const newBudget: Budget = {
-        ...budget,
         id: crypto.randomUUID(),
-        createdAt: now,
+        userId: 'local',
+        name: budget.name,
+        amount: Number(budget.amount),
+        category: budget.category,
+        period: budget.period,
+        startDate: budget.startDate,
+        isActive: budget.isActive ?? true,
         updatedAt: now,
       };
       
@@ -89,13 +111,71 @@ export function useAddBudget() {
       });
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to create budget. Please try again.",
+        description: error.message || "Failed to create budget.",
         variant: "destructive",
       });
-      console.error('Failed to create budget:', error);
+    },
+  });
+}
+
+export function useUpdateBudget() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (budget: Budget) => {
+      await db.budgets.update(budget.id, {
+        name: budget.name,
+        amount: Number(budget.amount),
+        category: budget.category,
+        period: budget.period,
+        startDate: budget.startDate,
+        isActive: budget.isActive,
+        updatedAt: new Date(),
+      });
+      return budget;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Budget updated successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update budget.",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useDeleteBudget() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await db.budgets.delete(id);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Deleted",
+        description: "Budget has been removed.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete budget.",
+        variant: "destructive",
+      });
     },
   });
 }

@@ -4,7 +4,7 @@ import { Clock, ShoppingCart, Utensils, Car, FileText, Tv, Heart, ShoppingBag, P
 import { useExpenses } from '@/hooks/use-expenses';
 import { useLiveQuery } from 'dexie-react-hooks';
 import db from '@/lib/db';
-import { getCategoryColor } from '@/lib/categories';
+import { getCategoryColor, findCategory } from '@/lib/categories';
 import { useSettings } from '@/hooks/use-settings';
 import { format, parseISO, isToday, isYesterday, startOfDay, endOfDay } from 'date-fns';
 import { DateRange } from 'react-day-picker';
@@ -50,12 +50,7 @@ export function RecentExpenses({ onViewAll, limit = 5, dateRange }: RecentExpens
   };
 
   const getCategoryInfo = (categoryId: string) => {
-    return categories.find(cat => cat.id === categoryId) || {
-      id: categoryId,
-      name: 'Other',
-      icon: 'file-text',
-      color: 'gray'
-    };
+    return findCategory(categories, categoryId);
   };
 
   const formatDate = (dateStr: string, timeStr: string) => {

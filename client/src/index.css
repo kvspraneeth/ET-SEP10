@@ -58,6 +58,46 @@
   }
 }
 
+/* ==========================================================================
+   Sleek, Compact, Low-Opacity Scrollbars for PC and Web
+   ========================================================================== */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(160, 160, 160, 0.22);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 140, 140, 0.45);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Firefox standard thin scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(160, 160, 160, 0.22) transparent;
+}
+
+.dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
 /* Custom styles for mobile PWA */
 @media (max-width: 640px) {
   .mobile-safe-area {
@@ -127,21 +167,17 @@
   background-color: var(--progress-background);
 }
 
-/* Add this to the bottom of client/src/index.css */
-
 @layer utilities {
   .mobile-safe-area {
-    /* Ensures the bottom nav itself extends down behind the swipe indicator */
     padding-bottom: env(safe-area-inset-bottom);
   }
   
   .mobile-safe-content {
-    /* Ensures content doesn't get hidden behind the swipe indicator */
     margin-bottom: env(safe-area-inset-bottom);
   }
 }
 
-/* Optional global fix to ensure html/body don't trap scroll momentum on iOS */
+/* Global fix to ensure html/body don't trap scroll momentum on iOS */
 html, body {
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;

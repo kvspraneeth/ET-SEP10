@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,6 +14,9 @@ import { Budget } from "@/pages/budget";
 import { Settings } from "@/pages/settings";
 import DuesReceivables from "./pages/duesreceivables"; 
 import { Expense } from "@shared/schema";
+import { processRecurringRules } from "./lib/recurring-engine";
+import { cleanupAndDeduplicateCategories } from "./lib/categories";
+import db from "./lib/db";
 
 function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -21,11 +24,28 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
+  // Automatically clean up any corrupted categories and process recurring rules on app mount
+  useEffect(() => {
+    cleanupAndDeduplicateCategories(db).then(() => {
+      processRecurringRules().then(({ expensesAdded, debtsAdded }) => {
+        if (expensesAdded > 0 || debtsAdded > 0) {
+          queryClient.invalidateQueries({ queryKey: ['expenses'] });
+        }
+      });
+    });
+  }, []);
+
   const handleOpenExpenseForm = (payload?: string | any) => {
-    if (payload && typeof payload === 'object' && payload.id) {
-      // Editing an existing expense
-      setEditingExpense(JSON.parse(JSON.stringify(payload)));
-      setSelectedCategory(payload.category);
+    if (payload && typeof payload === 'object') {
+      if (payload.id) {
+        // Editing an existing expense
+        setEditingExpense(JSON.parse(JSON.stringify(payload)));
+        setSelectedCategory(payload.category);
+      } else {
+        // Pre-filling from Frequent Transaction / Template / Reuse (new expense)
+        setEditingExpense(JSON.parse(JSON.stringify(payload)));
+        setSelectedCategory(payload.category || undefined);
+      }
     } else if (typeof payload === 'string' && payload.trim() !== '') {
       // Opening with a specific category from Quick Add
       setSelectedCategory(payload);
@@ -44,26 +64,7 @@ function App() {
       setTimeout(() => {
         setEditingExpense(null);
         setSelectedCategory(undefined);
-      }, 200); 
-    }
-  };
-
-  const renderCurrentPage = () => {
-    switch (activeTab) {
-      case 'home':
-        return <Home onTabChange={setActiveTab} onOpenExpenseForm={handleOpenExpenseForm} />;
-      case 'expenses':
-        return <Expenses onOpenExpenseForm={handleOpenExpenseForm} />;
-      case 'debts':
-        return <DuesReceivables />;
-      case 'charts':
-        return <Charts />;
-      case 'budget':
-        return <Budget />;
-      case 'settings':
-        return <Settings />;
-      default:
-        return <Home onTabChange={setActiveTab} onOpenExpenseForm={handleOpenExpenseForm} />;
+      }, 150); 
     }
   };
 
@@ -74,11 +75,33 @@ function App() {
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
             <Header />
             
-            <main className="pb-28 md:pb-12 w-full max-w-screen-2xl mx-auto">
-              {renderCurrentPage()}
+            {/* Zero-Lag Tab Switching: Tabs stay rendered in DOM, eliminating mount/unmount lag */}
+            <main className="pb-28 md:pb-16 w-full max-w-screen-2xl mx-auto">
+              <div className={activeTab === 'home' ? 'block' : 'hidden'}>
+                <Home onTabChange={setActiveTab} onOpenExpenseForm={handleOpenExpenseForm} />
+              </div>
+              <div className={activeTab === 'expenses' ? 'block' : 'hidden'}>
+                <Expenses onOpenExpenseForm={handleOpenExpenseForm} />
+              </div>
+              <div className={activeTab === 'debts' ? 'block' : 'hidden'}>
+                <DuesReceivables />
+              </div>
+              <div className={activeTab === 'charts' ? 'block' : 'hidden'}>
+                <Charts />
+              </div>
+              <div className={activeTab === 'budget' ? 'block' : 'hidden'}>
+                <Budget />
+              </div>
+              <div className={activeTab === 'settings' ? 'block' : 'hidden'}>
+                <Settings />
+              </div>
             </main>
             
-            <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+            <BottomNavigation 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab} 
+              onAddClick={() => handleOpenExpenseForm()} 
+            />
        
             <ExpenseForm
               open={isExpenseFormOpen} 

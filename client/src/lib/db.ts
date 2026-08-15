@@ -1,8 +1,8 @@
 import Dexie, { Table } from 'dexie';
-import { Expense, Category, categories, budgets, settings } from '@shared/schema';
+import { Expense, Category, Budget, categories, budgets, settings } from '@shared/schema';
 import { DEFAULT_CATEGORIES } from './categories';
 
-interface Setting {
+export interface Setting {
   id: string;
   currency: string;
   theme: string;
@@ -10,6 +10,7 @@ interface Setting {
   notifications: boolean;
   budgetAlerts: boolean;
 }
+
 // Define the Debt interface for TypeScript
 export interface DebtRecord {
   id?: number; // Optional because Dexie auto-increments it
@@ -21,16 +22,60 @@ export interface DebtRecord {
   notes?: string;
   datetime: string;
   status: 'pending' | 'settled';
+  recurringRuleId?: string;
   createdAt: string;
 }
 
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+export type CustomIntervalUnit = 'days' | 'weeks' | 'months' | 'years';
+
+export interface RecurringExpense {
+  id: string;
+  amount: number;
+  items: string;
+  category: string;
+  where?: string;
+  note?: string;
+  paymentMethod: string;
+  account: string;
+  startDate: string; // yyyy-MM-dd
+  endDate?: string;  // yyyy-MM-dd
+  frequency: RecurrenceFrequency;
+  customIntervalCount?: number;
+  customIntervalUnit?: CustomIntervalUnit;
+  isActive: boolean;
+  lastGeneratedDate?: string; // yyyy-MM-dd
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecurringDebt {
+  id: string;
+  type: 'due' | 'receivable';
+  amount: number;
+  purpose: string;
+  personName: string;
+  location?: string;
+  notes?: string;
+  startDate: string; // yyyy-MM-dd
+  endDate?: string;  // yyyy-MM-dd
+  frequency: RecurrenceFrequency;
+  customIntervalCount?: number;
+  customIntervalUnit?: CustomIntervalUnit;
+  isActive: boolean;
+  lastGeneratedDate?: string; // yyyy-MM-dd
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface AppDB extends Dexie {
   expenses: Table<Expense>;
   categories: Table<Category>;
-  budgets: Table<typeof budgets>;
+  budgets: Table<Budget>;
   settings: Table<Setting>;
-  debts: Table<DebtRecord>; // NEW: Added Debts table
+  debts: Table<DebtRecord>;
+  recurringExpenses: Table<RecurringExpense>;
+  recurringDebts: Table<RecurringDebt>;
 }
 
 export const db = new Dexie('ExpenseTrackerDB') as AppDB;
@@ -43,13 +88,24 @@ db.version(1).stores({
   settings: '++id',
 });
 
-// Version 2: Adds the new debts table seamlessly
+// Version 2: Adds the debts table
 db.version(2).stores({
   expenses: '++id, amount, date, category, paymentMethod, account, createdAt',
   categories: '++id, name, isDefault',
   budgets: '++id, category, period, isActive',
   settings: '++id',
-  debts: '++id, type, personName, status, datetime, createdAt', // NEW: Indexed columns for filtering
+  debts: '++id, type, personName, status, datetime, createdAt',
+});
+
+// Version 3: Adds Recurring Expenses and Recurring Debts
+db.version(3).stores({
+  expenses: '++id, amount, date, category, paymentMethod, account, recurringRuleId, createdAt',
+  categories: '++id, name, isDefault',
+  budgets: '++id, category, period, isActive',
+  settings: '++id',
+  debts: '++id, type, personName, status, datetime, recurringRuleId, createdAt',
+  recurringExpenses: 'id, items, category, frequency, isActive, startDate, createdAt',
+  recurringDebts: 'id, type, personName, frequency, isActive, startDate, createdAt',
 });
 
 // Initialize default data
@@ -75,4 +131,3 @@ db.on('ready', async () => {
 });
 
 export default db;
-

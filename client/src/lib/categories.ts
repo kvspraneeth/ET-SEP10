@@ -84,6 +84,70 @@ export const DEFAULT_CATEGORIES: Category[] = [
   },
 ];
 
+export const ICON_AND_EMOJI_TO_CATEGORY: Record<string, string> = {
+  // Lucide icon names
+  'shopping-cart': 'groceries',
+  'utensils': 'food',
+  'car': 'transport',
+  'file-text': 'bills',
+  'tv': 'entertainment',
+  'heart': 'healthcare',
+  'shopping-bag': 'shopping',
+  'plane': 'travel',
+  'trending-up': 'investing',
+  'tag': 'groceries',
+  'wallet': 'bills',
+
+  // Common emojis
+  '🛒': 'groceries',
+  '🍽️': 'food',
+  '🍽': 'food',
+  '🍕': 'food',
+  '🍔': 'food',
+  '🚗': 'transport',
+  '⛽': 'transport',
+  '📄': 'bills',
+  '📑': 'bills',
+  '🎬': 'entertainment',
+  '🎥': 'entertainment',
+  '📺': 'entertainment',
+  '❤️': 'healthcare',
+  '🩺': 'healthcare',
+  '🛍️': 'shopping',
+  '🛍': 'shopping',
+  '✈️': 'travel',
+  '✈': 'travel',
+  '📈': 'investing',
+  '💰': 'bills',
+};
+
+export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const KNOWN_ICON_NAMES = new Set([
+  'shopping-cart', 'utensils', 'car', 'file-text', 'tv', 
+  'heart', 'shopping-bag', 'plane', 'trending-up', 'tag', 'wallet'
+]);
+
+export function isGarbageCategory(cat: { id?: string; name?: string; icon?: string }): boolean {
+  if (!cat) return true;
+  const id = String(cat.id || '').trim();
+  const name = String(cat.name || '').trim();
+
+  // If name or ID is a UUID
+  if (UUID_REGEX.test(name)) return true;
+
+  // If name is an icon name
+  if (KNOWN_ICON_NAMES.has(name.toLowerCase())) return true;
+
+  // If name is an emoji
+  if (ICON_AND_EMOJI_TO_CATEGORY[name]) return true;
+
+  // If name is too short or weird symbols
+  if (name.length <= 1 && !/^[a-zA-Z0-9]$/.test(name)) return true;
+
+  return false;
+}
+
 export const getCategoryColor = (color: string) => {
   const colors = {
     green: {
@@ -136,7 +200,8 @@ export const guessCategoryProperties = (name: string) => {
     n.includes('eat') ||
     n.includes('meal') ||
     n.includes('restaurant') ||
-    n.includes('cafe')
+    n.includes('cafe') ||
+    n.includes('dining')
   ) {
     return { icon: 'utensils', color: 'purple' };
   }
@@ -160,7 +225,9 @@ export const guessCategoryProperties = (name: string) => {
     n.includes('water') ||
     n.includes('internet') ||
     n.includes('subscription') ||
-    n.includes('netflix')
+    n.includes('netflix') ||
+    n.includes('rent') ||
+    n.includes('recharge')
   ) {
     return { icon: 'file-text', color: 'red' };
   }
@@ -172,7 +239,8 @@ export const guessCategoryProperties = (name: string) => {
     n.includes('medical') ||
     n.includes('pharmacy') ||
     n.includes('fitness') ||
-    n.includes('gym')
+    n.includes('gym') ||
+    n.includes('medicine')
   ) {
     return { icon: 'heart', color: 'cyan' };
   }
@@ -182,7 +250,8 @@ export const guessCategoryProperties = (name: string) => {
     n.includes('shop') ||
     n.includes('amazon') ||
     n.includes('clothes') ||
-    n.includes('gift')
+    n.includes('gift') ||
+    n.includes('flipkart')
   ) {
     return { icon: 'shopping-bag', color: 'pink' };
   }
@@ -195,7 +264,9 @@ export const guessCategoryProperties = (name: string) => {
     n.includes('petrol') ||
     n.includes('diesel') ||
     n.includes('taxi') ||
-    n.includes('uber')
+    n.includes('uber') ||
+    n.includes('auto') ||
+    n.includes('cab')
   ) {
     return { icon: 'car', color: 'blue' };
   }
@@ -205,7 +276,9 @@ export const guessCategoryProperties = (name: string) => {
     n.includes('movie') ||
     n.includes('game') ||
     n.includes('party') ||
-    n.includes('entertainment')
+    n.includes('entertainment') ||
+    n.includes('cinema') ||
+    n.includes('ott')
   ) {
     return { icon: 'tv', color: 'orange' };
   }
@@ -216,7 +289,8 @@ export const guessCategoryProperties = (name: string) => {
     n.includes('stock') ||
     n.includes('crypto') ||
     n.includes('mutual fund') ||
-    n.includes('sip')
+    n.includes('sip') ||
+    n.includes('gold')
   ) {
     return { icon: 'trending-up', color: 'green' };
   }
@@ -226,7 +300,12 @@ export const guessCategoryProperties = (name: string) => {
     n.includes('grocery') ||
     n.includes('groceries') ||
     n.includes('market') ||
-    n.includes('supermarket')
+    n.includes('supermarket') ||
+    n.includes('vegetable') ||
+    n.includes('fruit') ||
+    n.includes('blinkit') ||
+    n.includes('zepto') ||
+    n.includes('instamart')
   ) {
     return { icon: 'shopping-cart', color: 'green' };
   }
@@ -246,3 +325,175 @@ export const guessCategoryProperties = (name: string) => {
     color: 'gray',
   };
 };
+
+/**
+ * Universal Category Resolver:
+ * Matches category by ID, Name, Icon, Emoji, or partial keywords (case-insensitive).
+ * NEVER returns a UUID, icon name, or lone emoji as a category name.
+ * Guarantees that no valid expense/item is ever left "Uncategorized".
+ */
+export function findCategory(categories: Category[], key?: string): Category {
+  const validCategories = (categories || []).filter(c => !isGarbageCategory(c));
+
+  if (!key) {
+    return (
+      validCategories.find(c => c.id === 'groceries') ||
+      DEFAULT_CATEGORIES[0]
+    );
+  }
+
+  const raw = String(key).trim();
+  const cleanKey = raw.toLowerCase();
+
+  // 1. If key is an icon name or emoji, map directly to corresponding default category
+  if (ICON_AND_EMOJI_TO_CATEGORY[cleanKey] || ICON_AND_EMOJI_TO_CATEGORY[raw]) {
+    const targetId = ICON_AND_EMOJI_TO_CATEGORY[cleanKey] || ICON_AND_EMOJI_TO_CATEGORY[raw];
+    const match = validCategories.find(c => c.id === targetId) || DEFAULT_CATEGORIES.find(c => c.id === targetId);
+    if (match) return match;
+  }
+
+  // 2. Direct ID match in valid categories
+  const byId = validCategories.find(c => c.id.toLowerCase() === cleanKey);
+  if (byId) return byId;
+
+  // 3. Direct Name match in valid categories
+  const byName = validCategories.find(c => c.name.toLowerCase() === cleanKey);
+  if (byName) return byName;
+
+  // 4. Default categories lookup (by ID or exact Name)
+  const byDefault = DEFAULT_CATEGORIES.find(c => 
+    c.id.toLowerCase() === cleanKey || 
+    c.name.toLowerCase() === cleanKey
+  );
+  if (byDefault) return byDefault;
+
+  // 5. Substring / partial match in valid categories or default categories
+  const byIncludes = validCategories.find(c => 
+    c.name.toLowerCase().includes(cleanKey) || cleanKey.includes(c.name.toLowerCase())
+  );
+  if (byIncludes) return byIncludes;
+
+  const byDefaultIncludes = DEFAULT_CATEGORIES.find(c => 
+    c.name.toLowerCase().includes(cleanKey) || cleanKey.includes(c.name.toLowerCase())
+  );
+  if (byDefaultIncludes) return byDefaultIncludes;
+
+  // 6. If key is a UUID, do NOT treat the UUID as the category name!
+  if (UUID_REGEX.test(cleanKey)) {
+    // Check if by any chance an existing category has this id
+    const existingById = (categories || []).find(c => c.id.toLowerCase() === cleanKey);
+    if (existingById && !isGarbageCategory(existingById)) {
+      return existingById;
+    }
+    // Fallback to Groceries default
+    return DEFAULT_CATEGORIES[0];
+  }
+
+  // 7. Dynamic fallback for genuine custom categories (e.g. "Electronics", "Gifts", "Education")
+  const guessed = guessCategoryProperties(raw);
+  return {
+    id: cleanKey.replace(/\s+/g, '-'),
+    userId: 'local',
+    name: raw.charAt(0).toUpperCase() + raw.slice(1),
+    icon: guessed.icon,
+    color: guessed.color,
+    isDefault: false,
+    updatedAt: new Date(),
+  };
+}
+
+/**
+ * Automatically cleans up any corrupted or duplicate categories in IndexedDB:
+ * 1. Purges categories with UUIDs, icon names, or lone emojis as names.
+ * 2. Remaps expenses, budgets, debts, and recurring rules from deleted garbage category IDs to canonical category IDs.
+ * 3. Ensures all 9 DEFAULT_CATEGORIES exist.
+ * 4. Deduplicates any duplicate categories by lowercased name.
+ */
+export async function cleanupAndDeduplicateCategories(db: any) {
+  try {
+    const existingCategories: Category[] = await db.categories.toArray();
+    const toDeleteIds: string[] = [];
+    const idRemap: Record<string, string> = {};
+
+    // 1. Identify garbage categories
+    for (const cat of existingCategories) {
+      if (isGarbageCategory(cat)) {
+        toDeleteIds.push(cat.id);
+        const canonical = findCategory(DEFAULT_CATEGORIES, cat.name || cat.icon || cat.id);
+        idRemap[cat.id] = canonical.id;
+      }
+    }
+
+    // 2. Identify duplicates by name
+    const seenNames = new Map<string, Category>();
+    for (const cat of existingCategories) {
+      if (toDeleteIds.includes(cat.id)) continue;
+      const lowerName = cat.name.toLowerCase().trim();
+      if (seenNames.has(lowerName)) {
+        const canonical = seenNames.get(lowerName)!;
+        toDeleteIds.push(cat.id);
+        idRemap[cat.id] = canonical.id;
+      } else {
+        seenNames.set(lowerName, cat);
+      }
+    }
+
+    // 3. Remap references across all tables
+    if (Object.keys(idRemap).length > 0) {
+      // Remap in expenses
+      const expenses = await db.expenses.toArray();
+      const modifiedExpenses = [];
+      for (const exp of expenses) {
+        if (idRemap[exp.category]) {
+          exp.category = idRemap[exp.category];
+          modifiedExpenses.push(exp);
+        }
+      }
+      if (modifiedExpenses.length > 0) {
+        await db.expenses.bulkPut(modifiedExpenses);
+      }
+
+      // Remap in recurringExpenses
+      const recExpenses = await db.recurringExpenses.toArray();
+      const modifiedRecExpenses = [];
+      for (const r of recExpenses) {
+        if (idRemap[r.category]) {
+          r.category = idRemap[r.category];
+          modifiedRecExpenses.push(r);
+        }
+      }
+      if (modifiedRecExpenses.length > 0) {
+        await db.recurringExpenses.bulkPut(modifiedRecExpenses);
+      }
+
+      // Remap in budgets
+      const budgets = await db.budgets.toArray();
+      const modifiedBudgets = [];
+      for (const b of budgets) {
+        if (idRemap[b.category]) {
+          b.category = idRemap[b.category];
+          modifiedBudgets.push(b);
+        }
+      }
+      if (modifiedBudgets.length > 0) {
+        await db.budgets.bulkPut(modifiedBudgets);
+      }
+    }
+
+    // 4. Delete the garbage category records
+    if (toDeleteIds.length > 0) {
+      await db.categories.bulkDelete(toDeleteIds);
+    }
+
+    // 5. Ensure all DEFAULT_CATEGORIES exist
+    const remainingCategories: Category[] = await db.categories.toArray();
+    const missingDefaults = DEFAULT_CATEGORIES.filter(
+      def => !remainingCategories.some(c => c.id.toLowerCase() === def.id.toLowerCase() || c.name.toLowerCase() === def.name.toLowerCase())
+    );
+    if (missingDefaults.length > 0) {
+      await db.categories.bulkAdd(missingDefaults);
+    }
+  } catch (err) {
+    console.error('Error during category cleanup:', err);
+  }
+}

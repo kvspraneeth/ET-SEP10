@@ -43,26 +43,22 @@ export function BudgetOverview() {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {budgets.slice(0, 3).map((budget) => {
-            const progress = useBudgetProgress(budget);
-            
-            return (
-              <BudgetItem
-                key={budget.id}
-                budget={budget}
-                progress={progress}
-                currency={currency}
-                formatAmount={formatAmount}
-              />
-            );
-          })}
+          {budgets.slice(0, 3).map((budget) => (
+            <BudgetItem
+              key={budget.id}
+              budget={budget}
+              currency={currency}
+              formatAmount={formatAmount}
+            />
+          ))}
         </div>
       </CardContent>
     </Card>
   );
 }
 
-function BudgetItem({ budget, progress, currency, formatAmount }: any) {
+function BudgetItem({ budget, currency, formatAmount }: any) {
+  const progress = useBudgetProgress(budget);
   return (
     <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
       <div className="flex justify-between items-center mb-2">
