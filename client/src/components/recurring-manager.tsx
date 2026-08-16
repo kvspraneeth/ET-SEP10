@@ -50,7 +50,7 @@ export function ManageRecurringExpensesDialog({
   const [category, setCategory] = useState<string>('');
   const [where, setWhere] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('UPI');
-  const [account, setAccount] = useState<string>('ICICI');
+  const [account, setAccount] = useState<string>('SBI');
   const [note, setNote] = useState<string>('');
   const [startDate, setStartDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState<string>('');
@@ -166,7 +166,7 @@ export function ManageRecurringExpensesDialog({
     setCategory(categories[0]?.id || 'groceries');
     setWhere('');
     setPaymentMethod('UPI');
-    setAccount('ICICI');
+    setAccount('SBI');
     setNote('');
     setStartDate(format(new Date(), 'yyyy-MM-dd'));
     setEndDate('');
@@ -184,7 +184,7 @@ export function ManageRecurringExpensesDialog({
     setCategory(rule.category);
     setWhere(rule.where || '');
     setPaymentMethod(rule.paymentMethod || 'UPI');
-    setAccount(rule.account || 'ICICI');
+    setAccount(rule.account || 'SBI');
     setNote(rule.note || '');
     setStartDate(rule.startDate);
     setEndDate(rule.endDate || '');

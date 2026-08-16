@@ -23,6 +23,7 @@ import db from '@/lib/db';
 import { cn } from '@/lib/utils';
 import { processFileAttachment } from '@/lib/image-utils';
 import { findCategory } from '@/lib/categories';
+import { useTheme } from './theme-provider';
 
 type ExpenseFormValues = z.infer<typeof expenseFormSchema>;
 
@@ -60,6 +61,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
 
   const addExpenseMutation = useAddExpense();
   const updateExpenseMutation = useUpdateExpense();
+  const { isDarkTheme } = useTheme();
 
   // Fetch past expenses from Dexie DB
   const pastExpenses = useLiveQuery(() => db.expenses.toArray()) || [];
@@ -76,7 +78,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
       where: '',
       note: '',
       paymentMethod: 'UPI',
-      account: 'ICICI',
+      account: 'SBI',
       isRecurring: false,
       isTemplate: false,
       attachments: [] as string[],
@@ -103,8 +105,8 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
             items: editingExpense.items ?? '',
             where: editingExpense.where ?? '',
             note: editingExpense.note ?? '',
-            paymentMethod: editingExpense.paymentMethod,
-            account: editingExpense.account,
+            paymentMethod: editingExpense.paymentMethod || 'UPI',
+            account: editingExpense.account || 'SBI',
             isRecurring: editingExpense.isRecurring ?? false,
             isTemplate: editingExpense.isTemplate ?? false,
             attachments: editingExpense.attachments ?? [],
@@ -122,7 +124,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
             where: editingExpense.where ?? '',
             note: editingExpense.note ?? '',
             paymentMethod: editingExpense.paymentMethod || 'UPI',
-            account: editingExpense.account || 'ICICI',
+            account: editingExpense.account || 'SBI',
             isRecurring: false,
             isTemplate: false,
             attachments: [],
@@ -142,7 +144,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
           where: '',
           note: '',
           paymentMethod: 'UPI',
-          account: 'ICICI',
+          account: 'SBI',
           isRecurring: false,
           isTemplate: false,
           attachments: [] as string[],
@@ -356,7 +358,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
 
   const uniqueAccounts = useMemo(() => {
     return Array.from(new Set([
-      'ICICI', 'HDFC', 'SBI',
+      'SBI', 'HDFC', 'ICICI',
       ...pastExpenses.map(e => (e as any).account).filter(Boolean),
       ...sessionAccounts
     ]));
@@ -380,16 +382,16 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
   return (
     <>
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-lg max-h-[92vh] overflow-y-auto p-4 sm:p-6">
-          <DialogHeader className="pb-2 border-b">
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+        <DialogContent className="glass-card sm:max-w-lg max-h-[92vh] overflow-y-auto p-4 sm:p-6 rounded-[2rem] border border-border shadow-2xl bg-card/95 backdrop-blur-2xl text-foreground">
+          <DialogHeader className="pb-2 border-b border-border">
+            <DialogTitle className="text-xl font-black flex items-center gap-2 text-foreground">
               <Sparkles className="w-5 h-5 text-primary" />
               <span>{isEditMode ? 'Edit Expense' : 'Add Expense'}</span>
             </DialogTitle>
           </DialogHeader>
 
           {suggestedBanner && (
-            <div className="bg-primary/10 border border-primary/20 rounded-lg p-2.5 flex items-center justify-between text-xs text-primary animate-in fade-in slide-in-from-top-1">
+            <div className="bg-primary/10 border border-primary/20 rounded-2xl p-2.5 flex items-center justify-between text-xs text-primary font-medium animate-in fade-in slide-in-from-top-1">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 shrink-0" />
                 <span>{suggestedBanner}</span>
@@ -397,7 +399,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
               <button 
                 type="button" 
                 onClick={() => setSuggestedBanner(null)} 
-                className="text-primary/70 hover:text-primary p-0.5"
+                className="text-primary/70 hover:text-primary p-0.5 rounded-full"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -413,8 +415,8 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold flex items-center justify-between">
-                      <span>Amount <span className="text-red-500">*</span></span>
+                    <FormLabel className="text-sm font-bold flex items-center justify-between text-foreground">
+                      <span>Amount <span className="text-rose-500">*</span></span>
                     </FormLabel>
                     <FormControl>
                       <div className="relative">
@@ -425,7 +427,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                           type="number" 
                           step="0.01"
                           autoFocus={!isEditMode}
-                          className="pl-9 text-lg font-bold h-12 rounded-xl"
+                          className="pl-9 text-lg font-black h-12 rounded-2xl bg-card border-border text-foreground shadow-xs"
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         />
                       </div>
@@ -441,7 +443,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                 name="items"
                 render={({ field }) => (
                   <FormItem className="relative">
-                    <FormLabel className="text-sm font-semibold flex items-center justify-between">
+                    <FormLabel className="text-sm font-bold flex items-center justify-between text-foreground">
                       <span>Title / Item</span>
                       <span className="text-xs text-muted-foreground font-normal">What did you spend on?</span>
                     </FormLabel>
@@ -460,19 +462,19 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                             field.onChange(e);
                             setTitleSuggestionsOpen(true);
                           }}
-                          className="h-10 rounded-lg text-sm"
+                          className="h-10 rounded-2xl text-sm bg-card border-border text-foreground px-3.5"
                         />
 
                         {/* Title Fuzzy Search Suggestions Dropdown */}
                         {titleSuggestionsOpen && filteredTitleSuggestions.length > 0 && (
-                          <div className="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                            <div className="px-3 py-1.5 bg-gray-50 dark:bg-gray-900 border-b text-[11px] font-semibold text-muted-foreground flex items-center justify-between">
+                          <div className="absolute top-full left-0 right-0 mt-1.5 bg-card/95 backdrop-blur-xl rounded-2xl border border-border shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                            <div className="px-3.5 py-1.5 bg-muted/60 border-b border-border text-[11px] font-bold text-muted-foreground flex items-center justify-between">
                               <span className="flex items-center gap-1">
                                 <History className="w-3 h-3 text-primary" /> Recent & Frequent
                               </span>
                               <span>Click to auto-fill</span>
                             </div>
-                            <div className="max-h-48 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                            <div className="max-h-48 overflow-y-auto divide-y divide-border pill-scroller">
                               {filteredTitleSuggestions.map((item) => {
                                 const exp = item.lastExpense;
                                 const titleName = exp.items || '';
@@ -484,10 +486,10 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                                     key={titleName}
                                     type="button"
                                     onClick={() => applyTitleSuggestion(titleName, exp)}
-                                    className="w-full text-left px-3.5 py-2.5 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors flex items-center justify-between group"
+                                    className="w-full text-left px-3.5 py-2.5 hover:bg-muted/70 transition-colors flex items-center justify-between group"
                                   >
                                     <div className="overflow-hidden">
-                                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary truncate">
+                                      <p className="text-sm font-semibold text-foreground group-hover:text-primary truncate">
                                         {titleName}
                                       </p>
                                       <p className="text-xs text-muted-foreground truncate">
@@ -495,7 +497,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                                       </p>
                                     </div>
                                     <div className="flex flex-col items-end shrink-0 ml-2">
-                                      <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-gray-100 dark:bg-gray-700 text-muted-foreground font-medium">
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium border border-border">
                                         {item.count}x used
                                       </span>
                                       <span className="text-[9px] text-muted-foreground mt-0.5">{timeAgo}</span>
@@ -519,8 +521,8 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold">
-                      Category <span className="text-red-500">*</span>
+                    <FormLabel className="text-sm font-bold text-foreground">
+                      Category <span className="text-rose-500">*</span>
                     </FormLabel>
                     <FormControl>
                       <CategorySelector 
@@ -534,7 +536,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
               />
 
               {/* Elegant Date & Time Picker */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-gray-50/70 dark:bg-gray-800/40 p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-muted/50 p-3.5 rounded-2xl border border-border backdrop-blur-md">
                 {/* Date Selection */}
                 <FormField
                   control={form.control}
@@ -542,7 +544,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                   render={({ field }) => (
                     <FormItem>
                       <div className="flex items-center justify-between mb-1">
-                        <FormLabel className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                        <FormLabel className="text-xs font-bold text-foreground flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5 text-primary" /> Date
                         </FormLabel>
                         <div className="flex items-center gap-1">
@@ -550,10 +552,10 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                             type="button"
                             onClick={() => field.onChange(format(new Date(), 'yyyy-MM-dd'))}
                             className={cn(
-                              "px-2 py-0.5 rounded text-[11px] font-semibold transition-all border",
+                              "px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all border tap-spring",
                               isDateToday 
-                                ? "bg-primary text-primary-foreground border-primary shadow-xs" 
-                                : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700"
+                                ? "bg-primary text-primary-foreground border-primary shadow-xs ring-1 ring-primary" 
+                                : "bg-card text-foreground hover:bg-muted border-border"
                             )}
                           >
                             Today
@@ -562,10 +564,10 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                             type="button"
                             onClick={() => field.onChange(format(subDays(new Date(), 1), 'yyyy-MM-dd'))}
                             className={cn(
-                              "px-2 py-0.5 rounded text-[11px] font-semibold transition-all border",
+                              "px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all border tap-spring",
                               isDateYesterday 
-                                ? "bg-primary text-primary-foreground border-primary shadow-xs" 
-                                : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700"
+                                ? "bg-primary text-primary-foreground border-primary shadow-xs ring-1 ring-primary" 
+                                : "bg-card text-foreground hover:bg-muted border-border"
                             )}
                           >
                             Yesterday
@@ -577,7 +579,8 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                           <Input 
                             {...field} 
                             type="date" 
-                            className="h-10 rounded-lg text-sm bg-white dark:bg-gray-800 font-medium dark:[color-scheme:dark]" 
+                            style={{ colorScheme: isDarkTheme ? 'dark' : 'light' }}
+                            className="h-10 rounded-xl text-sm bg-card border-border font-medium text-foreground px-3 shadow-xs" 
                           />
                         </div>
                       </FormControl>
@@ -596,13 +599,13 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                   render={({ field }) => (
                     <FormItem>
                       <div className="flex items-center justify-between mb-1">
-                        <FormLabel className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                        <FormLabel className="text-xs font-bold text-foreground flex items-center gap-1.5">
                           <Clock className="w-3.5 h-3.5 text-primary" /> Time
                         </FormLabel>
                         <button
                           type="button"
                           onClick={() => field.onChange(format(new Date(), 'HH:mm'))}
-                          className="px-2 py-0.5 rounded text-[11px] font-semibold bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700"
+                          className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-card text-foreground hover:bg-muted border border-border tap-spring"
                         >
                           Now
                         </button>
@@ -611,7 +614,8 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                         <Input 
                           {...field} 
                           type="time" 
-                          className="h-10 rounded-lg text-sm bg-white dark:bg-gray-800 font-medium dark:[color-scheme:dark]" 
+                          style={{ colorScheme: isDarkTheme ? 'dark' : 'light' }}
+                          className="h-10 rounded-xl text-sm bg-card border-border font-medium text-foreground px-3 shadow-xs" 
                         />
                       </FormControl>
                       <FormMessage />
@@ -626,7 +630,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                 name="where"
                 render={({ field }) => (
                   <FormItem className="relative">
-                    <FormLabel className="text-sm font-semibold flex items-center justify-between">
+                    <FormLabel className="text-sm font-bold flex items-center justify-between text-foreground">
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5 text-primary" /> Where / Place
                       </span>
@@ -643,12 +647,12 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                             field.onChange(e);
                             setWhereSuggestionsOpen(true);
                           }}
-                          className="h-10 rounded-lg text-sm"
+                          className="h-10 rounded-2xl text-sm bg-card border-border text-foreground px-3.5"
                         />
 
                         {whereSuggestionsOpen && filteredWhereSuggestions.length > 0 && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50 overflow-hidden">
-                            <div className="max-h-36 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-card/95 backdrop-blur-xl rounded-2xl border border-border shadow-2xl z-50 overflow-hidden animate-in fade-in duration-150">
+                            <div className="max-h-36 overflow-y-auto divide-y divide-border pill-scroller">
                               {filteredWhereSuggestions.map((loc) => (
                                 <button
                                   key={loc}
@@ -657,7 +661,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                                     form.setValue('where', loc, { shouldDirty: true });
                                     setWhereSuggestionsOpen(false);
                                   }}
-                                  className="w-full text-left px-3.5 py-2 text-sm hover:bg-primary/5 dark:hover:bg-primary/10 flex items-center justify-between"
+                                  className="w-full text-left px-3.5 py-2 text-sm text-foreground hover:bg-muted/70 flex items-center justify-between"
                                 >
                                   <span>{loc}</span>
                                   <MapPin className="w-3 h-3 text-muted-foreground" />
@@ -679,7 +683,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                   name="paymentMethod"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                      <FormLabel className="text-xs font-bold text-muted-foreground flex items-center gap-1">
                         <CreditCard className="w-3.5 h-3.5 text-primary" /> Payment Method
                       </FormLabel>
                       <Select 
@@ -687,11 +691,11 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                         value={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger className="h-10 rounded-lg text-sm">
+                          <SelectTrigger className="h-10 rounded-2xl text-sm bg-card border-border text-foreground px-3.5">
                             <SelectValue placeholder="Method" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="z-[70]">
+                        <SelectContent className="z-[70] rounded-2xl bg-card border-border">
                           <SelectItem value="NEW" className="font-semibold text-primary focus:bg-primary/10 cursor-pointer">
                             <div className="flex items-center gap-2"><Plus className="w-4 h-4" /><span>Add New...</span></div>
                           </SelectItem>
@@ -710,7 +714,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                   name="account"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                      <FormLabel className="text-xs font-bold text-muted-foreground flex items-center gap-1">
                         <Building2 className="w-3.5 h-3.5 text-primary" /> Account / Bank
                       </FormLabel>
                       <Select 
@@ -718,11 +722,11 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                         value={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger className="h-10 rounded-lg text-sm">
+                          <SelectTrigger className="h-10 rounded-2xl text-sm bg-card border-border text-foreground px-3.5">
                             <SelectValue placeholder="Account" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="z-[70]">
+                        <SelectContent className="z-[70] rounded-2xl bg-card border-border">
                           <SelectItem value="NEW" className="font-semibold text-primary focus:bg-primary/10 cursor-pointer">
                             <div className="flex items-center gap-2"><Plus className="w-4 h-4" /><span>Add New Bank...</span></div>
                           </SelectItem>
@@ -743,9 +747,9 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                 name="note"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-semibold text-muted-foreground">Notes (Optional)</FormLabel>
+                    <FormLabel className="text-xs font-bold text-muted-foreground">Notes (Optional)</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder="Additional details or comments..." rows={2} className="rounded-lg text-sm resize-none" />
+                      <Textarea {...field} placeholder="Additional details or comments..." rows={2} className="rounded-2xl text-sm bg-card border-border text-foreground resize-none p-3" />
                     </FormControl>
                   </FormItem>
                 )}
@@ -753,9 +757,9 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
 
               {/* Safe Attachments with Compression */}
               <div>
-                <Label className="text-xs font-semibold text-muted-foreground">Bill / Receipt Attachments</Label>
+                <Label className="text-xs font-bold text-muted-foreground">Bill / Receipt Attachments</Label>
                 <div className="mt-1.5 flex items-center justify-center w-full">
-                  <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-gray-200 dark:border-gray-700">
+                  <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-2xl cursor-pointer hover:bg-muted/60 transition-colors border-border bg-card/40">
                     <div className="flex flex-col items-center justify-center py-2">
                       {isProcessingFiles ? (
                         <>
@@ -765,7 +769,7 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                       ) : (
                         <>
                           <Upload className="w-6 h-6 mb-1 text-muted-foreground" />
-                          <p className="text-xs text-muted-foreground"><span className="font-semibold text-primary">Upload receipts</span> (Images or PDFs)</p>
+                          <p className="text-xs text-muted-foreground"><span className="font-bold text-primary">Upload receipts</span> (Images or PDFs)</p>
                         </>
                       )}
                     </div>
@@ -785,12 +789,12 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
                     {attachments.map((att, i) => {
                       const isPdf = att.startsWith('data:application/pdf');
                       return (
-                        <div key={i} className="relative rounded-lg overflow-hidden border">
+                        <div key={i} className="relative rounded-2xl overflow-hidden border border-border">
                           {isPdf ? (
                             <button
                               type="button"
                               onClick={() => window.open(att, '_blank')}
-                              className="flex h-16 w-full flex-col items-center justify-center gap-1 bg-slate-100 dark:bg-gray-800 p-2 text-xs text-muted-foreground hover:text-primary"
+                              className="flex h-16 w-full flex-col items-center justify-center gap-1 bg-muted p-2 text-xs text-muted-foreground hover:text-primary"
                             >
                               <FileText className="h-5 w-5 text-primary" />
                               <span className="text-[10px]">PDF</span>
@@ -821,13 +825,13 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t">
-                <Button type="button" variant="outline" onClick={handleClose}>
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border">
+                <Button type="button" variant="outline" onClick={handleClose} className="rounded-full px-4 font-semibold">
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
-                  className="bg-primary hover:bg-primary/90 min-w-[130px] font-bold" 
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[130px] font-bold rounded-full shadow-md" 
                   disabled={addExpenseMutation.isPending || updateExpenseMutation.isPending || isProcessingFiles}
                 >
                   {addExpenseMutation.isPending || updateExpenseMutation.isPending ? (
@@ -845,15 +849,16 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
 
       {/* Internal Dialog for Custom Values */}
       <Dialog open={customDialog.isOpen} onOpenChange={(isOpen) => !isOpen && setCustomDialog({ isOpen: false, type: null })}>
-        <DialogContent className="sm:max-w-xs z-[75]">
+        <DialogContent className="sm:max-w-xs z-[75] rounded-3xl bg-card border-border">
           <DialogHeader>
-            <DialogTitle>Add New {customDialog.type === 'account' ? 'Bank / Account' : 'Payment Method'}</DialogTitle>
+            <DialogTitle className="text-foreground">Add New {customDialog.type === 'account' ? 'Bank / Account' : 'Payment Method'}</DialogTitle>
           </DialogHeader>
           <Input 
             value={customValue} 
             onChange={(e) => setCustomValue(e.target.value)} 
             placeholder={`e.g. ${customDialog.type === 'account' ? 'Axis Bank' : 'Crypto'}`}
             autoFocus
+            className="rounded-full bg-background/70 border-border text-foreground"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
@@ -862,8 +867,8 @@ export function ExpenseForm({ open, onOpenChange, preSelectedCategory, editingEx
             }}
           />
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setCustomDialog({ isOpen: false, type: null })}>Cancel</Button>
-            <Button type="button" onClick={saveCustomValue}>Add</Button>
+            <Button variant="outline" onClick={() => setCustomDialog({ isOpen: false, type: null })} className="rounded-full">Cancel</Button>
+            <Button type="button" onClick={saveCustomValue} className="rounded-full font-bold">Add</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,4 +1,7 @@
-import { Home, List, PieChart, Wallet, Settings, ArrowRightLeft, Plus } from 'lucide-react';
+import { 
+  Home, ReceiptText, ArrowLeftRight, BarChart3, Wallet2, 
+  SlidersHorizontal, Plus 
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BottomNavigationProps {
@@ -10,69 +13,107 @@ interface BottomNavigationProps {
 export function BottomNavigation({ activeTab, onTabChange, onAddClick }: BottomNavigationProps) {
   const leftTabs = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'expenses', label: 'Expenses', icon: List },
-    { id: 'debts', label: 'Dues', icon: ArrowRightLeft },
+    { id: 'expenses', label: 'Expenses', icon: ReceiptText },
+    { id: 'debts', label: 'Dues', icon: ArrowLeftRight },
   ];
 
   const rightTabs = [
-    { id: 'charts', label: 'Charts', icon: PieChart },
-    { id: 'budget', label: 'Budget', icon: Wallet },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'charts', label: 'Charts', icon: BarChart3 },
+    { id: 'budget', label: 'Budget', icon: Wallet2 },
+    { id: 'settings', label: 'Settings', icon: SlidersHorizontal },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mobile-safe-area z-30 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
-      <div className="max-w-screen-md mx-auto flex items-center justify-between px-2 py-1 relative">
-        {/* Left Tabs */}
-        <div className="flex flex-1 justify-around items-center">
-          {leftTabs.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => onTabChange(id)}
-              className={cn(
-                "flex flex-col items-center py-1 px-1.5 transition-all min-w-[52px] rounded-lg",
-                activeTab === id
-                  ? "text-primary font-semibold"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-              )}
-            >
-              <Icon className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] leading-tight">{label}</span>
-            </button>
-          ))}
-        </div>
+    <div className="fixed bottom-3 sm:bottom-4 inset-x-0 z-40 flex justify-center px-3 pointer-events-none">
+      <nav className="pointer-events-auto w-full max-w-md rounded-full bg-card/90 dark:bg-card/90 backdrop-blur-2xl border border-border/80 shadow-[0_10px_35px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.65)] px-2 py-1.5 transition-all">
+        <div className="grid grid-cols-7 items-center justify-items-center relative">
+          
+          {/* Left Tabs */}
+          {leftTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => onTabChange(tab.id)}
+                className={cn(
+                  "flex flex-col items-center justify-center py-1 px-1.5 rounded-full transition-all duration-200 tap-spring relative group",
+                  isActive
+                    ? "text-primary font-black scale-105"
+                    : "text-muted-foreground hover:text-foreground opacity-75 hover:opacity-100"
+                )}
+                title={tab.label}
+              >
+                <div className={cn(
+                  "p-1.5 rounded-full transition-all flex items-center justify-center",
+                  isActive && "bg-primary/15 text-primary shadow-xs"
+                )}>
+                  <Icon className={cn(
+                    "w-4 h-4 sm:w-4.5 sm:h-4.5 transition-transform",
+                    isActive ? "stroke-[2.6] scale-110" : "stroke-[1.9] group-hover:scale-105"
+                  )} />
+                </div>
+                <span className="text-[9px] sm:text-[10px] tracking-tight font-bold mt-0.5 truncate leading-none">
+                  {tab.label}
+                </span>
+                {isActive && (
+                  <span className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-primary shadow-xs shadow-primary" />
+                )}
+              </button>
+            );
+          })}
 
-        {/* Center Prominent Add Button */}
-        <div className="flex items-center justify-center px-1.5 -mt-5">
-          <button
-            type="button"
-            onClick={onAddClick}
-            aria-label="Add new expense"
-            className="w-12 h-12 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 ring-4 ring-white dark:ring-gray-900 focus:outline-none"
-          >
-            <Plus className="w-6 h-6 stroke-[2.5]" />
-          </button>
-        </div>
-
-        {/* Right Tabs */}
-        <div className="flex flex-1 justify-around items-center">
-          {rightTabs.map(({ id, label, icon: Icon }) => (
+          {/* Center Raised Add Action Button */}
+          <div className="flex items-center justify-center -my-3">
             <button
-              key={id}
-              onClick={() => onTabChange(id)}
-              className={cn(
-                "flex flex-col items-center py-1 px-1.5 transition-all min-w-[52px] rounded-lg",
-                activeTab === id
-                  ? "text-primary font-semibold"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-              )}
+              type="button"
+              onClick={onAddClick}
+              aria-label="Add new transaction"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/35 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-90 ring-4 ring-card focus:outline-none"
             >
-              <Icon className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] leading-tight">{label}</span>
+              <Plus className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.8]" />
             </button>
-          ))}
+          </div>
+
+          {/* Right Tabs */}
+          {rightTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => onTabChange(tab.id)}
+                className={cn(
+                  "flex flex-col items-center justify-center py-1 px-1.5 rounded-full transition-all duration-200 tap-spring relative group",
+                  isActive
+                    ? "text-primary font-black scale-105"
+                    : "text-muted-foreground hover:text-foreground opacity-75 hover:opacity-100"
+                )}
+                title={tab.label}
+              >
+                <div className={cn(
+                  "p-1.5 rounded-full transition-all flex items-center justify-center",
+                  isActive && "bg-primary/15 text-primary shadow-xs"
+                )}>
+                  <Icon className={cn(
+                    "w-4 h-4 sm:w-4.5 sm:h-4.5 transition-transform",
+                    isActive ? "stroke-[2.6] scale-110" : "stroke-[1.9] group-hover:scale-105"
+                  )} />
+                </div>
+                <span className="text-[9px] sm:text-[10px] tracking-tight font-bold mt-0.5 truncate leading-none">
+                  {tab.label}
+                </span>
+                {isActive && (
+                  <span className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-primary shadow-xs shadow-primary" />
+                )}
+              </button>
+            );
+          })}
+
         </div>
-      </div>
-    </nav>
+      </nav>
+    </div>
   );
 }

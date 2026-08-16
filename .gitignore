@@ -5,11 +5,13 @@ server/public
 vite.config.ts.*
 *.tar.gz
 
-# Local environment files (do NOT commit secrets)
+# Local environment files
 .env
 .env.*
 .env.local
 client_secret*.json
+replit.md
+
 
 #! Keep .env.example in the repo as a template
 !.env.example

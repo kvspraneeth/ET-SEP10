@@ -22,8 +22,8 @@ export default {
           foreground: "var(--popover-foreground)",
         },
         primary: {
-          DEFAULT: "var(--primary)",
-          foreground: "var(--primary-foreground)",
+          DEFAULT: "hsl(var(--primary) / <alpha-value>)",
+          foreground: "hsl(var(--primary-foreground) / <alpha-value>)",
         },
         secondary: {
           DEFAULT: "var(--secondary)",
@@ -43,7 +43,7 @@ export default {
         },
         border: "var(--border)",
         input: "var(--input)",
-        ring: "var(--ring)",
+        ring: "hsl(var(--ring) / <alpha-value>)",
         chart: {
           "1": "var(--chart-1)",
           "2": "var(--chart-2)",

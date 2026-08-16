@@ -3,6 +3,7 @@ import { useExpenseTotals } from '@/hooks/use-expenses';
 import { useSettings } from '@/hooks/use-settings';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
+import { TrendingUp, TrendingDown, Calendar, ArrowUpRight, Sparkles } from 'lucide-react';
 
 interface StatsOverviewProps {
   dateRange?: DateRange;
@@ -15,55 +16,74 @@ export function StatsOverview({ dateRange }: StatsOverviewProps) {
   const currency = settings?.currency || '₹';
 
   const formatAmount = (amount: number) => {
-    return `${currency}${amount.toLocaleString()}`;
+    return `${currency}${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
   };
 
   if (dateRange?.from) {
     const from = format(dateRange.from, "LLL dd, y");
     const to = dateRange.to ? ` - ${format(dateRange.to, "LLL dd, y")}` : '';
     return (
-      <Card className="stats-card bg-white dark:bg-gray-800 shadow-sm">
-        <CardContent className="p-4 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            Total for {from}{to}
-          </p>
-          <p className="text-lg font-bold text-green-600 dark:text-green-400">
-            {formatAmount(rangeTotal)}
-          </p>
+      <Card className="m3-card shadow-sm border-border bg-card">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Total for {from}{to}
+            </p>
+            <p className="text-xl sm:text-2xl font-black text-primary mt-0.5">
+              {formatAmount(rangeTotal)}
+            </p>
+          </div>
+          <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
+            <Calendar className="w-5 h-5" />
+          </div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="grid grid-cols-3 gap-3">
-      <Card className="stats-card bg-white dark:bg-gray-800 shadow-sm">
-        <CardContent className="p-4 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Today</p>
-          <p className="text-lg font-bold text-red-600 dark:text-red-400">
+    <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5">
+      {/* Today Metric */}
+      <div className="p-3 sm:p-4 rounded-2xl bg-card border border-border shadow-xs hover:shadow-sm transition-all tap-spring flex flex-col justify-between">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">Today</span>
+          <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+        </div>
+        <div className="mt-2">
+          <p className="text-base sm:text-xl font-black text-foreground truncate">
             {formatAmount(todayTotal)}
           </p>
-        </CardContent>
-      </Card>
+          <span className="text-[10px] text-muted-foreground block truncate">Daily spend</span>
+        </div>
+      </div>
       
-      <Card className="stats-card bg-white dark:bg-gray-800 shadow-sm">
-        <CardContent className="p-4 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">This Week</p>
-          <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+      {/* This Week Metric */}
+      <div className="p-3 sm:p-4 rounded-2xl bg-card border border-border shadow-xs hover:shadow-sm transition-all tap-spring flex flex-col justify-between">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">This Week</span>
+          <ArrowUpRight className="w-3.5 h-3.5 text-blue-500" />
+        </div>
+        <div className="mt-2">
+          <p className="text-base sm:text-xl font-black text-foreground truncate">
             {formatAmount(weekTotal)}
           </p>
-        </CardContent>
-      </Card>
+          <span className="text-[10px] text-muted-foreground block truncate">7-day run</span>
+        </div>
+      </div>
       
-      <Card className="stats-card bg-white dark:bg-gray-800 shadow-sm">
-        <CardContent className="p-4 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">This Month</p>
-          <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+      {/* This Month Metric */}
+      <div className="p-3 sm:p-4 rounded-2xl bg-card border border-border shadow-xs hover:shadow-sm transition-all tap-spring flex flex-col justify-between">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">This Month</span>
+          <Sparkles className="w-3.5 h-3.5 text-primary" />
+        </div>
+        <div className="mt-2">
+          <p className="text-base sm:text-xl font-black text-primary truncate">
             {formatAmount(monthTotal)}
           </p>
-        </CardContent>
-      </Card>
+          <span className="text-[10px] text-muted-foreground block truncate">Monthly total</span>
+        </div>
+      </div>
     </div>
   );
 }
-

@@ -403,6 +403,136 @@ export function findCategory(categories: Category[], key?: string): Category {
 }
 
 /**
+ * Universal Category Key Normalizer:
+ * Resolves any raw category input (from Excel import, user input, alias, icon, or ID)
+ * into a canonical category ID matching an existing Category in the app.
+ */
+export function normalizeCategoryKey(categories: Category[], rawKey?: string): string {
+  if (!rawKey) return 'groceries';
+  const raw = String(rawKey).trim();
+  const cleanKey = raw.toLowerCase();
+
+  // If already matches a category ID directly
+  const byId = (categories || []).find(c => c.id.toLowerCase() === cleanKey);
+  if (byId && !isGarbageCategory(byId)) return byId.id;
+
+  // Direct default category ID match
+  const byDefaultId = DEFAULT_CATEGORIES.find(c => c.id.toLowerCase() === cleanKey);
+  if (byDefaultId) return byDefaultId.id;
+
+  // If matches an emoji or icon name
+  if (ICON_AND_EMOJI_TO_CATEGORY[cleanKey] || ICON_AND_EMOJI_TO_CATEGORY[raw]) {
+    return ICON_AND_EMOJI_TO_CATEGORY[cleanKey] || ICON_AND_EMOJI_TO_CATEGORY[raw];
+  }
+
+  // Exact Name match (case-insensitive) in user categories
+  const byName = (categories || []).find(c => c.name.toLowerCase() === cleanKey);
+  if (byName && !isGarbageCategory(byName)) return byName.id;
+
+  // Exact Name match in default categories
+  const byDefaultName = DEFAULT_CATEGORIES.find(c => c.name.toLowerCase() === cleanKey);
+  if (byDefaultName) return byDefaultName.id;
+
+  // Keyword / Substring mapping for common Indian and global financial categories
+  if (
+    cleanKey.includes('food') || cleanKey.includes('dining') || cleanKey.includes('restaurant') ||
+    cleanKey.includes('eat') || cleanKey.includes('meal') || cleanKey.includes('swiggy') || 
+    cleanKey.includes('zomato') || cleanKey.includes('cafe') || cleanKey.includes('snack') ||
+    cleanKey.includes('lunch') || cleanKey.includes('dinner') || cleanKey.includes('breakfast')
+  ) {
+    return 'food';
+  }
+
+  if (
+    cleanKey.includes('grocer') || cleanKey.includes('market') || cleanKey.includes('supermarket') ||
+    cleanKey.includes('vegetable') || cleanKey.includes('fruit') || cleanKey.includes('blinkit') ||
+    cleanKey.includes('zepto') || cleanKey.includes('instamart') || cleanKey.includes('ration') ||
+    cleanKey.includes('milk') || cleanKey.includes('dairy') || cleanKey.includes('provision')
+  ) {
+    return 'groceries';
+  }
+
+  if (
+    cleanKey.includes('transport') || cleanKey.includes('car') || cleanKey.includes('fuel') ||
+    cleanKey.includes('petrol') || cleanKey.includes('diesel') || cleanKey.includes('uber') ||
+    cleanKey.includes('ola') || cleanKey.includes('auto') || cleanKey.includes('taxi') ||
+    cleanKey.includes('cab') || cleanKey.includes('metro') || cleanKey.includes('bus') ||
+    cleanKey.includes('toll') || cleanKey.includes('parking')
+  ) {
+    return 'transport';
+  }
+
+  if (
+    cleanKey.includes('bill') || cleanKey.includes('recharge') || cleanKey.includes('electric') ||
+    cleanKey.includes('water') || cleanKey.includes('wifi') || cleanKey.includes('broadband') ||
+    cleanKey.includes('utility') || cleanKey.includes('rent') || cleanKey.includes('maintenance') ||
+    cleanKey.includes('gas') || cleanKey.includes('cylinder') || cleanKey.includes('dth') ||
+    cleanKey.includes('mobile bill') || cleanKey.includes('phone bill') || cleanKey.includes('credit card')
+  ) {
+    return 'bills';
+  }
+
+  if (
+    cleanKey.includes('entertain') || cleanKey.includes('movie') || cleanKey.includes('game') ||
+    cleanKey.includes('cinema') || cleanKey.includes('netflix') || cleanKey.includes('hotstar') ||
+    cleanKey.includes('prime') || cleanKey.includes('spotify') || cleanKey.includes('party') ||
+    cleanKey.includes('concert') || cleanKey.includes('theatre') || cleanKey.includes('outing')
+  ) {
+    return 'entertainment';
+  }
+
+  if (
+    cleanKey.includes('health') || cleanKey.includes('medic') || cleanKey.includes('doctor') ||
+    cleanKey.includes('hospital') || cleanKey.includes('pharmacy') || cleanKey.includes('clinic') ||
+    cleanKey.includes('dental') || cleanKey.includes('checkup') || cleanKey.includes('diagnostic') ||
+    cleanKey.includes('lab') || cleanKey.includes('therapy')
+  ) {
+    return 'healthcare';
+  }
+
+  if (
+    cleanKey.includes('shop') || cleanKey.includes('amazon') || cleanKey.includes('flipkart') ||
+    cleanKey.includes('cloth') || cleanKey.includes('myntra') || cleanKey.includes('dress') ||
+    cleanKey.includes('apparel') || cleanKey.includes('footwear') || cleanKey.includes('shoes') ||
+    cleanKey.includes('gadget') || cleanKey.includes('electronics') || cleanKey.includes('accessory')
+  ) {
+    return 'shopping';
+  }
+
+  if (
+    cleanKey.includes('travel') || cleanKey.includes('trip') || cleanKey.includes('flight') ||
+    cleanKey.includes('hotel') || cleanKey.includes('vacation') || cleanKey.includes('tour') ||
+    cleanKey.includes('train') || cleanKey.includes('irctc') || cleanKey.includes('booking') ||
+    cleanKey.includes('resort') || cleanKey.includes('stay')
+  ) {
+    return 'travel';
+  }
+
+  if (
+    cleanKey.includes('invest') || cleanKey.includes('stock') || cleanKey.includes('crypto') ||
+    cleanKey.includes('mutual') || cleanKey.includes('sip') || cleanKey.includes('share') ||
+    cleanKey.includes('gold') || cleanKey.includes('fd') || cleanKey.includes('rd') ||
+    cleanKey.includes('zerodha') || cleanKey.includes('groww') || cleanKey.includes('upstox')
+  ) {
+    return 'investing';
+  }
+
+  // Check if it's a known custom category substring
+  const partial = (categories || []).find(c => 
+    !isGarbageCategory(c) && (cleanKey.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(cleanKey))
+  );
+  if (partial) return partial.id;
+
+  // Fallback: if key is UUID or garbage, default to groceries
+  if (UUID_REGEX.test(cleanKey) || isGarbageCategory({ name: raw })) {
+    return 'groceries';
+  }
+
+  // Return clean alphanumeric key for genuine custom categories
+  return cleanKey.replace(/[^a-z0-9_-]/g, '_');
+}
+
+/**
  * Automatically cleans up any corrupted or duplicate categories in IndexedDB:
  * 1. Purges categories with UUIDs, icon names, or lone emojis as names.
  * 2. Remaps expenses, budgets, debts, and recurring rules from deleted garbage category IDs to canonical category IDs.

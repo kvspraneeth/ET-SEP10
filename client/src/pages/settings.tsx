@@ -7,17 +7,32 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Download, Upload, Trash2, Pencil, Check, X, ChevronRight, 
-  Tags, FileSpreadsheet, Repeat, ArrowRightLeft, Sparkles, Layers, RefreshCw 
+import {
+  Download, Upload, Trash2, Pencil, Check, X, ChevronRight, ChevronDown,
+  Tags, FileSpreadsheet, Repeat, ArrowRightLeft, Sparkles, Layers, RefreshCw,
+  Bell, Zap, AlertTriangle, Clock, Palette, Type, Plus, Sun, Moon,
+  Sliders, Shield, SlidersHorizontal, SlidersVertical
 } from 'lucide-react';
 import { useSettings, useUpdateSettings } from '@/hooks/use-settings';
-import { useTheme } from '@/components/theme-provider';
+import { useNotificationActions } from '@/hooks/use-notifications';
+import { 
+  useTheme, 
+  THEME_OPTIONS, 
+  LIGHT_THEMES,
+  DARK_THEMES,
+  PRIMARY_COLOR_OPTIONS, 
+  GRADIENT_PRESETS,
+  FONT_OPTIONS,
+  type Theme, 
+  type PrimaryColor, 
+  type FontFamily,
+  type CustomGradient
+} from '@/components/theme-provider';
 import { useToast } from '@/hooks/use-toast';
-import db, { DebtRecord, RecurringExpense, RecurringDebt } from '@/lib/db';
-import { DEFAULT_CATEGORIES, getCategoryColor, findCategory, cleanupAndDeduplicateCategories, isGarbageCategory } from '@/lib/categories';
+import db, { DebtRecord, RecurringExpense, RecurringDebt, RecurrenceFrequency, CustomIntervalUnit } from '@/lib/db';
+import { DEFAULT_CATEGORIES, getCategoryColor, findCategory, cleanupAndDeduplicateCategories, isGarbageCategory, normalizeCategoryKey, guessCategoryProperties } from '@/lib/categories';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { getIconComponent } from '@/components/category-selector';
+import { getIconComponent, AddCategoryDialog } from '@/components/category-selector';
 import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
 import { ManageRecurringExpensesDialog, ManageRecurringDebtsDialog } from '@/components/recurring-manager';
@@ -28,10 +43,10 @@ import { Category } from '@shared/schema';
 function ManageCategoriesDialog({ children }: { children: React.ReactNode }) {
   const rawCategories = useLiveQuery(() => db.categories.toArray()) || [];
   const { toast } = useToast();
-  
+
   const [isOpen, setIsOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
 
   const categories = useMemo(() => {
@@ -44,7 +59,7 @@ function ManageCategoriesDialog({ children }: { children: React.ReactNode }) {
       await cleanupAndDeduplicateCategories(db);
       toast({
         title: "Cleaned Up Successfully",
-        description: "All corrupted/duplicate categories and UUIDs have been purged and remapped.",
+        description: "All duplicate categories and UUIDs have been purged and remapped.",
       });
     } catch (e) {
       toast({ title: "Failed to clean categories", variant: "destructive" });
@@ -64,152 +79,152 @@ function ManageCategoriesDialog({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const handleSaveEdit = async (id: string) => {
-    if (!editName.trim()) {
-      setEditingId(null);
-      return;
-    }
-    try {
-      await db.categories.update(id, { 
-        name: editName.trim(), 
-        updatedAt: new Date()
-      });
-      setEditingId(null);
-      toast({ title: "Category updated successfully" });
-    } catch (e) {
-      toast({ title: "Failed to update category", variant: "destructive" });
-    }
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      setIsOpen(open);
-      if (!open) setEditingId(null);
-    }}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader className="pb-2 border-b">
-          <div className="flex items-center justify-between">
-            <DialogTitle>Manage Categories ({categories.length})</DialogTitle>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={handleCleanUp}
-              disabled={isCleaning}
-              className="gap-1.5 text-xs text-primary border-primary/30 hover:bg-primary/5"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Clean Duplicates</span>
-            </Button>
-          </div>
-        </DialogHeader>
-        
-        <div className="flex-1 overflow-y-auto pr-2 space-y-2 mt-4 pb-4">
-          {categories.map((category: Category) => {
-            const colors = getCategoryColor(category.color);
-            const isEditing = editingId === category.id;
+    <>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          {children}
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-hidden flex flex-col p-0 z-50">
+          <DialogHeader className="p-4 border-b border-border pr-11 sm:pr-4">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-base font-bold">Manage Categories ({categories.length})</DialogTitle>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingCategory(null);
+                    setIsAddEditDialogOpen(true);
+                  }}
+                  className="gap-1 text-xs text-primary"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add</span>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCleanUp}
+                  disabled={isCleaning}
+                  className="gap-1.5 text-xs text-primary border-primary/30 hover:bg-primary/5"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="hidden sm:inline">Clean</span>
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
 
-            return (
-              <div key={category.id} className="flex items-center justify-between p-3 border rounded-lg dark:border-gray-800">
-                {isEditing ? (
-                  <div className="flex items-center gap-2 flex-1 mr-2">
-                    <Input
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="h-8"
-                      autoFocus
-                      onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(category.id)}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <div className={`p-2 rounded-full shrink-0 ${colors.bg} ${colors.text}`}>
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {categories.map((category: Category) => {
+              const colors = getCategoryColor(category.color);
+
+              return (
+                <div key={category.id} className="flex items-center justify-between p-2.5 border rounded-2xl border-border hover:bg-muted/40 transition-colors">
+                  <div className="flex items-center gap-3 overflow-hidden min-w-0 pr-2">
+                    <div className={`p-2 rounded-xl shrink-0 ${colors.bg} ${colors.text}`}>
                       {getIconComponent(category.icon, "w-4 h-4")}
                     </div>
-                    <span className="font-medium truncate">{category.name}</span>
+                    <div className="min-w-0">
+                      <span className="font-semibold text-xs sm:text-sm truncate block text-foreground">{category.name}</span>
+                      <span className="text-[10px] text-muted-foreground capitalize">{category.color} · {category.icon}</span>
+                    </div>
                     {category.isDefault && (
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider ml-1 border px-1.5 rounded-full">
+                      <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider ml-1 border px-1.5 py-0.5 rounded-full shrink-0">
                         Default
                       </span>
                     )}
                   </div>
-                )}
-                
-                <div className="flex items-center gap-1 shrink-0">
-                  {isEditing ? (
-                    <>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => handleSaveEdit(category.id)}
-                        className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
-                      >
-                        <Check className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => setEditingId(null)}
-                        className="h-8 w-8 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </>
-                  ) : (
-                    <>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setEditingCategory(category);
+                        setIsAddEditDialogOpen(true);
+                      }}
+                      className="h-8 w-8 text-primary hover:bg-primary/10"
+                      title="Edit Category"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+
+                    {!category.isDefault && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => { setEditingId(category.id); setEditName(category.name); }}
-                        className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        onClick={() => handleDeleteCategory(category.id, category.name)}
+                        className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                        title="Delete Category"
                       >
-                        <Pencil className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
-                      
-                      {!category.isDefault && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleDeleteCategory(category.id, category.name)}
-                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </DialogContent>
-    </Dialog>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add / Edit Category Dialog with Icon & Color Picker */}
+      <AddCategoryDialog
+        open={isAddEditDialogOpen}
+        onOpenChange={setIsAddEditDialogOpen}
+        initialCategory={editingCategory}
+      />
+    </>
   );
 }
 
 export function Settings() {
   const settings = useSettings();
   const updateSettingsMutation = useUpdateSettings();
-  const { theme, setTheme } = useTheme();
+  const { 
+    theme, 
+    setTheme, 
+    primaryColor, 
+    setPrimaryColor, 
+    customHex,
+    setCustomHex,
+    customGradient,
+    setCustomGradient,
+    gradientPreset,
+    setGradientPreset,
+    fontFamily, 
+    setFontFamily 
+  } = useTheme();
   const { toast } = useToast();
+  const { requestPermission, sendTestNotification } = useNotificationActions();
+
+  // Minimizable / Collapsible Accordion Sections State
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    automation: true, // Top section open by default
+    theme: false,
+    notifications: false,
+    preferences: false,
+    backup: false,
+    danger: false,
+  });
+
+  const toggleSection = (sectionKey: string) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey]
+    }));
+  };
 
   const [isRecurringExpensesOpen, setIsRecurringExpensesOpen] = useState(false);
   const [isRecurringDebtsOpen, setIsRecurringDebtsOpen] = useState(false);
+  const [themeTab, setThemeTab] = useState<'light' | 'dark'>('light');
 
   const recurringExpensesCount = useLiveQuery(() => db.recurringExpenses.count()) || 0;
   const recurringDebtsCount = useLiveQuery(() => db.recurringDebts.count()) || 0;
-
-  const handleSettingChange = async (key: string, value: any) => {
-    try {
-      await updateSettingsMutation.mutateAsync({ [key]: value });
-    } catch (error) {
-      console.error('Failed to update setting:', error);
-    }
-  };
 
   const exportData = async () => {
     try {
@@ -219,7 +234,7 @@ export function Settings() {
       const debts = await db.debts.toArray();
       const recurringExpenses = await db.recurringExpenses.toArray();
       const recurringDebts = await db.recurringDebts.toArray();
-      
+
       const data = {
         expenses,
         budgets,
@@ -229,922 +244,1601 @@ export function Settings() {
         recurringDebts,
         settings,
         exportDate: new Date().toISOString(),
+        version: '3.0'
       };
-      
+
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `expense-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `budget-pilot-backup-${format(new Date(), 'yyyy-MM-dd')}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       toast({
-        title: "Success",
-        description: "Complete backup exported successfully (including Dues & Recurring)!",
+        title: "Backup Exported",
+        description: "Full JSON backup downloaded successfully.",
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to export data.",
+        title: "Export Failed",
+        description: "Could not export database.",
         variant: "destructive",
       });
     }
+  };
+
+  const importData = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      if (data.expenses && Array.isArray(data.expenses)) {
+        await db.transaction('rw', [db.expenses, db.budgets, db.categories, db.debts, db.recurringExpenses, db.recurringDebts, db.settings], async () => {
+          await db.expenses.clear();
+          await db.budgets.clear();
+          await db.categories.clear();
+          await db.debts.clear();
+          await db.recurringExpenses.clear();
+          await db.recurringDebts.clear();
+
+          if (data.expenses?.length) await db.expenses.bulkAdd(data.expenses);
+          if (data.budgets?.length) await db.budgets.bulkAdd(data.budgets);
+          if (data.categories?.length) await db.categories.bulkAdd(data.categories);
+          if (data.debts?.length) await db.debts.bulkAdd(data.debts);
+          if (data.recurringExpenses?.length) await db.recurringExpenses.bulkAdd(data.recurringExpenses);
+          if (data.recurringDebts?.length) await db.recurringDebts.bulkAdd(data.recurringDebts);
+          if (data.settings) await db.settings.put(data.settings);
+        });
+
+        toast({
+          title: "Import Successful",
+          description: `Restored ${data.expenses?.length || 0} expenses & complete data.`,
+        });
+      } else {
+        throw new Error('Invalid backup file format');
+      }
+    } catch (error) {
+      toast({
+        title: "Import Failed",
+        description: "Please provide a valid Budget Pilot backup file.",
+        variant: "destructive",
+      });
+    }
+
+    event.target.value = '';
   };
 
   const exportToExcel = async () => {
     try {
       const expenses = await db.expenses.toArray();
-      const budgets = await db.budgets.toArray();
-      const categories = await db.categories.toArray();
       const debts = await db.debts.toArray();
       const recurringExpenses = await db.recurringExpenses.toArray();
       const recurringDebts = await db.recurringDebts.toArray();
+      const budgets = await db.budgets.toArray();
+      const customCategories = await db.categories.toArray();
 
       const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'Budget Pilot V3';
+      workbook.created = new Date();
 
-      // 1. Expenses sheet
-      const expensesSheet = workbook.addWorksheet('Expenses');
-      expensesSheet.columns = [
-        { header: 'Date', key: 'date', width: 15 },
+      // 1. Expenses Sheet
+      const expSheet = workbook.addWorksheet('Expenses');
+      expSheet.columns = [
+        { header: 'Date', key: 'date', width: 14 },
         { header: 'Time', key: 'time', width: 10 },
-        { header: 'Amount', key: 'amount', width: 15 },
-        { header: 'Category', key: 'category', width: 20 },
-        { header: 'Items', key: 'items', width: 30 },
-        { header: 'Location', key: 'where', width: 20 },
-        { header: 'Payment Method', key: 'paymentMethod', width: 15 },
-        { header: 'Account', key: 'account', width: 15 },
-        { header: 'Notes', key: 'note', width: 30 },
-        { header: 'Created At', key: 'createdAt', width: 20 },
-        { header: 'Recurring Rule ID', key: 'recurringRuleId', width: 25 },
-        { header: 'Is Recurring', key: 'isRecurring', width: 15 },
+        { header: 'Item / Purpose', key: 'items', width: 28 },
+        { header: 'Category', key: 'category', width: 18 },
+        { header: 'Amount', key: 'amount', width: 14 },
+        { header: 'Payment Method', key: 'paymentMethod', width: 16 },
+        { header: 'Account', key: 'account', width: 16 },
+        { header: 'Location / Where', key: 'where', width: 20 },
+        { header: 'Notes', key: 'note', width: 25 },
       ];
-      expenses.forEach(exp => {
-        const cat = findCategory(categories, exp.category);
-        expensesSheet.addRow({
-          date: exp.date,
-          time: exp.time,
-          amount: exp.amount,
-          category: cat?.name || exp.category,
-          items: exp.items,
-          where: exp.where || '',
-          paymentMethod: exp.paymentMethod,
-          account: (exp as any).account || 'ICICI',
-          note: exp.note || '',
-          createdAt: exp.createdAt,
-          recurringRuleId: exp.recurringRuleId || '',
-          isRecurring: exp.isRecurring ? 'Yes' : 'No',
+      expenses.forEach(e => {
+        expSheet.addRow({
+          date: e.date,
+          time: e.time,
+          items: e.items,
+          category: e.category,
+          amount: Number(e.amount),
+          paymentMethod: e.paymentMethod,
+          account: e.account,
+          where: e.where || '',
+          note: e.note || '',
         });
       });
 
-      // 2. Dues & Receivables sheet
-      const debtsSheet = workbook.addWorksheet('Dues & Receivables');
-      debtsSheet.columns = [
-        { header: 'Type', key: 'type', width: 15 },
-        { header: 'Person Name', key: 'personName', width: 20 },
-        { header: 'Amount', key: 'amount', width: 15 },
-        { header: 'Purpose', key: 'purpose', width: 25 },
-        { header: 'Location', key: 'location', width: 20 },
-        { header: 'Status', key: 'status', width: 15 },
-        { header: 'Date Time', key: 'datetime', width: 20 },
-        { header: 'Notes', key: 'notes', width: 30 },
-        { header: 'Created At', key: 'createdAt', width: 20 },
-        { header: 'Recurring Rule ID', key: 'recurringRuleId', width: 25 },
+      // 2. Debts & Receivables Sheet
+      const debtSheet = workbook.addWorksheet('Dues & Receivables');
+      debtSheet.columns = [
+        { header: 'Type', key: 'type', width: 16 },
+        { header: 'Person', key: 'personName', width: 22 },
+        { header: 'Amount', key: 'amount', width: 14 },
+        { header: 'Purpose', key: 'purpose', width: 24 },
+        { header: 'Status', key: 'status', width: 12 },
+        { header: 'Date', key: 'date', width: 16 },
+        { header: 'Location', key: 'location', width: 18 },
+        { header: 'Notes', key: 'notes', width: 25 },
       ];
-      debts.forEach(d => debtsSheet.addRow({
-        type: d.type === 'due' ? 'Due (To Pay)' : 'Receivable (To Get)',
-        personName: d.personName,
-        amount: d.amount,
-        purpose: d.purpose,
-        location: d.location || '',
-        status: d.status,
-        datetime: d.datetime,
-        notes: d.notes || '',
-        createdAt: d.createdAt,
-        recurringRuleId: d.recurringRuleId || '',
-      }));
+      debts.forEach(d => {
+        debtSheet.addRow({
+          type: d.type === 'due' ? 'Due (To Pay)' : 'Receivable (To Get)',
+          personName: d.personName,
+          amount: Number(d.amount),
+          purpose: d.purpose,
+          status: d.status,
+          date: d.datetime,
+          location: d.location || '',
+          notes: d.notes || '',
+        });
+      });
 
-      // 3. Recurring Expenses sheet
+      // 3. Recurring Expenses Sheet
       const recExpSheet = workbook.addWorksheet('Recurring Expenses');
       recExpSheet.columns = [
-        { header: 'Title', key: 'items', width: 25 },
-        { header: 'Amount', key: 'amount', width: 15 },
-        { header: 'Category', key: 'category', width: 20 },
-        { header: 'Frequency', key: 'frequency', width: 15 },
-        { header: 'Start Date', key: 'startDate', width: 15 },
-        { header: 'End Date', key: 'endDate', width: 15 },
-        { header: 'Last Generated Date', key: 'lastGeneratedDate', width: 20 },
+        { header: 'Item / Purpose', key: 'items', width: 26 },
+        { header: 'Amount', key: 'amount', width: 14 },
+        { header: 'Category', key: 'category', width: 18 },
+        { header: 'Frequency', key: 'frequency', width: 16 },
+        { header: 'Interval Count', key: 'customIntervalCount', width: 14 },
+        { header: 'Interval Unit', key: 'customIntervalUnit', width: 14 },
+        { header: 'Payment Method', key: 'paymentMethod', width: 16 },
+        { header: 'Account', key: 'account', width: 16 },
+        { header: 'Start Date', key: 'startDate', width: 14 },
+        { header: 'End Date', key: 'endDate', width: 14 },
+        { header: 'Location / Where', key: 'where', width: 18 },
+        { header: 'Notes', key: 'note', width: 25 },
         { header: 'Status', key: 'status', width: 12 },
-        { header: 'Location', key: 'where', width: 20 },
-        { header: 'Payment Method', key: 'paymentMethod', width: 15 },
-        { header: 'Account', key: 'account', width: 15 },
-        { header: 'Note', key: 'note', width: 30 },
-        { header: 'ID', key: 'id', width: 25 },
       ];
       recurringExpenses.forEach(r => {
-        const cat = findCategory(categories, r.category);
         recExpSheet.addRow({
           items: r.items,
-          amount: r.amount,
-          category: cat?.name || r.category,
+          amount: Number(r.amount),
+          category: r.category,
           frequency: r.frequency,
-          startDate: r.startDate,
-          endDate: r.endDate || 'Forever',
-          lastGeneratedDate: r.lastGeneratedDate || '',
-          status: r.isActive ? 'Active' : 'Stopped',
-          where: r.where || '',
+          customIntervalCount: r.customIntervalCount || 1,
+          customIntervalUnit: r.customIntervalUnit || 'months',
           paymentMethod: r.paymentMethod,
           account: r.account,
+          startDate: r.startDate,
+          endDate: r.endDate || '',
+          where: r.where || '',
           note: r.note || '',
-          id: r.id,
+          status: r.isActive ? 'Active' : 'Paused',
         });
       });
 
-      // 4. Recurring Dues sheet
+      // 4. Recurring Dues & Receivables Sheet
       const recDebtSheet = workbook.addWorksheet('Recurring Dues');
       recDebtSheet.columns = [
-        { header: 'Type', key: 'type', width: 15 },
-        { header: 'Person Name', key: 'personName', width: 20 },
-        { header: 'Amount', key: 'amount', width: 15 },
-        { header: 'Purpose', key: 'purpose', width: 25 },
-        { header: 'Frequency', key: 'frequency', width: 15 },
-        { header: 'Start Date', key: 'startDate', width: 15 },
-        { header: 'End Date', key: 'endDate', width: 15 },
-        { header: 'Last Generated Date', key: 'lastGeneratedDate', width: 20 },
+        { header: 'Type', key: 'type', width: 16 },
+        { header: 'Person', key: 'personName', width: 22 },
+        { header: 'Amount', key: 'amount', width: 14 },
+        { header: 'Purpose', key: 'purpose', width: 24 },
+        { header: 'Frequency', key: 'frequency', width: 16 },
+        { header: 'Interval Count', key: 'customIntervalCount', width: 14 },
+        { header: 'Interval Unit', key: 'customIntervalUnit', width: 14 },
+        { header: 'Start Date', key: 'startDate', width: 14 },
+        { header: 'End Date', key: 'endDate', width: 14 },
+        { header: 'Location', key: 'location', width: 18 },
+        { header: 'Notes', key: 'notes', width: 25 },
         { header: 'Status', key: 'status', width: 12 },
-        { header: 'Location', key: 'location', width: 20 },
-        { header: 'Notes', key: 'notes', width: 30 },
-        { header: 'ID', key: 'id', width: 25 },
       ];
-      recurringDebts.forEach(r => recDebtSheet.addRow({
-        type: r.type === 'due' ? 'Due (To Pay)' : 'Receivable (To Get)',
-        personName: r.personName,
-        amount: r.amount,
-        purpose: r.purpose,
-        frequency: r.frequency,
-        startDate: r.startDate,
-        endDate: r.endDate || 'Forever',
-        lastGeneratedDate: r.lastGeneratedDate || '',
-        status: r.isActive ? 'Active' : 'Stopped',
-        location: r.location || '',
-        notes: r.notes || '',
-        id: r.id,
-      }));
-
-      // 5. Budgets sheet
-      const budgetsSheet = workbook.addWorksheet('Budgets');
-      budgetsSheet.columns = [
-        { header: 'Name', key: 'name', width: 20 },
-        { header: 'Amount', key: 'amount', width: 15 },
-        { header: 'Category', key: 'category', width: 20 },
-        { header: 'Period', key: 'period', width: 15 },
-        { header: 'Start Date', key: 'startDate', width: 15 },
-        { header: 'Is Active', key: 'isActive', width: 10 },
-        { header: 'Created At', key: 'createdAt', width: 20 },
-      ];
-      budgets.forEach(b => {
-        const cat = findCategory(categories, b.category);
-        budgetsSheet.addRow({
-          name: b.name,
-          amount: b.amount,
-          category: cat?.name || b.category,
-          period: b.period,
-          startDate: b.startDate,
-          isActive: b.isActive ? 'Yes' : 'No',
-          createdAt: (b as any).createdAt || new Date().toISOString(),
+      recurringDebts.forEach(r => {
+        recDebtSheet.addRow({
+          type: r.type === 'due' ? 'Due (To Pay)' : 'Receivable (To Get)',
+          personName: r.personName,
+          amount: Number(r.amount),
+          purpose: r.purpose,
+          frequency: r.frequency,
+          customIntervalCount: r.customIntervalCount || 1,
+          customIntervalUnit: r.customIntervalUnit || 'months',
+          startDate: r.startDate,
+          endDate: r.endDate || '',
+          location: r.location || '',
+          notes: r.notes || '',
+          status: r.isActive ? 'Active' : 'Paused',
         });
       });
 
-      // 6. Categories sheet
-      const categoriesSheet = workbook.addWorksheet('Categories');
-      categoriesSheet.columns = [
-        { header: 'ID', key: 'id', width: 20 },
-        { header: 'Name', key: 'name', width: 20 },
-        { header: 'Icon', key: 'icon', width: 15 },
-        { header: 'Color', key: 'color', width: 15 },
-        { header: 'Is Default', key: 'isDefault', width: 10 },
+      // 5. Budgets Sheet
+      const budgetSheet = workbook.addWorksheet('Budgets');
+      budgetSheet.columns = [
+        { header: 'Name', key: 'name', width: 22 },
+        { header: 'Amount', key: 'amount', width: 14 },
+        { header: 'Category', key: 'category', width: 18 },
+        { header: 'Period', key: 'period', width: 14 },
       ];
-      categories.forEach(c => categoriesSheet.addRow({
-        id: c.id,
-        name: c.name,
-        icon: c.icon,
-        color: c.color,
-        isDefault: c.isDefault ? 'Yes' : 'No',
-      }));
+      budgets.forEach(b => {
+        budgetSheet.addRow({
+          name: b.name,
+          amount: Number(b.amount),
+          category: b.category,
+          period: b.period || 'monthly',
+        });
+      });
+
+      // 6. Custom Categories Sheet
+      const catSheet = workbook.addWorksheet('Categories');
+      catSheet.columns = [
+        { header: 'ID', key: 'id', width: 18 },
+        { header: 'Name', key: 'name', width: 22 },
+        { header: 'Icon', key: 'icon', width: 16 },
+        { header: 'Color', key: 'color', width: 16 },
+        { header: 'Is Custom', key: 'isCustom', width: 12 },
+      ];
+      customCategories.forEach(c => {
+        catSheet.addRow({
+          id: c.id,
+          name: c.name,
+          icon: c.icon,
+          color: c.color,
+          isCustom: !c.isDefault ? 'Yes' : 'No',
+        });
+      });
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `expense-tracker-${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `budget-pilot-full-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
       toast({
-        title: "Success",
-        description: "Excel file exported with all sheets (Expenses, Dues, Recurring Expenses, Recurring Dues, Budgets)!",
+        title: "Excel Workbook Exported",
+        description: `Exported ${expenses.length} expenses, ${debts.length} dues, ${recurringExpenses.length + recurringDebts.length} recurring rules, ${budgets.length} budgets.`,
       });
-    } catch (error) {
-      console.error(error);
+    } catch (e) {
       toast({
-        title: "Error",
-        description: "Failed to export Excel file.",
+        title: "Export Failed",
+        description: "Failed to generate Excel file.",
         variant: "destructive",
       });
     }
   };
 
-  const importData = (event: ChangeEvent<HTMLInputElement>) => {
+  const importFromExcel = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const data = JSON.parse(e.target?.result as string);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(arrayBuffer);
+
+      const expensesToImport: any[] = [];
+      const debtsToImport: DebtRecord[] = [];
+      const recurringExpensesToImport: RecurringExpense[] = [];
+      const recurringDebtsToImport: RecurringDebt[] = [];
+      const budgetsToImport: any[] = [];
+      const categoriesToImport: any[] = [];
+
+      const existingCategories = await db.categories.toArray();
+      const activeCategories: any[] = [...existingCategories];
+
+      const parseAmount = (val: string): number => {
+        if (!val) return 0;
+        const cleaned = String(val).replace(/[^0-9.-]/g, '');
+        const num = parseFloat(cleaned);
+        return isNaN(num) ? 0 : Math.abs(num);
+      };
+
+      // Helper to safely extract string values from ExcelJS cells
+      const getVal = (cell: ExcelJS.Cell): string => {
+        if (cell.value === null || cell.value === undefined) return '';
+        if (typeof cell.value === 'object') {
+          if ('text' in cell.value) return String(cell.value.text || '').trim();
+          if ('result' in cell.value) return String(cell.value.result || '').trim();
+          if (cell.value instanceof Date) {
+            return format(cell.value, 'yyyy-MM-dd');
+          }
+        }
+        return String(cell.value).trim();
+      };
+
+      // Helper to parse dates robustly
+      const parseExcelDate = (val: string): string => {
+        if (!val) return format(new Date(), 'yyyy-MM-dd');
+        // If it's standard YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}/.test(val)) {
+          return val.substring(0, 10);
+        }
+        // If DD/MM/YYYY or DD-MM-YYYY
+        const ddmmyyyy = val.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+        if (ddmmyyyy) {
+          const d = ddmmyyyy[1].padStart(2, '0');
+          const m = ddmmyyyy[2].padStart(2, '0');
+          const y = ddmmyyyy[3];
+          return `${y}-${m}-${d}`;
+        }
+        // If numeric Excel timestamp
+        const num = parseFloat(val);
+        if (!isNaN(num) && num > 25000 && num < 60000) {
+          const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+          const jsDate = new Date(excelEpoch.getTime() + num * 86400000);
+          return format(jsDate, 'yyyy-MM-dd');
+        }
+        // Try Date.parse fallback
+        try {
+          const d = new Date(val);
+          if (!isNaN(d.getTime())) return format(d, 'yyyy-MM-dd');
+        } catch {}
+        return format(new Date(), 'yyyy-MM-dd');
+      };
+
+      // Helper to build header map for a sheet
+      const getHeaderMap = (sheet: ExcelJS.Worksheet): { map: Record<string, number>; startRow: number } => {
+        const headerMap: Record<string, number> = {};
+        let startRow = 1;
+        sheet.eachRow((row, rowNumber) => {
+          if (Object.keys(headerMap).length === 0) {
+            row.eachCell((cell, colNumber) => {
+              const h = getVal(cell).toLowerCase().replace(/[^a-z0-9]/g, '');
+              if (h) headerMap[h] = colNumber;
+            });
+            startRow = rowNumber;
+          }
+        });
+        return { map: headerMap, startRow };
+      };
+
+      // 1. Process Categories Sheet FIRST so all custom categories exist in lookup
+      const catSheet = workbook.getWorksheet('Categories') || workbook.getWorksheet('Custom Categories');
+      if (catSheet) {
+        const { map, startRow } = getHeaderMap(catSheet);
+        catSheet.eachRow((row, rowNumber) => {
+          if (rowNumber > startRow) {
+            const getCol = (keys: string[]): string => {
+              for (const k of keys) {
+                if (map[k]) return getVal(row.getCell(map[k]));
+              }
+              return '';
+            };
+
+            const name = getCol(['name', 'categoryname', 'title']);
+            if (name && !isGarbageCategory({ name })) {
+              const id = getCol(['id', 'key']) || name.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+              const icon = getCol(['icon']) || guessCategoryProperties(name).icon;
+              const color = getCol(['color']) || guessCategoryProperties(name).color;
+
+              const newCat = {
+                id,
+                userId: 'default',
+                name,
+                icon,
+                color,
+                isDefault: false,
+                updatedAt: new Date(),
+              };
+              categoriesToImport.push(newCat);
+              if (!activeCategories.some(c => c.id.toLowerCase() === id.toLowerCase())) {
+                activeCategories.push(newCat);
+              }
+            }
+          }
+        });
+      }
+
+      // Helper to resolve category ID with auto-creation of missing custom categories
+      const resolveAndRegisterCategory = (rawCatString: string): string => {
+        if (!rawCatString) return 'groceries';
+        const canonicalId = normalizeCategoryKey(activeCategories, rawCatString);
         
-        if (confirm('This will replace all your current data with the imported file. Are you sure?')) {
-          await db.expenses.clear();
-          await db.budgets.clear();
-          await db.categories.clear();
-          await db.debts.clear();
-          await db.recurringExpenses.clear();
-          await db.recurringDebts.clear();
-
-          // Ensure default categories exist
-          await db.categories.bulkAdd(DEFAULT_CATEGORIES);
-          
-          if (data.categories) {
-            for (const cat of data.categories) {
-              if (isGarbageCategory(cat)) continue;
-              const existing = await db.categories.get(cat.id);
-              if (!existing) await db.categories.add(cat);
-            }
-          }
-
-          if (data.expenses) await db.expenses.bulkAdd(data.expenses);
-          if (data.budgets) await db.budgets.bulkAdd(data.budgets);
-          if (data.debts) await db.debts.bulkAdd(data.debts);
-          if (data.recurringExpenses) await db.recurringExpenses.bulkAdd(data.recurringExpenses);
-          if (data.recurringDebts) await db.recurringDebts.bulkAdd(data.recurringDebts);
-          if (data.settings) await updateSettingsMutation.mutateAsync(data.settings);
-          
-          await cleanupAndDeduplicateCategories(db);
-          await processRecurringRules();
-
-          toast({
-            title: "Success",
-            description: "All data (expenses, dues, recurring schedules, budgets) imported successfully!",
-          });
-        }
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to import data. Please check the file format.",
-          variant: "destructive",
-        });
-      }
-    };
-    reader.readAsText(file);
-    event.target.value = '';
-  };
-
-  const importFromExcel = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const buffer = e.target?.result as ArrayBuffer;
-        const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.load(buffer);
-
-        const getStr = (val: any): string => {
-          if (val === null || val === undefined) return '';
-          if (typeof val === 'object') {
-            if (val.text !== undefined) return String(val.text).trim();
-            if (val.result !== undefined) return String(val.result).trim();
-            if (val instanceof Date) return format(val, 'yyyy-MM-dd');
-            if (Array.isArray(val)) return val.map(v => getStr(v)).join(' ');
-          }
-          return String(val).trim();
-        };
-
-        const getNum = (val: any): number => {
-          if (val === null || val === undefined) return 0;
-          if (typeof val === 'object') {
-            if (val.result !== undefined) return Number(val.result) || 0;
-            if (val.text !== undefined) return Number(val.text) || 0;
-          }
-          const n = parseFloat(String(val).replace(/[^0-9.-]+/g, ''));
-          return isNaN(n) ? 0 : n;
-        };
-
-        if (confirm('This will replace all your current data with the imported Excel workbook. Are you sure?')) {
-          await db.expenses.clear();
-          await db.budgets.clear();
-          await db.categories.clear();
-          await db.debts.clear();
-          await db.recurringExpenses.clear();
-          await db.recurringDebts.clear();
-
-          // 1. Seed DEFAULT_CATEGORIES first
-          const loadedCategories: any[] = [...DEFAULT_CATEGORIES];
-          await db.categories.bulkAdd(DEFAULT_CATEGORIES);
-
-          // 2. Load Categories Sheet if present (with dynamic column detection)
-          const categoriesSheet = workbook.getWorksheet('Categories');
-          if (categoriesSheet) {
-            const extraCategories: any[] = [];
-            const headerRow = categoriesSheet.getRow(1);
-            let idCol = -1, nameCol = -1, iconCol = -1, colorCol = -1, defaultCol = -1;
-            
-            for (let c = 1; c <= (headerRow.cellCount || 5); c++) {
-              const h = getStr(headerRow.getCell(c).value).toLowerCase();
-              if (h === 'id') idCol = c;
-              else if (h.includes('name') || h.includes('category')) nameCol = c;
-              else if (h.includes('icon')) iconCol = c;
-              else if (h.includes('color')) colorCol = c;
-              else if (h.includes('default')) defaultCol = c;
-            }
-
-            if (nameCol === -1) {
-              nameCol = idCol === 1 ? 2 : 1;
-            }
-            if (iconCol === -1) iconCol = nameCol === 1 ? 2 : 3;
-            if (colorCol === -1) colorCol = iconCol + 1;
-            if (defaultCol === -1) defaultCol = colorCol + 1;
-
-            for (let rowNumber = 2; rowNumber <= categoriesSheet.rowCount; rowNumber++) {
-              const row = categoriesSheet.getRow(rowNumber);
-              const IdVal = idCol > 0 ? getStr(row.getCell(idCol).value) : '';
-              const Name = getStr(row.getCell(nameCol).value);
-              const Icon = iconCol > 0 ? getStr(row.getCell(iconCol).value) : 'tag';
-              const Color = colorCol > 0 ? getStr(row.getCell(colorCol).value) : 'gray';
-              const IsDefault = defaultCol > 0 ? getStr(row.getCell(defaultCol).value) : 'false';
-
-              if (!Name || isGarbageCategory({ id: IdVal, name: Name, icon: Icon })) continue;
-
-              const cleanName = Name.trim();
-              const catId = (IdVal && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(IdVal)) 
-                ? IdVal.toLowerCase() 
-                : cleanName.toLowerCase().replace(/\s+/g, '-');
-
-              if (!loadedCategories.some(c => c.id.toLowerCase() === catId.toLowerCase() || c.name.toLowerCase() === cleanName.toLowerCase())) {
-                const newCat = {
-                  id: catId,
-                  userId: 'local',
-                  name: cleanName,
-                  icon: Icon || 'tag',
-                  color: Color || 'gray',
-                  isDefault: IsDefault.toLowerCase() === 'yes' || IsDefault === 'true',
-                  updatedAt: new Date(),
-                };
-                extraCategories.push(newCat);
-                loadedCategories.push(newCat);
-              }
-            }
-            if (extraCategories.length > 0) {
-              await db.categories.bulkAdd(extraCategories);
-            }
-          }
-
-          // Helper to resolve and register any unknown genuine category
-          const resolveCategory = async (rawCategory: string): Promise<string> => {
-            if (!rawCategory) return 'groceries';
-            const resolved = findCategory(loadedCategories, rawCategory);
-            if (!isGarbageCategory(resolved) && !loadedCategories.some(c => c.id.toLowerCase() === resolved.id.toLowerCase() || c.name.toLowerCase() === resolved.name.toLowerCase())) {
-              loadedCategories.push(resolved);
-              await db.categories.add(resolved);
-            }
-            return resolved.id;
+        // If canonicalId is not among known categories and is a clean custom name, auto-create it
+        const exists = activeCategories.some(c => c.id.toLowerCase() === canonicalId.toLowerCase());
+        if (!exists && rawCatString.trim().length > 1 && !isGarbageCategory({ name: rawCatString })) {
+          const cleanName = rawCatString.trim();
+          const cleanId = cleanName.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+          const guess = guessCategoryProperties(cleanName);
+          const autoCat = {
+            id: cleanId,
+            userId: 'default',
+            name: cleanName,
+            icon: guess.icon,
+            color: guess.color,
+            isDefault: false,
+            updatedAt: new Date(),
           };
-
-          // 3. Expenses Sheet
-          const expensesSheet = workbook.getWorksheet('Expenses');
-          if (expensesSheet) {
-            const expenses: any[] = [];
-            for (let rowNumber = 2; rowNumber <= expensesSheet.rowCount; rowNumber++) {
-              const row = expensesSheet.getRow(rowNumber);
-              const DateVal = getStr(row.getCell(1).value);
-              const TimeVal = getStr(row.getCell(2).value);
-              const Amount = getNum(row.getCell(3).value);
-              const CategoryVal = getStr(row.getCell(4).value);
-              const Items = getStr(row.getCell(5).value);
-              const Location = getStr(row.getCell(6).value);
-              const PaymentMethod = getStr(row.getCell(7).value);
-              const Account = getStr(row.getCell(8).value);
-              const Notes = getStr(row.getCell(9).value);
-              const CreatedAt = getStr(row.getCell(10).value);
-              const RecurringRuleId = getStr(row.getCell(11).value);
-              const IsRecurring = getStr(row.getCell(12).value);
-
-              if (!Items && Amount <= 0) continue;
-
-              const cleanCatId = await resolveCategory(CategoryVal);
-
-              expenses.push({
-                id: crypto.randomUUID(),
-                date: DateVal ? DateVal.split('T')[0] : new Date().toISOString().split('T')[0],
-                time: TimeVal || '00:00',
-                amount: Amount || 0,
-                category: cleanCatId,
-                items: Items || '',
-                where: Location || '',
-                paymentMethod: PaymentMethod || 'UPI',
-                account: Account || 'ICICI',
-                note: Notes || '',
-                isRecurring: IsRecurring.toLowerCase() === 'yes' || IsRecurring === 'true' || Boolean(RecurringRuleId),
-                isTemplate: false,
-                recurringRuleId: RecurringRuleId || undefined,
-                attachments: [],
-                createdAt: CreatedAt || new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              });
-            }
-            if (expenses.length > 0) await db.expenses.bulkAdd(expenses);
-          }
-
-          // 4. Dues & Receivables Sheet
-          const debtsSheet = workbook.getWorksheet('Dues & Receivables');
-          if (debtsSheet) {
-            const debts: any[] = [];
-            debtsSheet.eachRow((row, rowNumber) => {
-              if (rowNumber === 1) return;
-              const TypeVal = getStr(row.getCell(1).value);
-              const PersonName = getStr(row.getCell(2).value);
-              const Amount = getNum(row.getCell(3).value);
-              const Purpose = getStr(row.getCell(4).value);
-              const Location = getStr(row.getCell(5).value);
-              const Status = getStr(row.getCell(6).value);
-              const DateTimeVal = getStr(row.getCell(7).value);
-              const Notes = getStr(row.getCell(8).value);
-              const CreatedAt = getStr(row.getCell(9).value);
-              const RecurringRuleId = getStr(row.getCell(10).value);
-
-              if (!PersonName && Amount <= 0) return;
-
-              debts.push({
-                type: TypeVal.toLowerCase().includes('due') ? 'due' : 'receivable',
-                personName: PersonName || 'Unknown',
-                amount: Amount || 0,
-                purpose: Purpose || 'Debt',
-                location: Location || undefined,
-                status: Status.toLowerCase() === 'settled' ? 'settled' : 'pending',
-                datetime: DateTimeVal || new Date().toISOString(),
-                notes: Notes || undefined,
-                recurringRuleId: RecurringRuleId || undefined,
-                createdAt: CreatedAt || new Date().toISOString(),
-              });
-            });
-            if (debts.length > 0) await db.debts.bulkAdd(debts);
-          }
-
-          // 5. Recurring Expenses Sheet
-          const recExpSheet = workbook.getWorksheet('Recurring Expenses');
-          if (recExpSheet) {
-            const recExpenses: any[] = [];
-            for (let rowNumber = 2; rowNumber <= recExpSheet.rowCount; rowNumber++) {
-              const row = recExpSheet.getRow(rowNumber);
-              const Items = getStr(row.getCell(1).value);
-              const Amount = getNum(row.getCell(2).value);
-              const CategoryVal = getStr(row.getCell(3).value);
-              const FrequencyVal = getStr(row.getCell(4).value);
-              const StartDate = getStr(row.getCell(5).value);
-              const EndDate = getStr(row.getCell(6).value);
-              const LastGenDate = getStr(row.getCell(7).value);
-              const Status = getStr(row.getCell(8).value);
-              const Location = getStr(row.getCell(9).value);
-              const PaymentMethod = getStr(row.getCell(10).value);
-              const Account = getStr(row.getCell(11).value);
-              const Notes = getStr(row.getCell(12).value);
-              const IdVal = getStr(row.getCell(13).value);
-
-              if (!Items || Amount <= 0) continue;
-
-              const cleanCatId = await resolveCategory(CategoryVal);
-              const freqNormalized = FrequencyVal.toLowerCase().trim();
-              let validFrequency = 'monthly';
-              if (freqNormalized.includes('day') || freqNormalized.includes('daily')) validFrequency = 'daily';
-              else if (freqNormalized.includes('week')) validFrequency = 'weekly';
-              else if (freqNormalized.includes('year') || freqNormalized.includes('annual')) validFrequency = 'yearly';
-              else if (freqNormalized.includes('custom')) validFrequency = 'custom';
-
-              const cleanStartDate = StartDate ? StartDate.split('T')[0] : format(new Date(), 'yyyy-MM-dd');
-              const todayStr = format(new Date(), 'yyyy-MM-dd');
-
-              // If last generated date is present in Excel, preserve it.
-              // If not present, default to todayStr (if startDate was in the past) so we DO NOT backfill duplicate daily records!
-              let effectiveLastGen: string | undefined = undefined;
-              if (LastGenDate && LastGenDate !== 'Never' && LastGenDate.length >= 10) {
-                effectiveLastGen = LastGenDate.split('T')[0];
-              } else if (cleanStartDate <= todayStr) {
-                effectiveLastGen = todayStr;
-              }
-
-              recExpenses.push({
-                id: IdVal || crypto.randomUUID(),
-                items: Items,
-                amount: Amount,
-                category: cleanCatId,
-                frequency: validFrequency as any,
-                startDate: cleanStartDate,
-                endDate: EndDate && EndDate !== 'Forever' ? EndDate.split('T')[0] : undefined,
-                lastGeneratedDate: effectiveLastGen,
-                isActive: Status.toLowerCase() !== 'stopped' && Status.toLowerCase() !== 'false',
-                where: Location || undefined,
-                paymentMethod: PaymentMethod || 'UPI',
-                account: Account || 'ICICI',
-                note: Notes || undefined,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              });
-            }
-            if (recExpenses.length > 0) await db.recurringExpenses.bulkAdd(recExpenses);
-          }
-
-          // 6. Recurring Dues Sheet
-          const recDebtSheet = workbook.getWorksheet('Recurring Dues');
-          if (recDebtSheet) {
-            const recDebts: any[] = [];
-            recDebtSheet.eachRow((row, rowNumber) => {
-              if (rowNumber === 1) return;
-              const TypeVal = getStr(row.getCell(1).value);
-              const PersonName = getStr(row.getCell(2).value);
-              const Amount = getNum(row.getCell(3).value);
-              const Purpose = getStr(row.getCell(4).value);
-              const FrequencyVal = getStr(row.getCell(5).value);
-              const StartDate = getStr(row.getCell(6).value);
-              const EndDate = getStr(row.getCell(7).value);
-              const LastGenDate = getStr(row.getCell(8).value);
-              const Status = getStr(row.getCell(9).value);
-              const Location = getStr(row.getCell(10).value);
-              const Notes = getStr(row.getCell(11).value);
-              const IdVal = getStr(row.getCell(12).value);
-
-              if (!PersonName || Amount <= 0) return;
-
-              const freqNormalized = FrequencyVal.toLowerCase().trim();
-              let validFrequency = 'monthly';
-              if (freqNormalized.includes('day') || freqNormalized.includes('daily')) validFrequency = 'daily';
-              else if (freqNormalized.includes('week')) validFrequency = 'weekly';
-              else if (freqNormalized.includes('year') || freqNormalized.includes('annual')) validFrequency = 'yearly';
-              else if (freqNormalized.includes('custom')) validFrequency = 'custom';
-
-              const cleanStartDate = StartDate ? StartDate.split('T')[0] : format(new Date(), 'yyyy-MM-dd');
-              const todayStr = format(new Date(), 'yyyy-MM-dd');
-
-              let effectiveLastGen: string | undefined = undefined;
-              if (LastGenDate && LastGenDate !== 'Never' && LastGenDate.length >= 10) {
-                effectiveLastGen = LastGenDate.split('T')[0];
-              } else if (cleanStartDate <= todayStr) {
-                effectiveLastGen = todayStr;
-              }
-
-              recDebts.push({
-                id: IdVal || crypto.randomUUID(),
-                type: TypeVal.toLowerCase().includes('due') ? 'due' : 'receivable',
-                personName: PersonName,
-                amount: Amount,
-                purpose: Purpose || 'Recurring Debt',
-                frequency: validFrequency as any,
-                startDate: cleanStartDate,
-                endDate: EndDate && EndDate !== 'Forever' ? EndDate.split('T')[0] : undefined,
-                lastGeneratedDate: effectiveLastGen,
-                isActive: Status.toLowerCase() !== 'stopped' && Status.toLowerCase() !== 'false',
-                location: Location || undefined,
-                notes: Notes || undefined,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              });
-            });
-            if (recDebts.length > 0) await db.recurringDebts.bulkAdd(recDebts);
-          }
-
-          // 7. Budgets Sheet
-          const budgetsSheet = workbook.getWorksheet('Budgets');
-          if (budgetsSheet) {
-            const budgets: any[] = [];
-            for (let rowNumber = 2; rowNumber <= budgetsSheet.rowCount; rowNumber++) {
-              const row = budgetsSheet.getRow(rowNumber);
-              const Name = getStr(row.getCell(1).value);
-              const Amount = getNum(row.getCell(2).value);
-              const CategoryVal = getStr(row.getCell(3).value);
-              const Period = getStr(row.getCell(4).value);
-              const StartDate = getStr(row.getCell(5).value);
-              const IsActive = getStr(row.getCell(6).value);
-              const CreatedAt = getStr(row.getCell(7).value);
-
-              if (!Name && Amount <= 0) continue;
-
-              const cleanCatId = await resolveCategory(CategoryVal);
-
-              budgets.push({
-                id: crypto.randomUUID(),
-                name: Name || 'Budget',
-                amount: Amount || 0,
-                category: cleanCatId,
-                period: Period || 'monthly',
-                startDate: StartDate || new Date().toISOString().split('T')[0],
-                isActive: IsActive.toLowerCase() === 'yes' || IsActive === 'true',
-                createdAt: CreatedAt || new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              });
-            }
-            if (budgets.length > 0) await db.budgets.bulkAdd(budgets);
-          }
-
-          // Clean and deduplicate all categories
-          await cleanupAndDeduplicateCategories(db);
-
-          // Trigger recurring engine for any pending future rule
-          await processRecurringRules();
-
-          toast({
-            title: "Success",
-            description: "Excel workbook data (Expenses, Dues, Recurring Schedules, Budgets, Categories) imported successfully!",
-          });
+          categoriesToImport.push(autoCat);
+          activeCategories.push(autoCat);
+          return cleanId;
         }
-      } catch (error) {
-        console.error(error);
+
+        return canonicalId;
+      };
+
+      // 2. Process Expenses Sheet (or first sheet)
+      const expSheet = workbook.getWorksheet('Expenses') || (!workbook.getWorksheet('Recurring Expenses') ? workbook.worksheets[0] : null);
+      if (expSheet) {
+        const { map, startRow } = getHeaderMap(expSheet);
+        expSheet.eachRow((row, rowNumber) => {
+          if (rowNumber > startRow) {
+            const getCol = (keys: string[]): string => {
+              for (const k of keys) {
+                if (map[k]) return getVal(row.getCell(map[k]));
+              }
+              return '';
+            };
+
+            const amt = parseAmount(getCol(['amount', 'spent', 'cost', 'price', 'total']));
+            if (amt > 0) {
+              const rawDate = getCol(['date', 'day', 'datetime', 'timestamp']);
+              const rawTime = getCol(['time', 'hour']);
+              const rawItem = getCol(['item', 'items', 'purpose', 'description', 'title', 'itempurpose']);
+              const rawCat = getCol(['category', 'cat', 'categoryname']);
+              const rawPay = getCol(['paymentmethod', 'payment', 'method', 'mode']);
+              const rawAcc = getCol(['account', 'bank', 'acc']);
+              const rawWhere = getCol(['where', 'location', 'place', 'merchant', 'store']);
+              const rawNote = getCol(['note', 'notes', 'remark', 'remarks']);
+
+              const canonicalCategory = resolveAndRegisterCategory(rawCat);
+
+              expensesToImport.push({
+                id: crypto.randomUUID(),
+                amount: amt,
+                date: parseExcelDate(rawDate),
+                time: rawTime && /^\d{2}:\d{2}$/.test(rawTime) ? rawTime : format(new Date(), 'HH:mm'),
+                items: rawItem || 'Imported Expense',
+                category: canonicalCategory,
+                paymentMethod: rawPay || 'UPI',
+                account: rawAcc || 'SBI',
+                where: rawWhere || undefined,
+                note: rawNote || undefined,
+                isRecurring: false,
+                isTemplate: false,
+                attachments: [],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              });
+            }
+          }
+        });
+      }
+
+      // 3. Process Dues & Receivables Sheet
+      const debtSheet = workbook.getWorksheet('Dues & Receivables') || workbook.getWorksheet('Dues') || workbook.getWorksheet('Debts');
+      if (debtSheet) {
+        const { map, startRow } = getHeaderMap(debtSheet);
+        debtSheet.eachRow((row, rowNumber) => {
+          if (rowNumber > startRow) {
+            const getCol = (keys: string[]): string => {
+              for (const k of keys) {
+                if (map[k]) return getVal(row.getCell(map[k]));
+              }
+              return '';
+            };
+
+            const amt = parseAmount(getCol(['amount', 'total', 'due']));
+            const person = getCol(['person', 'personname', 'name', 'who']);
+            if (amt > 0 && person) {
+              const rawType = getCol(['type', 'duetype']).toLowerCase();
+              const isReceivable = rawType.includes('receivable') || rawType.includes('get') || rawType.includes('collect');
+              const rawPurpose = getCol(['purpose', 'reason', 'item', 'notes']);
+              const rawStatus = getCol(['status']).toLowerCase();
+              const rawDate = getCol(['date', 'datetime', 'createdat']);
+              const rawLoc = getCol(['location', 'where', 'place']);
+              const rawNote = getCol(['notes', 'note', 'remarks']);
+
+              debtsToImport.push({
+                type: isReceivable ? 'receivable' : 'due',
+                personName: person,
+                amount: amt,
+                purpose: rawPurpose || 'Imported Due',
+                status: rawStatus.includes('settle') ? 'settled' : 'pending',
+                location: rawLoc || undefined,
+                notes: rawNote || undefined,
+                datetime: parseExcelDate(rawDate) + 'T12:00',
+                createdAt: new Date().toISOString(),
+              });
+            }
+          }
+        });
+      }
+
+      // 4. Process Recurring Expenses Sheet
+      const recExpSheet = workbook.getWorksheet('Recurring Expenses') || workbook.getWorksheet('Recurring') || workbook.getWorksheet('Subscriptions');
+      if (recExpSheet) {
+        const { map, startRow } = getHeaderMap(recExpSheet);
+        recExpSheet.eachRow((row, rowNumber) => {
+          if (rowNumber > startRow) {
+            const getCol = (keys: string[]): string => {
+              for (const k of keys) {
+                if (map[k]) return getVal(row.getCell(map[k]));
+              }
+              return '';
+            };
+
+            const amt = parseAmount(getCol(['amount', 'cost', 'price', 'total']));
+            const item = getCol(['item', 'items', 'name', 'purpose', 'description', 'itempurpose']);
+            if (amt > 0 && item) {
+              const rawCat = getCol(['category', 'cat']);
+              const rawFreq = getCol(['frequency', 'freq']).toLowerCase() as RecurrenceFrequency;
+              const validFreq: RecurrenceFrequency = ['daily', 'weekly', 'monthly', 'yearly', 'custom'].includes(rawFreq) ? rawFreq : 'monthly';
+              const rawInterval = parseInt(getCol(['intervalcount', 'interval', 'customintervalcount'])) || 1;
+              const rawUnit = getCol(['intervalunit', 'unit', 'customintervalunit']).toLowerCase() as CustomIntervalUnit;
+              const validUnit: CustomIntervalUnit = ['days', 'weeks', 'months', 'years'].includes(rawUnit) ? rawUnit : 'months';
+              const rawPay = getCol(['paymentmethod', 'payment', 'method']);
+              const rawAcc = getCol(['account', 'bank']);
+              const rawStart = getCol(['startdate', 'start', 'date']);
+              const rawEnd = getCol(['enddate', 'end']);
+              const rawWhere = getCol(['where', 'location', 'place']);
+              const rawNote = getCol(['note', 'notes', 'remarks']);
+              const rawStatus = getCol(['status', 'active', 'state']).toLowerCase();
+              const isActive = !rawStatus.includes('pause') && !rawStatus.includes('inactive') && !rawStatus.includes('no');
+
+              const canonicalCategory = resolveAndRegisterCategory(rawCat);
+
+              recurringExpensesToImport.push({
+                id: crypto.randomUUID(),
+                amount: amt,
+                items: item,
+                category: canonicalCategory,
+                frequency: validFreq,
+                customIntervalCount: rawInterval,
+                customIntervalUnit: validUnit,
+                paymentMethod: rawPay || 'UPI',
+                account: rawAcc || 'SBI',
+                startDate: parseExcelDate(rawStart),
+                endDate: rawEnd ? parseExcelDate(rawEnd) : undefined,
+                where: rawWhere || undefined,
+                note: rawNote || undefined,
+                isActive,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              });
+            }
+          }
+        });
+      }
+
+      // 5. Process Recurring Dues Sheet
+      const recDebtSheet = workbook.getWorksheet('Recurring Dues') || workbook.getWorksheet('Recurring Debts');
+      if (recDebtSheet) {
+        const { map, startRow } = getHeaderMap(recDebtSheet);
+        recDebtSheet.eachRow((row, rowNumber) => {
+          if (rowNumber > startRow) {
+            const getCol = (keys: string[]): string => {
+              for (const k of keys) {
+                if (map[k]) return getVal(row.getCell(map[k]));
+              }
+              return '';
+            };
+
+            const amt = parseAmount(getCol(['amount', 'total', 'due']));
+            const person = getCol(['person', 'personname', 'name', 'who']);
+            if (amt > 0 && person) {
+              const rawType = getCol(['type', 'duetype']).toLowerCase();
+              const isReceivable = rawType.includes('receivable') || rawType.includes('get');
+              const rawPurpose = getCol(['purpose', 'reason', 'item', 'notes']);
+              const rawFreq = getCol(['frequency', 'freq']).toLowerCase() as RecurrenceFrequency;
+              const validFreq: RecurrenceFrequency = ['daily', 'weekly', 'monthly', 'yearly', 'custom'].includes(rawFreq) ? rawFreq : 'monthly';
+              const rawInterval = parseInt(getCol(['intervalcount', 'interval'])) || 1;
+              const rawUnit = getCol(['intervalunit', 'unit']).toLowerCase() as CustomIntervalUnit;
+              const validUnit: CustomIntervalUnit = ['days', 'weeks', 'months', 'years'].includes(rawUnit) ? rawUnit : 'months';
+              const rawStart = getCol(['startdate', 'start']);
+              const rawEnd = getCol(['enddate', 'end']);
+              const rawLoc = getCol(['location', 'where']);
+              const rawNotes = getCol(['notes', 'note']);
+              const rawStatus = getCol(['status', 'active']).toLowerCase();
+              const isActive = !rawStatus.includes('pause') && !rawStatus.includes('inactive');
+
+              recurringDebtsToImport.push({
+                id: crypto.randomUUID(),
+                type: isReceivable ? 'receivable' : 'due',
+                personName: person,
+                amount: amt,
+                purpose: rawPurpose || 'Recurring Due',
+                frequency: validFreq,
+                customIntervalCount: rawInterval,
+                customIntervalUnit: validUnit,
+                startDate: parseExcelDate(rawStart),
+                endDate: rawEnd ? parseExcelDate(rawEnd) : undefined,
+                location: rawLoc || undefined,
+                notes: rawNotes || undefined,
+                isActive,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              });
+            }
+          }
+        });
+      }
+
+      // 6. Process Budgets Sheet
+      const budgetSheet = workbook.getWorksheet('Budgets');
+      if (budgetSheet) {
+        const { map, startRow } = getHeaderMap(budgetSheet);
+        budgetSheet.eachRow((row, rowNumber) => {
+          if (rowNumber > startRow) {
+            const getCol = (keys: string[]): string => {
+              for (const k of keys) {
+                if (map[k]) return getVal(row.getCell(map[k]));
+              }
+              return '';
+            };
+
+            const amt = parseAmount(getCol(['amount', 'limit', 'total']));
+            const name = getCol(['name', 'title', 'budgetname']);
+            if (amt > 0 && name) {
+              const rawCat = getCol(['category', 'cat']);
+              const period = getCol(['period', 'frequency']).toLowerCase();
+              const canonicalCategory = (!rawCat || rawCat.toLowerCase() === 'overall') 
+                ? 'overall' 
+                : resolveAndRegisterCategory(rawCat);
+
+              budgetsToImport.push({
+                id: crypto.randomUUID(),
+                userId: 'default',
+                name,
+                amount: amt,
+                category: canonicalCategory,
+                period: ['monthly', 'weekly', 'yearly'].includes(period) ? period : 'monthly',
+                startDate: format(new Date(), 'yyyy-MM-01'),
+                isActive: true,
+                updatedAt: new Date(),
+              });
+            }
+          }
+        });
+      }
+
+      const totalItems = expensesToImport.length + debtsToImport.length + recurringExpensesToImport.length + recurringDebtsToImport.length + budgetsToImport.length + categoriesToImport.length;
+
+      if (totalItems > 0) {
+        await db.transaction('rw', [db.expenses, db.debts, db.recurringExpenses, db.recurringDebts, db.budgets, db.categories], async () => {
+          if (categoriesToImport.length > 0) {
+            for (const cat of categoriesToImport) {
+              await db.categories.put(cat);
+            }
+          }
+          if (expensesToImport.length > 0) await db.expenses.bulkAdd(expensesToImport);
+          if (debtsToImport.length > 0) await db.debts.bulkAdd(debtsToImport);
+          if (recurringExpensesToImport.length > 0) await db.recurringExpenses.bulkAdd(recurringExpensesToImport);
+          if (recurringDebtsToImport.length > 0) await db.recurringDebts.bulkAdd(recurringDebtsToImport);
+          if (budgetsToImport.length > 0) await db.budgets.bulkAdd(budgetsToImport);
+        });
+
+        // Run automated cleanup and recurring scheduler
+        await cleanupAndDeduplicateCategories(db);
+        await processRecurringRules();
+
         toast({
-          title: "Error",
-          description: "Failed to import Excel file. Please check the sheet format.",
+          title: "Import Completed Successfully",
+          description: `Imported ${expensesToImport.length} expenses, ${debtsToImport.length} dues, ${recurringExpensesToImport.length + recurringDebtsToImport.length} recurring rules, ${budgetsToImport.length} budgets, ${categoriesToImport.length} categories.`,
+        });
+      } else {
+        toast({
+          title: "No Data Found",
+          description: "Could not find any readable expense, due, recurring or budget records in the selected workbook.",
           variant: "destructive",
         });
       }
-    };
-    reader.readAsArrayBuffer(file);
+    } catch (e) {
+      toast({
+        title: "Import Error",
+        description: "Failed to parse and import the Excel spreadsheet. Please ensure the columns match the template.",
+        variant: "destructive",
+      });
+    }
+
+    // Reset input
     event.target.value = '';
   };
 
   const clearAllData = async () => {
-    if (confirm('This will permanently delete all your expenses, dues, recurring schedules, and budgets. Are you sure?')) {
-      try {
-        await db.expenses.clear();
-        await db.budgets.clear();
-        await db.categories.clear();
-        await db.debts.clear();
-        await db.recurringExpenses.clear();
-        await db.recurringDebts.clear();
-        await db.categories.bulkAdd(DEFAULT_CATEGORIES);
-        
-        await updateSettingsMutation.mutateAsync({
-          currency: '₹',
-          theme: 'light',
-          language: 'en',
-          notifications: true,
-          budgetAlerts: true,
-        });
-        
-        toast({
-          title: "Success",
-          description: "All data cleared successfully!",
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to clear data.",
-          variant: "destructive",
-        });
+    if (confirm("Are you sure you want to reset all data? This cannot be undone.")) {
+      if (confirm("This will permanently wipe all transactions, budgets, custom categories, recurring rules, and charts. Confirm to proceed?")) {
+        try {
+          await db.transaction('rw', [db.expenses, db.budgets, db.categories, db.debts, db.recurringExpenses, db.recurringDebts, db.customCharts, db.settings], async () => {
+            await db.expenses.clear();
+            await db.budgets.clear();
+            await db.categories.clear();
+            await db.debts.clear();
+            await db.recurringExpenses.clear();
+            await db.recurringDebts.clear();
+            await db.customCharts.clear();
+            await db.settings.clear();
+
+            await db.categories.bulkAdd(DEFAULT_CATEGORIES);
+            await db.settings.add({
+              id: 'default',
+              currency: '₹',
+              theme: 'light',
+              language: 'en',
+              notifications: true,
+              budgetAlerts: true,
+              notifyBudgetAlerts: true,
+              notifyRecurringReminders: true,
+              notifyDueReminders: true,
+            });
+          });
+
+          toast({
+            title: "Database Reset",
+            description: "All records cleared and defaults restored.",
+          });
+        } catch (error) {
+          toast({
+            title: "Reset Failed",
+            description: "Failed to clear database.",
+            variant: "destructive",
+          });
+        }
       }
     }
   };
 
   if (!settings) {
-    return <div>Loading...</div>;
+    return <div className="p-8 text-center text-muted-foreground">Loading settings...</div>;
   }
 
   return (
-    <div className="p-4 space-y-6 pb-24">
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
-
-      {/* Preferences & Appearance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Preferences</CardTitle>
-          <CardDescription>Customize your app experience</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between py-2">
-            <Label htmlFor="dark-mode" className="text-base cursor-pointer">Dark Mode</Label>
-            <Switch 
-              id="dark-mode" 
-              checked={theme === 'dark'}
-              onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Manage Expenses, Recurring & Categories */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Layers className="w-4 h-4 text-primary" />
-            <span>Manage Expenses & Automation</span>
-          </CardTitle>
-          <CardDescription>Configure categories, recurring expenses, and recurring dues</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          
-          {/* Manage Recurring Expenses */}
-          <Button 
-            variant="outline" 
-            onClick={() => setIsRecurringExpensesOpen(true)}
-            className="w-full justify-between font-normal h-12 text-base hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            <div className="flex items-center gap-3">
-              <div className="bg-primary/10 p-1.5 rounded-md text-primary">
-                <Repeat className="w-4 h-4" />
-              </div>
-              <div className="text-left">
-                <span className="font-semibold text-sm">Manage Recurring Expenses</span>
-                <p className="text-[11px] text-muted-foreground">Auto-log daily, monthly, or custom expenses</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5">
-              {recurringExpensesCount > 0 && (
-                <span className="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">
-                  {recurringExpensesCount} active
-                </span>
-              )}
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </div>
-          </Button>
-
-          {/* Manage Recurring Dues */}
-          <Button 
-            variant="outline" 
-            onClick={() => setIsRecurringDebtsOpen(true)}
-            className="w-full justify-between font-normal h-12 text-base hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            <div className="flex items-center gap-3">
-              <div className="bg-amber-500/10 p-1.5 rounded-md text-amber-600 dark:text-amber-400">
-                <ArrowRightLeft className="w-4 h-4" />
-              </div>
-              <div className="text-left">
-                <span className="font-semibold text-sm">Manage Recurring Dues & Receivables</span>
-                <p className="text-[11px] text-muted-foreground">Auto-log recurring debts and allowances</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5">
-              {recurringDebtsCount > 0 && (
-                <span className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold px-2 py-0.5 rounded-full">
-                  {recurringDebtsCount} active
-                </span>
-              )}
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </div>
-          </Button>
-
-          {/* Manage Categories */}
-          <ManageCategoriesDialog>
-            <Button 
-              variant="outline" 
-              className="w-full justify-between font-normal h-12 text-base hover:bg-gray-50 dark:hover:bg-gray-800"
-            >
-              <div className="flex items-center gap-3">
-                <div className="bg-green-500/10 p-1.5 rounded-md text-green-600 dark:text-green-400">
-                  <Tags className="w-4 h-4" />
-                </div>
-                <div className="text-left">
-                  <span className="font-semibold text-sm">Manage Categories</span>
-                  <p className="text-[11px] text-muted-foreground">Customize colors, icons, and labels</p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </Button>
-          </ManageCategoriesDialog>
-
-        </CardContent>
-      </Card>
-
-      {/* Data Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Data Management & Backup</CardTitle>
-          <CardDescription>Export and import your complete offline records</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* JSON Export/Import */}
-          <div>
-            <h4 className="font-medium mb-2 text-sm">JSON Full Backup</h4>
-            <div className="space-y-2">
-              <Button onClick={exportData} variant="outline" className="w-full justify-start">
-                <Download className="w-4 h-4 mr-2" />
-                Export as JSON (Includes Dues & Recurring)
-              </Button>
-              
-              <Label htmlFor="import-json-file">
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <span>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Import from JSON
-                  </span>
-                </Button>
-              </Label>
-              <input
-                id="import-json-file"
-                type="file"
-                accept=".json"
-                onChange={importData}
-                className="hidden"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              JSON format preserves all data: expenses, dues, recurring rules, and settings
-            </p>
-          </div>
-
-          <Separator />
-
-          {/* Excel Export/Import */}
-          <div>
-            <h4 className="font-medium mb-2 text-sm">Excel Spreadsheet Format</h4>
-            <div className="space-y-2">
-              <Button onClick={exportToExcel} variant="outline" className="w-full justify-start">
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                Export as Excel (Multi-Sheet)
-              </Button>
-              
-              <Label htmlFor="import-excel-file">
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <span>
-                    <FileSpreadsheet className="w-4 h-4 mr-2" />
-                    Import from Excel
-                  </span>
-                </Button>
-              </Label>
-              <input
-                id="import-excel-file"
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={importFromExcel}
-                className="hidden"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Excel format with separate sheets for Expenses, Dues & Receivables, Recurring, and Budgets
-            </p>
-          </div>
-
-          <Separator />
-
-          {/* Clear All Data */}
-          <div>
-            <Button
-              onClick={clearAllData}
-              variant="destructive"
-              className="w-full justify-start"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear All Data
-            </Button>
-            <p className="text-xs text-muted-foreground mt-1">
-              Permanently delete all expenses, dues, recurring schedules, and reset settings
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-center">
-        <div className="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 flex items-center space-x-2">
-          <span>Made with</span>
-          <span className="text-red-500">❤️</span>
-          <span>by Jack</span>
+    <div className="p-3.5 sm:p-5 max-w-2xl mx-auto space-y-4 pb-32">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight text-foreground">Settings</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Automations, appearance studio, notifications & backups</p>
         </div>
       </div>
 
-      {/* App Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">About</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400">Version</span>
-              <span>2.1.0</span>
+      {/* =========================================================================
+          SECTION 1: Manage Expenses, Categories & Automation (TOP OF SETTINGS)
+          ========================================================================= */}
+      <Card className="m3-card overflow-hidden border-border bg-card shadow-xs">
+        <button
+          type="button"
+          onClick={() => toggleSection('automation')}
+          className="w-full p-4 flex items-center justify-between text-left hover:bg-muted/40 transition-colors tap-spring"
+        >
+          <div className="flex items-center gap-3 min-w-0 pr-2">
+            <div className="p-2 rounded-2xl bg-primary/10 text-primary shrink-0">
+              <Layers className="w-5 h-5" />
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400">Build</span>
-              <span>PWA Offline-First</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400">Storage</span>
-              <span>IndexedDB (Dexie v3)</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base font-bold text-foreground truncate">
+                  Automation, Categories & Rules
+                </CardTitle>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-primary/15 text-primary shrink-0">
+                  {recurringExpensesCount + recurringDebtsCount} Rules
+                </span>
+              </div>
+              <CardDescription className="text-xs truncate mt-0.5">
+                Manage auto-recurring expenses, debts, and custom categories
+              </CardDescription>
             </div>
           </div>
-        </CardContent>
+          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${
+            openSections.automation ? 'rotate-180 text-primary' : ''
+          }`} />
+        </button>
+
+        {openSections.automation && (
+          <CardContent className="p-4 pt-1 space-y-3 border-t border-border/60 animate-in slide-in-from-top-2 duration-200">
+            {/* Manage Recurring Expenses */}
+            <Button
+              variant="outline"
+              onClick={() => setIsRecurringExpensesOpen(true)}
+              className="w-full justify-between font-normal h-auto py-3 px-3.5 text-left bg-card hover:bg-muted/60 border-border rounded-2xl"
+            >
+              <div className="flex items-center gap-3 min-w-0 pr-2">
+                <div className="bg-primary/10 p-2 rounded-xl text-primary shrink-0">
+                  <Repeat className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-bold text-xs sm:text-sm text-foreground truncate">Manage Recurring Expenses</div>
+                  <p className="text-[11px] text-muted-foreground truncate">Subscriptions, rent, bills & daily allowances</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {recurringExpensesCount > 0 && (
+                  <span className="text-[11px] bg-primary/15 text-primary font-bold px-2 py-0.5 rounded-full">
+                    {recurringExpensesCount} active
+                  </span>
+                )}
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </div>
+            </Button>
+
+            {/* Manage Recurring Dues */}
+            <Button
+              variant="outline"
+              onClick={() => setIsRecurringDebtsOpen(true)}
+              className="w-full justify-between font-normal h-auto py-3 px-3.5 text-left bg-card hover:bg-muted/60 border-border rounded-2xl"
+            >
+              <div className="flex items-center gap-3 min-w-0 pr-2">
+                <div className="bg-amber-500/10 p-2 rounded-xl text-amber-600 dark:text-amber-400 shrink-0">
+                  <ArrowRightLeft className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-bold text-xs sm:text-sm text-foreground truncate">Manage Recurring Dues & Debts</div>
+                  <p className="text-[11px] text-muted-foreground truncate">EMI settlements, recurring loans & receivables</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {recurringDebtsCount > 0 && (
+                  <span className="text-[11px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold px-2 py-0.5 rounded-full">
+                    {recurringDebtsCount} active
+                  </span>
+                )}
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </div>
+            </Button>
+
+            {/* Manage Categories */}
+            <ManageCategoriesDialog>
+              <Button
+                variant="outline"
+                className="w-full justify-between font-normal h-auto py-3 px-3.5 text-left bg-card hover:bg-muted/60 border-border rounded-2xl"
+              >
+                <div className="flex items-center gap-3 min-w-0 pr-2">
+                  <div className="bg-emerald-500/10 p-2 rounded-xl text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <Tags className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-bold text-xs sm:text-sm text-foreground truncate">Manage Categories & Icons</div>
+                    <p className="text-[11px] text-muted-foreground truncate">Custom 36+ icon library, color badges & cleanup</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+              </Button>
+            </ManageCategoriesDialog>
+
+            {/* Manual Run Recurring Rules */}
+            <div className="pt-1 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Automation Status: Active</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={async () => {
+                  const res = await processRecurringRules();
+                  toast({
+                    title: "Rules Processed",
+                    description: `Added ${res.expensesAdded} expenses & ${res.debtsAdded} dues.`,
+                  });
+                }}
+                className="h-8 text-xs font-bold text-primary gap-1"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Process Rules Now</span>
+              </Button>
+            </div>
+          </CardContent>
+        )}
       </Card>
+
+      {/* =========================================================================
+          SECTION 2: Appearance, Multi-Theme, Custom Colors & Gradient Studio
+          ========================================================================= */}
+      <Card className="m3-card overflow-hidden border-border bg-card shadow-xs">
+        <button
+          type="button"
+          onClick={() => toggleSection('theme')}
+          className="w-full p-4 flex items-center justify-between text-left hover:bg-muted/40 transition-colors tap-spring"
+        >
+          <div className="flex items-center gap-3 min-w-0 pr-2">
+            <div className="p-2 rounded-2xl bg-primary/10 text-primary shrink-0">
+              <Palette className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base font-bold text-foreground truncate">
+                  Theme, Colors & Typography Studio
+                </CardTitle>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-primary/15 text-primary shrink-0 capitalize">
+                  {THEME_OPTIONS.find(t => t.id === theme)?.name || theme}
+                </span>
+              </div>
+              <CardDescription className="text-xs truncate mt-0.5">
+                6 Light presets, 5 Dark/AMOLED modes, custom gradients & fonts
+              </CardDescription>
+            </div>
+          </div>
+          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${
+            openSections.theme ? 'rotate-180 text-primary' : ''
+          }`} />
+        </button>
+
+        {openSections.theme && (
+          <CardContent className="p-4 pt-1 space-y-5 border-t border-border/60 animate-in slide-in-from-top-2 duration-200">
+            
+            {/* Theme Presets: Light vs Dark Tabs */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Theme Presets ({THEME_OPTIONS.length})
+                </Label>
+                
+                {/* Mode Filter Tab */}
+                <div className="flex bg-muted p-0.5 rounded-xl border border-border">
+                  <button
+                    type="button"
+                    onClick={() => setThemeTab('light')}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                      themeTab === 'light' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'
+                    }`}
+                  >
+                    <Sun className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Light ({LIGHT_THEMES.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setThemeTab('dark')}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                      themeTab === 'dark' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'
+                    }`}
+                  >
+                    <Moon className="w-3.5 h-3.5 text-primary" />
+                    <span>Dark ({DARK_THEMES.length})</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Theme Cards Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {(themeTab === 'light' ? LIGHT_THEMES : DARK_THEMES).map((themeOpt) => {
+                  const isSelected = theme === themeOpt.id;
+                  return (
+                    <button
+                      key={themeOpt.id}
+                      type="button"
+                      onClick={() => setTheme(themeOpt.id)}
+                      className={`p-3 rounded-2xl border text-left transition-all relative tap-spring flex flex-col justify-between ${
+                        isSelected
+                          ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 shadow-sm bg-primary/5'
+                          : 'border-border hover:border-primary/40 bg-card'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="w-4 h-4 rounded-full border border-border shadow-2xs"
+                            style={{ backgroundColor: themeOpt.bgHex }}
+                          />
+                          <span
+                            className="w-3.5 h-3.5 rounded-md border border-border shadow-2xs -ml-1.5"
+                            style={{ backgroundColor: themeOpt.cardHex }}
+                          />
+                        </div>
+                        {themeOpt.tag && (
+                          <span className="text-[9px] font-bold text-muted-foreground uppercase px-1.5 py-0.5 rounded-full bg-muted">
+                            {themeOpt.tag}
+                          </span>
+                        )}
+                        {isSelected && (
+                          <div className="w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-foreground block">
+                          {themeOpt.name}
+                        </span>
+                        <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+                          {themeOpt.description}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Primary Accent Colors & Custom Color Dropper */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Primary Accent Palette
+                </Label>
+                <span className="text-[11px] text-primary font-extrabold capitalize">
+                  {primaryColor === 'custom' ? `Custom Hex (${customHex})` : (PRIMARY_COLOR_OPTIONS.find(c => c.id === primaryColor)?.name || primaryColor)}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                {PRIMARY_COLOR_OPTIONS.map((colorOpt) => {
+                  const isSelected = primaryColor === colorOpt.id;
+                  return (
+                    <button
+                      key={colorOpt.id}
+                      type="button"
+                      onClick={() => setPrimaryColor(colorOpt.id)}
+                      title={colorOpt.name}
+                      className={`flex flex-col items-center gap-1.5 p-2 rounded-2xl border transition-all tap-spring ${
+                        isSelected
+                          ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 bg-primary/5 shadow-xs'
+                          : 'border-border hover:bg-muted/40'
+                      }`}
+                    >
+                      <div
+                        className="w-6 h-6 rounded-full flex items-center justify-center shadow-xs transition-transform"
+                        style={{ backgroundColor: colorOpt.hex }}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                      </div>
+                      <span className="text-[10px] font-bold text-muted-foreground truncate w-full text-center">
+                        {colorOpt.name.split(' ')[0]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom Color Palette Dropper & Hex Input */}
+              <div className="p-3.5 rounded-2xl bg-muted/40 border border-border flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="relative">
+                    <input
+                      type="color"
+                      id="custom-color-picker"
+                      value={customHex}
+                      onChange={(e) => setCustomHex(e.target.value)}
+                      className="w-8 h-8 rounded-full overflow-hidden cursor-pointer border-0 p-0 shadow-sm"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <Label htmlFor="custom-color-picker" className="text-xs font-bold text-foreground cursor-pointer block">
+                      Custom Color Palette
+                    </Label>
+                    <p className="text-[10px] text-muted-foreground">Pick any shade across the full spectrum</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={customHex}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.startsWith('#') && (val.length <= 7)) {
+                        setCustomHex(val);
+                      } else if (!val.startsWith('#') && val.length <= 6) {
+                        setCustomHex(`#${val}`);
+                      }
+                    }}
+                    className="w-24 h-8 text-xs uppercase font-mono font-bold"
+                    placeholder="#8B5CF6"
+                  />
+                  <Button
+                    size="sm"
+                    variant={primaryColor === 'custom' ? 'default' : 'outline'}
+                    className="h-8 text-xs font-bold rounded-xl"
+                    onClick={() => setCustomHex(customHex)}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Custom Dual-Color Gradient Palette Maker & Presets */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Dual-Color Gradient Themes
+                </Label>
+                <span className="text-[11px] text-primary font-extrabold">
+                  {primaryColor === 'gradient' ? 'Active Gradient' : 'Select Gradient'}
+                </span>
+              </div>
+
+              {/* Pre-built Gradient Theme Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {GRADIENT_PRESETS.map((grad) => {
+                  const isSelected = gradientPreset === grad.id && primaryColor === 'gradient';
+                  return (
+                    <button
+                      key={grad.id}
+                      type="button"
+                      onClick={() => setGradientPreset(grad.id)}
+                      className={`p-2.5 rounded-2xl border text-left transition-all tap-spring flex items-center justify-between ${
+                        isSelected
+                          ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 bg-primary/5 shadow-xs'
+                          : 'border-border hover:bg-muted/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div
+                          className="w-5 h-5 rounded-xl shadow-xs shrink-0"
+                          style={{ background: `linear-gradient(135deg, ${grad.fromHex}, ${grad.toHex})` }}
+                        />
+                        <div className="min-w-0">
+                          <span className="text-xs font-bold truncate block text-foreground">
+                            {grad.name}
+                          </span>
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <Check className="w-3.5 h-3.5 text-primary shrink-0 stroke-[3]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom Dual-Color Gradient Creator */}
+              <div className="p-3.5 rounded-2xl bg-muted/40 border border-border space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground">Custom Gradient Builder</span>
+                  <div
+                    className="w-16 h-5 rounded-full border border-border shadow-xs"
+                    style={{ background: `linear-gradient(135deg, ${customGradient.from}, ${customGradient.to})` }}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2 p-2 rounded-xl bg-card border border-border">
+                    <input
+                      type="color"
+                      value={customGradient.from}
+                      onChange={(e) => setCustomGradient({ ...customGradient, from: e.target.value })}
+                      className="w-6 h-6 rounded-full overflow-hidden cursor-pointer border-0 p-0"
+                    />
+                    <div className="text-[10px]">
+                      <span className="text-muted-foreground block">Color 1 (From)</span>
+                      <span className="font-mono font-bold uppercase">{customGradient.from}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 p-2 rounded-xl bg-card border border-border">
+                    <input
+                      type="color"
+                      value={customGradient.to}
+                      onChange={(e) => setCustomGradient({ ...customGradient, to: e.target.value })}
+                      className="w-6 h-6 rounded-full overflow-hidden cursor-pointer border-0 p-0"
+                    />
+                    <div className="text-[10px]">
+                      <span className="text-muted-foreground block">Color 2 (To)</span>
+                      <span className="font-mono font-bold uppercase">{customGradient.to}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCustomGradient(customGradient)}
+                  className="w-full text-xs font-bold rounded-xl text-primary"
+                >
+                  Apply Custom Gradient
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* App Typography & Fonts */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Typography & Font Style
+                </Label>
+                <span className="text-[11px] text-primary font-bold">
+                  {FONT_OPTIONS.find(f => f.id === fontFamily)?.name || fontFamily}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {FONT_OPTIONS.map((fontOpt) => {
+                  const isSelected = fontFamily === fontOpt.id;
+                  return (
+                    <button
+                      key={fontOpt.id}
+                      type="button"
+                      onClick={() => setFontFamily(fontOpt.id)}
+                      className={`p-3 rounded-2xl border text-left transition-all tap-spring flex items-center justify-between ${
+                        isSelected
+                          ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 bg-primary/5 shadow-xs'
+                          : 'border-border hover:bg-muted/40'
+                      }`}
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <Type className="w-3.5 h-3.5 text-primary" />
+                          <span className={`text-xs font-bold text-foreground ${fontOpt.fontClass}`}>
+                            {fontOpt.name}
+                          </span>
+                        </div>
+                        <p className={`text-[11px] text-muted-foreground ${fontOpt.fontClass}`}>
+                          {fontOpt.label} · ₹12,450
+                        </p>
+                      </div>
+                      {isSelected && (
+                        <div className="w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* =========================================================================
+          SECTION 3: Notifications & Smart Prompts
+          ========================================================================= */}
+      <Card className="m3-card overflow-hidden border-border bg-card shadow-xs">
+        <button
+          type="button"
+          onClick={() => toggleSection('notifications')}
+          className="w-full p-4 flex items-center justify-between text-left hover:bg-muted/40 transition-colors tap-spring"
+        >
+          <div className="flex items-center gap-3 min-w-0 pr-2">
+            <div className="p-2 rounded-2xl bg-primary/10 text-primary shrink-0">
+              <Bell className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base font-bold text-foreground truncate">
+                  Notifications & Smart Prompts
+                </CardTitle>
+                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
+                  settings.notifications !== false ? 'bg-emerald-500/15 text-emerald-600' : 'bg-muted text-muted-foreground'
+                }`}>
+                  {settings.notifications !== false ? 'Active' : 'Disabled'}
+                </span>
+              </div>
+              <CardDescription className="text-xs truncate mt-0.5">
+                AI habit detection, budget alerts & mobile push
+              </CardDescription>
+            </div>
+          </div>
+          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${
+            openSections.notifications ? 'rotate-180 text-primary' : ''
+          }`} />
+        </button>
+
+        {openSections.notifications && (
+          <CardContent className="p-4 pt-1 space-y-4 border-t border-border/60 animate-in slide-in-from-top-2 duration-200">
+            {/* Master Switch */}
+            <div className="flex items-center justify-between py-1">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-bold text-foreground">Allow App Notifications</Label>
+                <p className="text-xs text-muted-foreground">Master control for prompts and notifications</p>
+              </div>
+              <Switch
+                checked={settings.notifications !== false}
+                onCheckedChange={(checked) => updateSettingsMutation.mutate({ notifications: checked })}
+              />
+            </div>
+
+            <Separator />
+
+            {/* Device & Browser Push Permission Banner */}
+            <div className="p-3.5 rounded-2xl bg-muted/40 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-xs text-foreground">Mobile & Web Push</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted'
+                      ? 'bg-emerald-500/15 text-emerald-600'
+                      : 'bg-amber-500/15 text-amber-600'
+                  }`}>
+                    {typeof window !== 'undefined' && 'Notification' in window
+                      ? (Notification.permission === 'granted' ? 'Active' : 'Setup Required')
+                      : 'Not Supported'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Sends timely prompts directly on mobile lock screens.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      const granted = await requestPermission();
+                      if (granted) {
+                        toast({ title: 'Notifications Activated', description: 'You will receive timely habit prompts.' });
+                      }
+                    }}
+                    className="h-8 text-xs font-bold text-primary rounded-xl"
+                  >
+                    Enable Push
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={sendTestNotification}
+                  className="h-8 text-xs font-bold rounded-xl"
+                >
+                  Test Alert
+                </Button>
+              </div>
+            </div>
+
+            {/* Smart Habit Prompts */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-0.5 flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <Zap className="w-4 h-4 text-amber-500 shrink-0" />
+                  <Label className="text-sm font-bold text-foreground">
+                    Smart Habit & Routine Detection
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Recommends logging recurring expenses at your customary days and hours.
+                </p>
+              </div>
+              <Switch
+                className="shrink-0 mt-0.5"
+                checked={settings.notifyHabitPrompts !== false}
+                disabled={settings.notifications === false}
+                onCheckedChange={(checked) => updateSettingsMutation.mutate({ notifyHabitPrompts: checked })}
+              />
+            </div>
+
+            {/* Budget Alerts */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+                  <Label className="text-sm font-bold text-foreground">
+                    Budget Threshold Alerts
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Triggers alert when category or monthly spending reaches your limit.
+                </p>
+              </div>
+              <Switch
+                className="shrink-0 mt-0.5"
+                checked={settings.notifyBudgetAlerts !== false}
+                disabled={settings.notifications === false}
+                onCheckedChange={(checked) => updateSettingsMutation.mutate({ notifyBudgetAlerts: checked })}
+              />
+            </div>
+
+            {/* Quiet Hours */}
+            <div className="border-t border-border pt-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <Label className="text-sm font-bold text-foreground">
+                      Quiet Hours Mode
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Silences mobile push notifications during night hours.
+                  </p>
+                </div>
+                <Switch
+                  className="shrink-0 mt-0.5"
+                  checked={settings.quietHoursEnabled === true}
+                  disabled={settings.notifications === false}
+                  onCheckedChange={(checked) => updateSettingsMutation.mutate({ quietHoursEnabled: checked })}
+                />
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* =========================================================================
+          SECTION 4: Preferences & Currency
+          ========================================================================= */}
+      <Card className="m3-card overflow-hidden border-border bg-card shadow-xs">
+        <button
+          type="button"
+          onClick={() => toggleSection('preferences')}
+          className="w-full p-4 flex items-center justify-between text-left hover:bg-muted/40 transition-colors tap-spring"
+        >
+          <div className="flex items-center gap-3 min-w-0 pr-2">
+            <div className="p-2 rounded-2xl bg-primary/10 text-primary shrink-0">
+              <SlidersHorizontal className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base font-bold text-foreground truncate">
+                  Preferences & Currency
+                </CardTitle>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-primary/15 text-primary shrink-0">
+                  {settings.currency || '₹'}
+                </span>
+              </div>
+              <CardDescription className="text-xs truncate mt-0.5">
+                Currency symbols, balances and default formatting
+              </CardDescription>
+            </div>
+          </div>
+          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${
+            openSections.preferences ? 'rotate-180 text-primary' : ''
+          }`} />
+        </button>
+
+        {openSections.preferences && (
+          <CardContent className="p-4 pt-1 space-y-4 border-t border-border/60 animate-in slide-in-from-top-2 duration-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 py-1">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-bold text-foreground">Currency Symbol</Label>
+                <p className="text-xs text-muted-foreground">Used across balances, totals, and charts</p>
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {['₹', '$', '€', '£', '¥'].map((curr) => (
+                  <Button
+                    key={curr}
+                    type="button"
+                    variant={settings.currency === curr ? 'default' : 'outline'}
+                    size="sm"
+                    className="w-9 h-9 p-0 font-bold text-xs rounded-xl"
+                    onClick={() => updateSettingsMutation.mutate({ currency: curr })}
+                  >
+                    {curr}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* =========================================================================
+          SECTION 5: Data Management & Backup
+          ========================================================================= */}
+      <Card className="m3-card overflow-hidden border-border bg-card shadow-xs">
+        <button
+          type="button"
+          onClick={() => toggleSection('backup')}
+          className="w-full p-4 flex items-center justify-between text-left hover:bg-muted/40 transition-colors tap-spring"
+        >
+          <div className="flex items-center gap-3 min-w-0 pr-2">
+            <div className="p-2 rounded-2xl bg-primary/10 text-primary shrink-0">
+              <Download className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <CardTitle className="text-base font-bold text-foreground truncate">
+                Data Management & Backups
+              </CardTitle>
+              <CardDescription className="text-xs truncate mt-0.5">
+                Full offline JSON backup and Excel spreadsheets
+              </CardDescription>
+            </div>
+          </div>
+          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${
+            openSections.backup ? 'rotate-180 text-primary' : ''
+          }`} />
+        </button>
+
+        {openSections.backup && (
+          <CardContent className="p-4 pt-1 space-y-4 border-t border-border/60 animate-in slide-in-from-top-2 duration-200">
+            {/* JSON Export/Import */}
+            <div className="space-y-2">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">JSON Full Backup</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button onClick={exportData} variant="outline" className="w-full justify-start h-auto py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl">
+                  <Download className="w-4 h-4 mr-2 shrink-0 text-primary" />
+                  <span className="truncate">Export JSON Backup</span>
+                </Button>
+
+                <Label htmlFor="import-json-file" className="cursor-pointer">
+                  <Button variant="outline" className="w-full justify-start h-auto py-2.5 px-3 text-xs sm:text-sm font-bold pointer-events-none rounded-xl" asChild>
+                    <span>
+                      <Upload className="w-4 h-4 mr-2 shrink-0 text-blue-500" />
+                      <span className="truncate">Import JSON File</span>
+                    </span>
+                  </Button>
+                </Label>
+                <input
+                  id="import-json-file"
+                  type="file"
+                  accept=".json"
+                  onChange={importData}
+                  className="hidden"
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Excel Export & Import */}
+            <div className="space-y-2">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Excel Spreadsheet (.xlsx)</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button onClick={exportToExcel} variant="outline" className="w-full justify-start h-auto py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl">
+                  <FileSpreadsheet className="w-4 h-4 mr-2 shrink-0 text-emerald-600" />
+                  <span className="truncate">Export to Excel</span>
+                </Button>
+
+                <Label htmlFor="import-excel-file" className="cursor-pointer">
+                  <Button variant="outline" className="w-full justify-start h-auto py-2.5 px-3 text-xs sm:text-sm font-bold pointer-events-none rounded-xl" asChild>
+                    <span>
+                      <Upload className="w-4 h-4 mr-2 shrink-0 text-emerald-600" />
+                      <span className="truncate">Import from Excel</span>
+                    </span>
+                  </Button>
+                </Label>
+                <input
+                  id="import-excel-file"
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={importFromExcel}
+                  className="hidden"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Import expenses and dues spreadsheets. Automatically maps dates, amounts, categories, and payment modes.
+              </p>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* =========================================================================
+          SECTION 6: Danger Zone / Reset
+          ========================================================================= */}
+      <Card className="m3-card overflow-hidden border-rose-500/30 bg-card shadow-xs">
+        <button
+          type="button"
+          onClick={() => toggleSection('danger')}
+          className="w-full p-4 flex items-center justify-between text-left hover:bg-rose-500/5 transition-colors tap-spring"
+        >
+          <div className="flex items-center gap-3 min-w-0 pr-2">
+            <div className="p-2 rounded-2xl bg-rose-500/10 text-rose-500 shrink-0">
+              <Trash2 className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <CardTitle className="text-base font-bold text-rose-600 dark:text-rose-400 truncate">
+                App Reset & Danger Zone
+              </CardTitle>
+              <CardDescription className="text-xs truncate mt-0.5">
+                Permanently erase local records and reset default settings
+              </CardDescription>
+            </div>
+          </div>
+          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${
+            openSections.danger ? 'rotate-180 text-rose-500' : ''
+          }`} />
+        </button>
+
+        {openSections.danger && (
+          <CardContent className="p-4 pt-1 space-y-3 border-t border-rose-500/20 animate-in slide-in-from-top-2 duration-200">
+            <Button
+              onClick={clearAllData}
+              variant="destructive"
+              className="w-full justify-center h-auto py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl shadow-xs"
+            >
+              <Trash2 className="w-4 h-4 mr-2 shrink-0" />
+              <span>Clear All Data & Reset App</span>
+            </Button>
+            <p className="text-[11px] text-muted-foreground text-center">
+              Irreversibly deletes all expenses, dues, custom charts, recurring rules, and resets settings.
+            </p>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* App Info Footer */}
+      <div className="flex flex-col items-center justify-center pt-2 gap-1 text-xs text-muted-foreground">
+        <span>Budget Pilot V3.0 · PWA Offline First</span>
+        <div className="px-3 py-1 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground flex items-center space-x-1">
+          <span>Made with</span>
+          <span className="text-rose-500">❤️</span>
+          <span>by Jack</span>
+        </div>
+      </div>
 
       {/* Recurring Dialogs */}
       <ManageRecurringExpensesDialog

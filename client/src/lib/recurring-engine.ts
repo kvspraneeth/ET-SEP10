@@ -147,7 +147,7 @@ export async function processRecurringRules(): Promise<{ expensesAdded: number; 
             where: rule.where || '',
             note: rule.note ? `[Recurring] ${rule.note}` : '[Recurring Expense]',
             paymentMethod: rule.paymentMethod || 'UPI',
-            account: rule.account || 'ICICI',
+            account: rule.account || 'SBI',
             isRecurring: true,
             isTemplate: false,
             recurringRuleId: rule.id,

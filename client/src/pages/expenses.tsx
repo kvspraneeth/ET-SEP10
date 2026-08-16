@@ -10,6 +10,7 @@ import { Filter, Search, Pencil, Trash2, ChevronDown, ChevronUp, FileText, Rotat
 import { getCategoryColor, findCategory } from '@/lib/categories';
 import { getIconComponent } from '@/components/category-selector';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from '@/components/theme-provider';
 import { Expense } from '@shared/schema';
 
 interface ExpensesProps {
@@ -69,7 +70,7 @@ function ExpenseItemCard({ expense, category, onEdit, onReuse, onDelete, currenc
                   category: expense.category || '',
                   where: expense.where || '',
                   paymentMethod: expense.paymentMethod || 'UPI',
-                  account: expense.account || 'ICICI',
+                  account: expense.account || 'SBI',
                   note: expense.note || '',
                 }); 
               }}
@@ -99,31 +100,31 @@ function ExpenseItemCard({ expense, category, onEdit, onReuse, onDelete, currenc
       </div>
 
       {isExpanded && (
-        <div className="px-4 pb-4 pt-2 text-sm bg-gray-50 dark:bg-gray-800/40 border-t dark:border-gray-800/60 text-muted-foreground animate-in slide-in-from-top-2 duration-200">
+        <div className="px-4 pb-4 pt-2 text-sm bg-muted/40 border-t border-border text-muted-foreground animate-in slide-in-from-top-2 duration-200">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <span className="font-semibold text-gray-700 dark:text-gray-300">Date & Time: </span>
+              <span className="font-semibold text-foreground">Date & Time: </span>
               {format(parseISO(expense.date), 'MMM d, yyyy')} at {expense.time}
             </div>
             <div>
-              <span className="font-semibold text-gray-700 dark:text-gray-300">Account: </span>
+              <span className="font-semibold text-foreground">Account: </span>
               {expense.account || 'Not specified'}
             </div>
             {expense.where && (
               <div>
-                <span className="font-semibold text-gray-700 dark:text-gray-300">Location: </span>
+                <span className="font-semibold text-foreground">Location: </span>
                 {expense.where}
               </div>
             )}
             {expense.note && (
               <div className="sm:col-span-2">
-                <span className="font-semibold text-gray-700 dark:text-gray-300">Notes: </span>
+                <span className="font-semibold text-foreground">Notes: </span>
                 <span className="italic">"{expense.note}"</span>
               </div>
             )}
             {expense.attachments && expense.attachments.length > 0 && (
               <div className="sm:col-span-2 mt-2">
-                <span className="font-semibold text-gray-700 dark:text-gray-300 block mb-1">
+                <span className="font-semibold text-foreground block mb-1">
                   Attachments ({expense.attachments.length}):
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -134,7 +135,7 @@ function ExpenseItemCard({ expense, category, onEdit, onReuse, onDelete, currenc
                         key={i}
                         type="button"
                         onClick={() => window.open(att, '_blank')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-white dark:bg-gray-700 text-xs font-semibold text-primary hover:bg-primary/5"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-card border-border text-xs font-semibold text-primary hover:bg-muted"
                       >
                         <FileText className="w-4 h-4" />
                         <span>View PDF {i + 1}</span>
@@ -296,6 +297,7 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
       .toArray()
   ) || [];
 
+  const { isDarkTheme } = useTheme();
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
   const settings = useLiveQuery(() => db.settings.get('default'));
   const currencySymbol = settings?.currency || '₹';
@@ -326,7 +328,7 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
   ]));
   
   const uniqueAccounts = Array.from(new Set([
-    'ICICI', 'HDFC', 'SBI', 
+    'SBI', 'HDFC', 'ICICI', 
     ...expenses.map(e => (e as any).account).filter(Boolean)
   ]));
 
@@ -376,34 +378,65 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
 
   return (
     <div className="p-4 space-y-6 pb-24 relative">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Expenses</h1>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-black text-foreground">Expenses</h1>
+          <p className="text-xs text-muted-foreground font-medium">Manage and search your spending</p>
+        </div>
         <Button 
           variant={showFilters ? "secondary" : "outline"} 
           onClick={() => setShowFilters(!showFilters)}
-          className="gap-2 relative"
+          className="gap-2 relative rounded-full shadow-xs tap-spring font-bold"
         >
           <Filter className="w-4 h-4" />
-          Filters
+          <span>Filters</span>
           {activeFilterCount > 0 && !showFilters && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+            <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-md animate-pulse">
               {activeFilterCount}
             </span>
           )}
         </Button>
       </div>
 
-      {/* Expanded Multi-Filter Card */}
+      {/* Horizontal One UI 8.5 Category Quick Filter Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1.5 pt-0.5 no-scrollbar">
+        <button
+          onClick={() => setCategoryFilter('ALL')}
+          className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all tap-spring shadow-xs ${
+            categoryFilter === 'ALL'
+              ? 'bg-primary text-primary-foreground ring-2 ring-primary/30 shadow-md'
+              : 'bg-card hover:bg-muted text-foreground border border-border'
+          }`}
+        >
+          All Categories
+        </button>
+        {categories.map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => setCategoryFilter(categoryFilter === cat.id ? 'ALL' : cat.id)}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all tap-spring flex items-center gap-1.5 shadow-xs ${
+              categoryFilter === cat.id
+                ? 'bg-primary text-primary-foreground ring-2 ring-primary/30 shadow-md'
+                : 'bg-card hover:bg-muted text-foreground border border-border'
+            }`}
+          >
+            {getIconComponent(cat.icon, 'w-3.5 h-3.5')}
+            <span>{cat.name}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Expanded Multi-Filter Card with Samsung One UI 8.5 Frosted Blur */}
       {showFilters && (
-        <Card className="p-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+        <Card className="glass-card p-5 space-y-4 rounded-3xl animate-in fade-in slide-in-from-top-2 duration-200 backdrop-blur-2xl bg-card border-border">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-sm">Filter Transactions</h3>
+            <h3 className="font-bold text-sm text-foreground">Advanced Filters</h3>
             {activeFilterCount > 0 && (
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={clearFilters}
-                className="h-8 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                className="h-8 text-xs font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-full"
               >
                 Clear All ({activeFilterCount})
               </Button>
@@ -411,42 +444,44 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
           </div>
 
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input 
               placeholder="Search by title, location, or notes..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
+              className="pl-10 rounded-full h-10 text-sm bg-card border-border text-foreground placeholder:text-muted-foreground"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground">From Date</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground ml-1">From Date</label>
               <Input 
                 type="date" 
                 value={dateFrom} 
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="h-9 text-sm dark:[color-scheme:dark]"
+                style={{ colorScheme: isDarkTheme ? 'dark' : 'light' }}
+                className="h-9 text-xs rounded-full bg-card border-border text-foreground"
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground">To Date</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground ml-1">To Date</label>
               <Input 
                 type="date" 
                 value={dateTo} 
                 onChange={(e) => setDateTo(e.target.value)}
-                className="h-9 text-sm dark:[color-scheme:dark]"
+                style={{ colorScheme: isDarkTheme ? 'dark' : 'light' }}
+                className="h-9 text-xs rounded-full bg-card border-border text-foreground"
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground">Category</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground ml-1">Category</label>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="h-9 text-sm">
+                <SelectTrigger className="h-9 text-xs rounded-full bg-card border-border text-foreground">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
-                <SelectContent className="max-h-[220px]">
+                <SelectContent className="max-h-[220px] rounded-2xl bg-card border-border text-foreground">
                   <SelectItem value="ALL">All Categories</SelectItem>
                   {categories.map(cat => (
                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
@@ -455,13 +490,13 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
               </Select>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground">Payment Method</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground ml-1">Payment Method</label>
               <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
-                <SelectTrigger className="h-9 text-sm">
+                <SelectTrigger className="h-9 text-xs rounded-full bg-card border-border text-foreground">
                   <SelectValue placeholder="All Methods" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-2xl bg-card border-border text-foreground">
                   <SelectItem value="ALL">All Methods</SelectItem>
                   {uniquePaymentMethods.map(method => (
                     <SelectItem key={method} value={method}>{method}</SelectItem>
@@ -470,13 +505,13 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
               </Select>
             </div>
 
-            <div className="space-y-1 sm:col-span-2 md:col-span-4">
-              <label className="text-xs font-semibold text-muted-foreground">Bank Account</label>
+            <div className="space-y-1.5 sm:col-span-2 md:col-span-4">
+              <label className="text-xs font-bold text-muted-foreground ml-1">Bank Account</label>
               <Select value={accountFilter} onValueChange={setAccountFilter}>
-                <SelectTrigger className="h-9 text-sm">
+                <SelectTrigger className="h-9 text-xs rounded-full bg-card border-border text-foreground">
                   <SelectValue placeholder="All Accounts" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-2xl bg-card border-border text-foreground">
                   <SelectItem value="ALL">All Accounts</SelectItem>
                   {uniqueAccounts.map(acc => (
                     <SelectItem key={acc} value={acc}>{acc}</SelectItem>

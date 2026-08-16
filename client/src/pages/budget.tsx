@@ -280,14 +280,14 @@ export function Budget() {
               return (
                 <div
                   key={catId}
-                  className="p-3.5 bg-white dark:bg-gray-800 border rounded-xl shadow-xs flex items-center justify-between hover:border-primary/40 transition-colors"
+                  className="p-3.5 bg-card border border-border rounded-2xl shadow-xs flex items-center justify-between hover:border-primary/40 transition-colors"
                 >
                   <div className="flex items-center gap-3 overflow-hidden">
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${colors.bg} ${colors.text}`}>
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${colors.bg} ${colors.text}`}>
                       {getIconComponent(cat?.icon || 'tag', 'w-4 h-4')}
                     </div>
                     <div className="overflow-hidden">
-                      <p className="font-bold text-sm text-gray-900 dark:text-gray-100 truncate">{cat?.name}</p>
+                      <p className="font-bold text-sm text-foreground truncate">{cat?.name}</p>
                       <p className="text-xs text-muted-foreground">Spent {currencySymbol}{currentSpent.toFixed(0)} this month</p>
                     </div>
                   </div>
@@ -303,7 +303,7 @@ export function Budget() {
                       setStartDate(format(new Date(), 'yyyy-MM-dd'));
                       setIsFormOpen(true);
                     }}
-                    className="h-8 text-xs font-semibold gap-1 text-primary hover:bg-primary/5"
+                    className="h-8 text-xs font-semibold gap-1 text-primary hover:bg-primary/5 rounded-xl"
                   >
                     <span>Set {currencySymbol}{suggestedAmount}</span>
                     <ArrowUpRight className="w-3.5 h-3.5" />
@@ -315,17 +315,17 @@ export function Budget() {
         </div>
       )}
 
-      {/* Period Filter Tabs */}
-      <div className="flex bg-gray-200 dark:bg-gray-800 rounded-xl p-1 max-w-md">
+      {/* Period Filter Tabs (One UI 8.5 Floating Capsule) */}
+      <div className="flex bg-muted/80 rounded-full p-1 max-w-md border border-border backdrop-blur-xl">
         {(['monthly', 'weekly', 'yearly', 'all'] as const).map(tab => (
           <button
             key={tab}
             type="button"
             onClick={() => setPeriodFilter(tab)}
-            className={`flex-1 py-1.5 rounded-lg font-bold text-xs capitalize transition-all ${
+            className={`flex-1 py-1.5 px-3 rounded-full font-bold text-xs capitalize transition-all tap-spring ${
               periodFilter === tab
-                ? 'bg-white dark:bg-gray-700 shadow text-black dark:text-white'
-                : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'
+                ? 'bg-card shadow-xs text-foreground ring-1 ring-border'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {tab === 'all' ? 'All Periods' : tab}
@@ -335,10 +335,10 @@ export function Budget() {
 
       {/* Budgets List */}
       {filteredBudgets.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-gray-800/50 rounded-2xl border border-dashed text-muted-foreground space-y-4">
+        <div className="text-center py-16 bg-card rounded-2xl border border-dashed border-border text-muted-foreground space-y-4">
           <PiggyBank className="w-12 h-12 mx-auto text-muted-foreground/40" />
           <div>
-            <h3 className="font-bold text-base text-gray-900 dark:text-gray-100">No budgets created yet</h3>
+            <h3 className="font-bold text-base text-foreground">No budgets created yet</h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
               Create a budget to monitor spending limits and receive alerts when nearing your target.
             </p>

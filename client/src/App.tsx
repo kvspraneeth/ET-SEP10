@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { ExpenseForm } from "@/components/expense-form";
+import { NotificationCenter } from "@/components/notification-center";
 import { Home } from "@/pages/home";
 import { Expenses } from "@/pages/expenses";
 import { Charts } from "@/pages/charts";
@@ -16,23 +17,34 @@ import DuesReceivables from "./pages/duesreceivables";
 import { Expense } from "@shared/schema";
 import { processRecurringRules } from "./lib/recurring-engine";
 import { cleanupAndDeduplicateCategories } from "./lib/categories";
+import { runAllNotificationChecks } from "./lib/notifications";
 import db from "./lib/db";
 
 function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
-  // Automatically clean up any corrupted categories and process recurring rules on app mount
+  // Automatically clean up categories, process recurring rules, and run smart notification checks
   useEffect(() => {
     cleanupAndDeduplicateCategories(db).then(() => {
       processRecurringRules().then(({ expensesAdded, debtsAdded }) => {
         if (expensesAdded > 0 || debtsAdded > 0) {
           queryClient.invalidateQueries({ queryKey: ['expenses'] });
         }
+        // Run initial notification and habit routine check
+        runAllNotificationChecks();
       });
     });
+
+    // Periodic check for habit prompts, budget alerts & recurring reminders (every 4 minutes)
+    const notifInterval = setInterval(() => {
+      runAllNotificationChecks();
+    }, 4 * 60 * 1000);
+
+    return () => clearInterval(notifInterval);
   }, []);
 
   const handleOpenExpenseForm = (payload?: string | any) => {
@@ -42,7 +54,7 @@ function App() {
         setEditingExpense(JSON.parse(JSON.stringify(payload)));
         setSelectedCategory(payload.category);
       } else {
-        // Pre-filling from Frequent Transaction / Template / Reuse (new expense)
+        // Pre-filling from Habit Notification / Frequent Transaction / Template / Reuse (new expense)
         setEditingExpense(JSON.parse(JSON.stringify(payload)));
         setSelectedCategory(payload.category || undefined);
       }
@@ -68,12 +80,24 @@ function App() {
     }
   };
 
+  const handleNotificationAction = (actionType: string, payload?: any) => {
+    if (actionType === 'add_expense') {
+      handleOpenExpenseForm(payload);
+    } else if (actionType === 'view_budget') {
+      setActiveTab('budget');
+    } else if (actionType === 'view_dues') {
+      setActiveTab('debts');
+    } else if (actionType === 'view_charts') {
+      setActiveTab('charts');
+    }
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
-            <Header />
+          <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
+            <Header onOpenNotifications={() => setIsNotificationCenterOpen(true)} />
             
             {/* Zero-Lag Tab Switching: Tabs stay rendered in DOM, eliminating mount/unmount lag */}
             <main className="pb-28 md:pb-16 w-full max-w-screen-2xl mx-auto">
@@ -108,6 +132,12 @@ function App() {
               onOpenChange={handleCloseExpenseForm}
               preSelectedCategory={selectedCategory}
               editingExpense={editingExpense}
+            />
+
+            <NotificationCenter
+              open={isNotificationCenterOpen}
+              onOpenChange={setIsNotificationCenterOpen}
+              onActionClick={handleNotificationAction}
             />
           
             <Toaster />
