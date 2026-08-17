@@ -480,7 +480,7 @@ export function ManageRecurringExpensesDialog({
 
             {/* Title with Fuzzy Search Autocomplete */}
             <div ref={titleContainerRef} className="relative">
-              <Label className="text-xs font-semibold">Title / Description <span className="text-red-500">*</span></Label>
+              <Label className="text-xs font-semibold text-foreground">Title / Description <span className="text-red-500">*</span></Label>
               <Input
                 required
                 value={items}
@@ -491,15 +491,15 @@ export function ManageRecurringExpensesDialog({
                 onFocus={() => setTitleSuggestionsOpen(true)}
                 autoComplete="off"
                 placeholder="e.g. WiFi Bill, Gym Membership, House Rent"
-                className="mt-1"
+                className="mt-1 bg-card border-border text-foreground"
               />
               {titleSuggestionsOpen && filteredTitleSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95">
-                  <div className="px-3 py-1.5 bg-gray-50 dark:bg-gray-900 border-b text-[11px] font-semibold text-muted-foreground flex justify-between">
-                    <span className="flex items-center gap-1"><History className="w-3 h-3 text-primary" /> Past Expenses</span>
+                <div className="absolute top-full left-0 right-0 mt-1.5 bg-card text-foreground rounded-2xl border border-border shadow-2xl z-[80] overflow-hidden autocomplete-dropdown animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3.5 py-1.5 bg-muted border-b border-border text-[11px] font-bold text-muted-foreground flex justify-between">
+                    <span className="flex items-center gap-1"><History className="w-3.5 h-3.5 text-primary" /> Past Expenses</span>
                     <span>Click to auto-fill</span>
                   </div>
-                  <div className="max-h-40 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                  <div className="max-h-40 overflow-y-auto divide-y divide-border/60 bg-card">
                     {filteredTitleSuggestions.map(item => {
                       const exp = item.lastExpense;
                       const timeAgo = exp.date ? formatDistanceToNow(parseISO(exp.date), { addSuffix: true }) : '';
@@ -508,14 +508,14 @@ export function ManageRecurringExpensesDialog({
                           key={exp.items}
                           type="button"
                           onClick={() => applyTitleSuggestion(exp.items || '', exp)}
-                          className="w-full text-left px-3.5 py-2 hover:bg-primary/5 dark:hover:bg-primary/10 flex items-center justify-between"
+                          className="w-full text-left px-3.5 py-2 hover:bg-muted transition-colors flex items-center justify-between text-foreground"
                         >
                           <div>
-                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{exp.items}</p>
+                            <p className="text-sm font-semibold text-foreground">{exp.items}</p>
                             <p className="text-xs text-muted-foreground">{exp.category} {exp.where ? `• ${exp.where}` : ''} • ₹{exp.amount}</p>
                           </div>
                           <div className="text-right shrink-0">
-                            <span className="text-[10px] bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded font-medium">{item.count}x</span>
+                            <span className="text-[10px] bg-muted border border-border px-1.5 py-0.5 rounded font-medium">{item.count}x</span>
                             <p className="text-[9px] text-muted-foreground mt-0.5">{timeAgo}</p>
                           </div>
                         </button>
@@ -624,11 +624,11 @@ export function ManageRecurringExpensesDialog({
                 onFocus={() => setWhereSuggestionsOpen(true)}
                 autoComplete="off"
                 placeholder="e.g. Landlord, Airtel, Gold's Gym"
-                className="mt-1"
+                className="mt-1 bg-card border-border text-foreground"
               />
               {whereSuggestionsOpen && filteredWhereSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50 overflow-hidden">
-                  <div className="max-h-32 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-card text-foreground rounded-2xl border border-border shadow-2xl z-[80] overflow-hidden autocomplete-dropdown animate-in fade-in duration-150">
+                  <div className="max-h-32 overflow-y-auto divide-y divide-border/60 bg-card">
                     {filteredWhereSuggestions.map(l => (
                       <button
                         key={l}
@@ -637,7 +637,7 @@ export function ManageRecurringExpensesDialog({
                           setWhere(l);
                           setWhereSuggestionsOpen(false);
                         }}
-                        className="w-full text-left px-3.5 py-2 text-sm hover:bg-primary/5 dark:hover:bg-primary/10 flex items-center justify-between"
+                        className="w-full text-left px-3.5 py-2 text-sm hover:bg-muted transition-colors flex items-center justify-between text-foreground"
                       >
                         <span>{l}</span>
                         <MapPin className="w-3 h-3 text-muted-foreground" />
@@ -1176,11 +1176,11 @@ export function ManageRecurringDebtsDialog({
                   onFocus={() => setPersonSuggestionsOpen(true)}
                   autoComplete="off"
                   placeholder="e.g. John, Landlord"
-                  className="mt-1"
+                  className="mt-1 bg-card border-border text-foreground"
                 />
                 {personSuggestionsOpen && filteredPersonSuggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50 overflow-hidden">
-                    <div className="max-h-36 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-card text-foreground rounded-2xl border border-border shadow-2xl z-[80] overflow-hidden autocomplete-dropdown animate-in fade-in duration-150">
+                    <div className="max-h-36 overflow-y-auto divide-y divide-border/60 bg-card">
                       {filteredPersonSuggestions.map(item => {
                         const d = item.lastDebt;
                         return (
@@ -1188,10 +1188,10 @@ export function ManageRecurringDebtsDialog({
                             key={d.personName}
                             type="button"
                             onClick={() => applyPersonSuggestion(d.personName, d)}
-                            className="w-full text-left px-3.5 py-2 text-xs hover:bg-primary/5 dark:hover:bg-primary/10 flex items-center justify-between"
+                            className="w-full text-left px-3.5 py-2 text-xs hover:bg-muted transition-colors flex items-center justify-between text-foreground"
                           >
                             <div>
-                              <p className="font-semibold text-gray-900 dark:text-gray-100">{d.personName}</p>
+                              <p className="font-semibold text-foreground">{d.personName}</p>
                               <p className="text-[10px] text-muted-foreground">{d.purpose} • ₹{d.amount}</p>
                             </div>
                             <span className="text-[10px] text-muted-foreground">{item.count}x</span>
@@ -1206,7 +1206,7 @@ export function ManageRecurringDebtsDialog({
 
             {/* Purpose with Fuzzy Suggestions */}
             <div ref={purposeContainerRef} className="relative">
-              <Label className="text-xs font-semibold">Purpose <span className="text-red-500">*</span></Label>
+              <Label className="text-xs font-semibold text-foreground">Purpose <span className="text-red-500">*</span></Label>
               <Input
                 required
                 value={purpose}
@@ -1217,11 +1217,11 @@ export function ManageRecurringDebtsDialog({
                 onFocus={() => setPurposeSuggestionsOpen(true)}
                 autoComplete="off"
                 placeholder="e.g. Monthly Rent, Shared WiFi"
-                className="mt-1"
+                className="mt-1 bg-card border-border text-foreground"
               />
               {purposeSuggestionsOpen && filteredPurposeSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50 overflow-hidden">
-                  <div className="max-h-32 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-card text-foreground rounded-2xl border border-border shadow-2xl z-[80] overflow-hidden autocomplete-dropdown animate-in fade-in duration-150">
+                  <div className="max-h-32 overflow-y-auto divide-y divide-border/60 bg-card">
                     {filteredPurposeSuggestions.map(p => (
                       <button
                         key={p}
@@ -1230,7 +1230,7 @@ export function ManageRecurringDebtsDialog({
                           setPurpose(p);
                           setPurposeSuggestionsOpen(false);
                         }}
-                        className="w-full text-left px-3.5 py-2 text-xs hover:bg-primary/5"
+                        className="w-full text-left px-3.5 py-2 text-xs hover:bg-muted transition-colors text-foreground"
                       >
                         {p}
                       </button>
@@ -1316,11 +1316,11 @@ export function ManageRecurringDebtsDialog({
                 onFocus={() => setLocationSuggestionsOpen(true)}
                 autoComplete="off"
                 placeholder="e.g. Apartment, Online"
-                className="mt-1"
+                className="mt-1 bg-card border-border text-foreground"
               />
               {locationSuggestionsOpen && filteredLocationSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50 overflow-hidden">
-                  <div className="max-h-32 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-card text-foreground rounded-2xl border border-border shadow-2xl z-[80] overflow-hidden autocomplete-dropdown animate-in fade-in duration-150">
+                  <div className="max-h-32 overflow-y-auto divide-y divide-border/60 bg-card">
                     {filteredLocationSuggestions.map(loc => (
                       <button
                         key={loc}
@@ -1329,7 +1329,7 @@ export function ManageRecurringDebtsDialog({
                           setLocation(loc);
                           setLocationSuggestionsOpen(false);
                         }}
-                        className="w-full text-left px-3.5 py-2 text-xs hover:bg-primary/5 flex items-center justify-between"
+                        className="w-full text-left px-3.5 py-2 text-xs hover:bg-muted transition-colors flex items-center justify-between text-foreground"
                       >
                         <span>{loc}</span>
                         <MapPin className="w-3 h-3 text-muted-foreground" />

@@ -3,6 +3,7 @@ import { Progress } from '@/components/ui/progress';
 import { PiggyBank, ShieldCheck, AlertCircle, ChevronRight } from 'lucide-react';
 import { useBudgets, useBudgetProgress } from '@/hooks/use-budgets';
 import { useSettings } from '@/hooks/use-settings';
+import { InfoButton } from './info-button';
 
 export function BudgetOverview() {
   const budgets = useBudgets();
@@ -18,10 +19,16 @@ export function BudgetOverview() {
     return (
       <Card className="m3-card shadow-xs border-border bg-card">
         <CardHeader className="pb-2 pt-4 px-4 sm:px-5">
-          <CardTitle className="flex items-center text-sm sm:text-base font-bold text-foreground">
-            <PiggyBank className="w-4 h-4 mr-2 text-primary" />
-            <span>Budget Health</span>
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center text-sm sm:text-base font-bold text-foreground">
+              <PiggyBank className="w-4 h-4 mr-2 text-primary" />
+              <span>Budget Health</span>
+            </CardTitle>
+            <InfoButton
+              title="Budget Health"
+              description="Tracks how much of your monthly category budget allowance you have spent so far."
+            />
+          </div>
         </CardHeader>
         <CardContent className="px-4 sm:px-5 pb-4">
           <div className="text-center py-6 text-muted-foreground bg-muted/40 rounded-2xl border border-dashed border-border">
@@ -37,10 +44,16 @@ export function BudgetOverview() {
     <Card className="m3-card shadow-xs border-border bg-card">
       <CardHeader className="pb-3 pt-4 px-4 sm:px-5">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center text-sm sm:text-base font-bold text-foreground">
-            <PiggyBank className="w-4 h-4 mr-2 text-primary" />
-            <span>Budget Pulse</span>
-          </CardTitle>
+          <div className="flex items-center gap-1.5">
+            <CardTitle className="flex items-center text-sm sm:text-base font-bold text-foreground">
+              <PiggyBank className="w-4 h-4 mr-2 text-primary" />
+              <span>Budget Pulse</span>
+            </CardTitle>
+            <InfoButton
+              title="Budget Pulse"
+              description="Live progress bars showing your spending vs allocated limits for your top active budgets."
+            />
+          </div>
           <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
             {budgets.length} Active
           </span>

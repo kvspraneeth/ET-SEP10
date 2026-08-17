@@ -274,7 +274,7 @@ export function AddCategoryDialog({
               </button>
             </div>
 
-            <div className={`grid grid-cols-6 sm:grid-cols-8 gap-2 p-2 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 ${
+            <div className={`grid grid-cols-6 sm:grid-cols-8 gap-2 p-2 rounded-xl bg-muted/50 border border-border ${
               isIconPickerOpen ? 'max-h-52 overflow-y-auto' : 'max-h-24 overflow-hidden'
             }`}>
               {AVAILABLE_CATEGORY_ICONS.map(({ id, icon: IconComponent, name: iconLabel }) => {
@@ -288,7 +288,7 @@ export function AddCategoryDialog({
                     className={`h-9 w-9 rounded-lg flex items-center justify-center transition-all ${
                       isSelected
                         ? 'bg-primary text-white shadow-md scale-105'
-                        : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        : 'bg-card hover:bg-muted text-foreground border border-border/50'
                     }`}
                   >
                     <IconComponent className="w-4 h-4" />
@@ -299,7 +299,7 @@ export function AddCategoryDialog({
           </div>
         </div>
 
-        <DialogFooter className="p-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 gap-2 sm:gap-0">
+        <DialogFooter className="p-3 bg-muted/40 border-t border-border gap-2 sm:gap-0">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button size="sm" onClick={handleSave} disabled={!name.trim()}>
             {initialCategory ? 'Save Changes' : 'Create Category'}

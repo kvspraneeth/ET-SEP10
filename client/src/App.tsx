@@ -107,7 +107,7 @@ function App() {
               <div className={activeTab === 'expenses' ? 'block' : 'hidden'}>
                 <Expenses onOpenExpenseForm={handleOpenExpenseForm} />
               </div>
-              <div className={activeTab === 'debts' ? 'block' : 'hidden'}>
+              <div className={activeTab === 'debts' || activeTab === 'dues' ? 'block' : 'hidden'}>
                 <DuesReceivables />
               </div>
               <div className={activeTab === 'charts' ? 'block' : 'hidden'}>

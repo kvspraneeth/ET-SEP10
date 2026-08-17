@@ -7,6 +7,7 @@ import { BudgetOverview } from '@/components/budget-overview';
 import { getCategoryColor, findCategory } from '@/lib/categories';
 import { getIconComponent, CategorySelector } from '@/components/category-selector';
 import { useSettings } from '@/hooks/use-settings';
+import { InfoButton } from '@/components/info-button';
 import { 
   Zap, Plus, ChevronRight, Sparkles, Search, Clock, 
   TrendingDown, TrendingUp, Wallet, ArrowUpRight, BarChart3, 
@@ -201,7 +202,7 @@ export function Home({ onTabChange, onOpenExpenseForm }: HomeProps) {
     setIsMoreOpen(false);
     onOpenExpenseForm({
       items: expense.items || '',
-      amount: expense.amount || 0,
+      amount: expense.amount || '',
       category: expense.category || '',
       where: expense.where || '',
       paymentMethod: expense.paymentMethod || 'UPI',
@@ -235,6 +236,10 @@ export function Home({ onTabChange, onOpenExpenseForm }: HomeProps) {
                 <Sparkles className="w-2.5 h-2.5" />
                 Live Tracker
               </span>
+              <InfoButton
+                title="Monthly Spending Intelligence"
+                description="Displays your total expenditures recorded in the current calendar month, along with real-time comparisons against the previous month and intelligent run-rate forecasts."
+              />
             </div>
             <p className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
               {currencySymbol}{currentMonthTotal.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
@@ -274,52 +279,70 @@ export function Home({ onTabChange, onOpenExpenseForm }: HomeProps) {
         {/* Hero Financial Intelligence Ribbon */}
         <div className="mt-4 pt-3.5 border-t border-primary/15 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
           {/* Safe Daily Spend Indicator */}
-          <div className="flex items-center gap-2 bg-background/50 rounded-xl p-2.5 border border-primary/10">
-            <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
-              <ShieldCheck className="w-4 h-4" />
+          <div className="flex items-center justify-between gap-2 bg-background/50 rounded-xl p-2.5 border border-primary/10">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-foreground">
+                  {dailyRunRate.hasBudget ? (
+                    <>
+                      Safe Spend: <span className="text-primary font-black">{currencySymbol}{dailyRunRate.safeDailySpend}</span> / day
+                    </>
+                  ) : (
+                    <>
+                      Daily Run Rate: <span className="text-primary font-black">{currencySymbol}{dailyRunRate.safeDailySpend}</span> / day
+                    </>
+                  )}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {dailyRunRate.daysRemaining} days left in month {dailyRunRate.hasBudget ? `• ${currencySymbol}${dailyRunRate.remainingBudget.toLocaleString()} left` : ''}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="font-bold text-foreground">
-                {dailyRunRate.hasBudget ? (
-                  <>
-                    Safe Spend: <span className="text-primary font-black">{currencySymbol}{dailyRunRate.safeDailySpend}</span> / day
-                  </>
-                ) : (
-                  <>
-                    Daily Run Rate: <span className="text-primary font-black">{currencySymbol}{dailyRunRate.safeDailySpend}</span> / day
-                  </>
-                )}
-              </p>
-              <p className="text-[11px] text-muted-foreground truncate">
-                {dailyRunRate.daysRemaining} days left in month {dailyRunRate.hasBudget ? `• ${currencySymbol}${dailyRunRate.remainingBudget.toLocaleString()} left` : ''}
-              </p>
-            </div>
+            <InfoButton
+              title="Safe Daily Spend Velocity"
+              description="Calculates the maximum recommended daily spending limit based on your active monthly budget and the remaining days in the month to avoid overspending."
+            />
           </div>
 
           {/* Top Category Anomaly Pill */}
           {topCategoryStat && topCategoryObj ? (
-            <div className="flex items-center gap-2 bg-background/50 rounded-xl p-2.5 border border-primary/10">
-              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
-                {getIconComponent(topCategoryObj.icon, 'w-4 h-4')}
+            <div className="flex items-center justify-between gap-2 bg-background/50 rounded-xl p-2.5 border border-primary/10">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+                  {getIconComponent(topCategoryObj.icon, 'w-4 h-4')}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-foreground truncate">
+                    Top Category: <span className="text-foreground font-black">{topCategoryObj.name}</span>
+                  </p>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {currencySymbol}{topCategoryStat.amount.toLocaleString()} ({topCategoryStat.percentage}% of month's expenses)
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="font-bold text-foreground truncate">
-                  Top Category: <span className="text-foreground font-black">{topCategoryObj.name}</span>
-                </p>
-                <p className="text-[11px] text-muted-foreground truncate">
-                  {currencySymbol}{topCategoryStat.amount.toLocaleString()} ({topCategoryStat.percentage}% of month's expenses)
-                </p>
-              </div>
+              <InfoButton
+                title="Top Monthly Spending Category"
+                description="Highlights which category accounted for the largest portion of your overall spending this month."
+              />
             </div>
           ) : (
-            <div className="flex items-center gap-2 bg-background/50 rounded-xl p-2.5 border border-primary/10">
-              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-                <PiggyBank className="w-4 h-4" />
+            <div className="flex items-center justify-between gap-2 bg-background/50 rounded-xl p-2.5 border border-primary/10">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                  <PiggyBank className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-foreground">Spending on Track</p>
+                  <p className="text-[11px] text-muted-foreground">Keep logging daily expenses for deep insights</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="font-bold text-foreground">Spending on Track</p>
-                <p className="text-[11px] text-muted-foreground">Keep logging daily expenses for deep insights</p>
-              </div>
+              <InfoButton
+                title="Spending Health Status"
+                description="Monitors your spending pace. As you log expenses, top spending patterns and anomalies will be displayed here."
+              />
             </div>
           )}
         </div>
@@ -328,7 +351,7 @@ export function Home({ onTabChange, onOpenExpenseForm }: HomeProps) {
       {/* Compact One UI 8.5 Actionable Pending Dues / Receivables Capsule */}
       {pendingDebtsSummary.hasPending && (
         <div 
-          onClick={() => onTabChange('dues')}
+          onClick={() => onTabChange('debts')}
           className="py-2 px-3.5 bg-card/85 hover:bg-card rounded-full border border-border/80 shadow-xs flex items-center justify-between gap-2.5 cursor-pointer tap-spring transition-all group backdrop-blur-xl"
         >
           <div className="flex items-center gap-2.5 min-w-0">
@@ -350,7 +373,11 @@ export function Home({ onTabChange, onOpenExpenseForm }: HomeProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-1 text-[11px] font-bold text-primary shrink-0">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary shrink-0">
+            <InfoButton
+              title="Dues & Receivables Summary"
+              description="Quick snapshot of pending money you owe to others and money others owe to you. Tap the banner to go directly to the Dues & Receivables page to settle or add entries."
+            />
             <span className="hidden sm:inline">Settle</span>
             <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </div>
@@ -366,6 +393,10 @@ export function Home({ onTabChange, onOpenExpenseForm }: HomeProps) {
           <div className="flex items-center gap-1.5">
             <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
             <h2 className="text-base font-bold text-foreground">Quick Re-Log & Frequent</h2>
+            <InfoButton
+              title="Quick Re-Log & Frequent Expenses"
+              description="Automatically detects and lists your most frequently logged transactions. Tap any card to instantly open the expense form with the vendor, category, amount, and account prefilled."
+            />
           </div>
           {allQuickExpenses.length > 3 && (
             <Button
@@ -441,9 +472,15 @@ export function Home({ onTabChange, onOpenExpenseForm }: HomeProps) {
 
       {/* Category Speed Launcher */}
       <div className="space-y-2">
-        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
-          Speed Log by Category
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
+            Speed Log by Category
+          </span>
+          <InfoButton
+            title="Category Speed Launcher"
+            description="Tap any category pill to instantly open the Add Expense modal with that category pre-selected."
+          />
+        </div>
         <CategorySelector 
           onCategorySelect={(category) => onOpenExpenseForm(category)} 
           variant="pill"

@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { format, subDays, parseISO } from 'date-fns';
+import { InfoButton } from '@/components/info-button';
 
 export default function DuesReceivables() {
   const { toast } = useToast();
@@ -35,7 +36,7 @@ export default function DuesReceivables() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Confirmation Modal State
-  const [confirmAction, setConfirmAction] = useState<{id: number, type: 'settle' | 'unsettle' | 'delete'} | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{id: number, type: 'settle' | 'unsettle' | 'delete', debt?: DebtRecord} | null>(null);
 
   // Card Interaction States
   const [expandedCardId, setExpandedCardId] = useState<number | null>(null);
@@ -395,9 +396,15 @@ export default function DuesReceivables() {
         <CardContent className="p-5 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div className="space-y-1">
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Overall Net Position
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  Overall Net Position
+                </span>
+                <InfoButton
+                  title="Net Position Explanation"
+                  description="Calculated as (Total Owed to You) minus (Total You Owe). A positive number means people owe you more than you owe others."
+                />
+              </div>
               <div className="flex items-baseline gap-2">
                 <span className={`text-3xl sm:text-4xl font-black ${
                   netBalance.type === 'receivable' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
@@ -415,18 +422,30 @@ export default function DuesReceivables() {
             {/* Quick KPI Badges */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="flex-1 sm:flex-initial p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 block">
-                  You Owe (Dues)
-                </span>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 block">
+                    You Owe (Dues)
+                  </span>
+                  <InfoButton
+                    title="Total Dues"
+                    description="Total amount of pending money you currently owe to other people or vendors."
+                  />
+                </div>
                 <span className="text-base sm:text-lg font-black text-rose-600 dark:text-rose-400">
                   {currencySymbol}{totalDues.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
               </div>
 
               <div className="flex-1 sm:flex-initial p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
-                  Owed to You
-                </span>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                    Owed to You
+                  </span>
+                  <InfoButton
+                    title="Total Receivables"
+                    description="Total pending amount other people or clients currently owe you."
+                  />
+                </div>
                 <span className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400">
                   {currencySymbol}{totalReceivables.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
@@ -442,6 +461,10 @@ export default function DuesReceivables() {
           <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
             <span>Frequent Counterparties</span>
+            <InfoButton
+              title="Frequent Counterparties"
+              description="Quickly filter pending balances by people you frequently exchange money with."
+            />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -622,8 +645,11 @@ export default function DuesReceivables() {
             const isExpanded = expandedCardId === debt.id;
 
             return (
-              <Card key={debt.id} className="m3-card border-border bg-card shadow-xs overflow-hidden">
-                <div className="p-4 flex items-center justify-between gap-3">
+              <Card key={debt.id} className="m3-card border-border bg-card shadow-xs overflow-hidden transition-all">
+                <div 
+                  className="p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-muted/30 transition-colors"
+                  onClick={() => setExpandedCardId(isExpanded ? null : debt.id!)}
+                >
                   <div className="flex items-center gap-3 min-w-0 pr-2">
                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 ${
                       isDue ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
@@ -646,18 +672,18 @@ export default function DuesReceivables() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-base sm:text-lg font-black ${
+                  <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <span className={`text-base sm:text-lg font-black mr-1 ${
                       isDue ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
                     }`}>
-                      {isDue ? '-' : '+'}{currencySymbol}{debt.amount.toFixed(2)}
+                      {isDue ? '-' : '+'}{currencySymbol}{Number(debt.amount).toFixed(2)}
                     </span>
 
-                    {/* Settle Action Button */}
+                    {/* Settle Action Button with Confirmation */}
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => settleDebt(debt.id!)}
+                      onClick={() => setConfirmAction({ id: debt.id!, type: 'settle', debt })}
                       className="h-8 px-2.5 text-xs font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl gap-1"
                     >
                       <Check className="w-3.5 h-3.5 stroke-[3]" />
@@ -678,18 +704,100 @@ export default function DuesReceivables() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() => setConfirmAction({ id: debt.id!, type: 'delete' })}
+                      onClick={() => setConfirmAction({ id: debt.id!, type: 'delete', debt })}
                       className="h-8 w-8 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
+
+                    {/* Expand/Collapse Chevron */}
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setExpandedCardId(isExpanded ? null : debt.id!)}
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-xl"
+                      aria-label={isExpanded ? 'Collapse record details' : 'Expand record details'}
+                    >
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </Button>
                   </div>
                 </div>
 
-                {(debt.location || debt.notes) && (
-                  <div className="px-4 pb-3 pt-0 text-[11px] text-muted-foreground flex items-center gap-3 border-t border-border/40 mt-1">
-                    {debt.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-primary" /> {debt.location}</span>}
-                    {debt.notes && <span className="italic">"{debt.notes}"</span>}
+                {/* Expanded Detailed Information Drawer */}
+                {isExpanded && (
+                  <div className="px-4 pb-4 pt-3 text-xs bg-muted/40 border-t border-border text-foreground space-y-3 animate-in slide-in-from-top-2 duration-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div className="p-2.5 rounded-xl bg-card border border-border space-y-0.5">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Party & Role</span>
+                        <p className="font-bold text-foreground">
+                          {debt.personName} <span className="text-muted-foreground font-normal">({isDue ? 'You owe them' : 'Owed to you'})</span>
+                        </p>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-card border border-border space-y-0.5">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Purpose / Item</span>
+                        <p className="font-bold text-foreground">{debt.purpose || 'Not specified'}</p>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-card border border-border space-y-0.5">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Record Date & Time</span>
+                        <p className="font-semibold text-foreground flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-primary" />
+                          {debt.datetime ? format(parseISO(debt.datetime), 'EEE, dd MMM yyyy, hh:mm a') : 'Date unavailable'}
+                        </p>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-card border border-border space-y-0.5">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Location / Where</span>
+                        <p className="font-semibold text-foreground flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-primary" />
+                          {debt.location || 'No location attached'}
+                        </p>
+                      </div>
+
+                      {debt.notes && (
+                        <div className="sm:col-span-2 p-2.5 rounded-xl bg-card border border-border space-y-0.5">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Notes & Agreement</span>
+                          <p className="italic text-foreground">"{debt.notes}"</p>
+                        </div>
+                      )}
+
+                      {debt.createdAt && (
+                        <div className="sm:col-span-2 text-[10px] text-muted-foreground px-1">
+                          Created on {format(parseISO(debt.createdAt), 'dd MMM yyyy, hh:mm a')}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Expanded Drawer Action Bar */}
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleReuseDue(debt)}
+                        className="h-8 px-3 text-xs font-semibold rounded-xl text-amber-600 gap-1.5 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Re-log Same</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditInit(debt)}
+                        className="h-8 px-3 text-xs font-semibold rounded-xl text-blue-600 gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setConfirmAction({ id: debt.id!, type: 'settle', debt })}
+                        className="h-8 px-3 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>Mark Settled</span>
+                      </Button>
+                    </div>
                   </div>
                 )}
               </Card>
@@ -709,6 +817,10 @@ export default function DuesReceivables() {
             <div className="flex items-center gap-2">
               <History className="w-4 h-4 text-primary" />
               <span>Settled History ({settledList.length})</span>
+              <InfoButton
+                title="Settled History"
+                description="List of past dues and receivables that have been marked as fully settled. You can reopen any settled record if needed."
+              />
             </div>
             <ChevronDown className={`w-4 h-4 transition-transform ${showSettledSection ? 'rotate-180 text-primary' : ''}`} />
           </Button>
@@ -719,15 +831,18 @@ export default function DuesReceivables() {
                 <div key={debt.id} className="p-3 rounded-2xl bg-muted/30 border border-border flex items-center justify-between gap-3 text-xs opacity-75">
                   <div className="min-w-0 pr-2">
                     <span className="font-bold line-through text-foreground block truncate">{debt.personName} · {debt.purpose}</span>
-                    <span className="text-[10px] text-muted-foreground">{debt.datetime ? format(parseISO(debt.datetime), 'dd MMM yyyy') : ''}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {debt.datetime ? format(parseISO(debt.datetime), 'dd MMM yyyy') : ''}
+                      {debt.location ? ` • ${debt.location}` : ''}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="font-bold">{currencySymbol}{debt.amount.toFixed(2)}</span>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => unsettleDebt(debt.id!)}
-                      className="h-7 px-2 text-[10px] font-bold rounded-lg text-amber-600"
+                      onClick={() => setConfirmAction({ id: debt.id!, type: 'unsettle', debt })}
+                      className="h-7 px-2 text-[10px] font-bold rounded-lg text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
                     >
                       <Undo className="w-3 h-3 mr-1" />
                       Unsettle
@@ -740,14 +855,20 @@ export default function DuesReceivables() {
         </div>
       )}
 
-      {/* Add / Edit Record Dialog */}
+      {/* Add / Edit Record Dialog with Where & Notes */}
       <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden z-50">
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden z-50 bg-card border-border text-foreground">
           <DialogHeader className="p-4 border-b border-border">
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <ArrowLeftRight className="w-4 h-4 text-primary" />
-              <span>{editId ? 'Edit Record' : 'Add Due / Receivable'}</span>
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <ArrowLeftRight className="w-4 h-4 text-primary" />
+                <span>{editId ? 'Edit Record' : 'Add Due / Receivable'}</span>
+              </DialogTitle>
+              <InfoButton
+                title="Due / Receivable Details"
+                description="Select whether you owe money (Due) or are owed money (Receivable). Enter the counterpart name, amount, purpose, optional location, and notes."
+              />
+            </div>
           </DialogHeader>
 
           <form onSubmit={(e) => { e.preventDefault(); saveDebt(); }} className="p-4 space-y-4">
@@ -779,7 +900,7 @@ export default function DuesReceivables() {
 
             {/* Person Name with Autocomplete */}
             <div className="space-y-1.5 relative" ref={personContainerRef}>
-              <Label className="text-xs font-bold">Person Name</Label>
+              <Label className="text-xs font-bold text-foreground">Person Name <span className="text-rose-500">*</span></Label>
               <Input
                 value={formData.personName}
                 onChange={(e) => {
@@ -788,16 +909,16 @@ export default function DuesReceivables() {
                 }}
                 placeholder="e.g. Rahul, John, Sharma"
                 required
-                className="h-9 text-xs rounded-xl"
+                className="h-9 text-xs rounded-xl bg-card border-border text-foreground"
               />
               {personSuggestionsOpen && uniquePersons.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-xl p-1 z-50 max-h-36 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-xl p-1 z-50 max-h-36 overflow-y-auto autocomplete-dropdown">
                   {uniquePersons.filter(p => p.toLowerCase().includes(formData.personName.toLowerCase())).map(p => (
                     <button
                       key={p}
                       type="button"
                       onClick={() => handleSelectPerson(p)}
-                      className="w-full text-left px-2.5 py-1.5 text-xs hover:bg-muted rounded-lg font-medium"
+                      className="w-full text-left px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-lg font-medium"
                     >
                       {p}
                     </button>
@@ -808,7 +929,7 @@ export default function DuesReceivables() {
 
             {/* Amount */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold">Amount ({currencySymbol})</Label>
+              <Label className="text-xs font-bold text-foreground">Amount ({currencySymbol}) <span className="text-rose-500">*</span></Label>
               <Input
                 type="number"
                 step="0.01"
@@ -816,13 +937,13 @@ export default function DuesReceivables() {
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                 placeholder="0.00"
                 required
-                className="h-9 text-xs rounded-xl font-bold"
+                className="h-9 text-xs rounded-xl font-bold bg-card border-border text-foreground"
               />
             </div>
 
             {/* Purpose */}
             <div className="space-y-1.5 relative" ref={purposeContainerRef}>
-              <Label className="text-xs font-bold">Purpose / Item</Label>
+              <Label className="text-xs font-bold text-foreground">Purpose / Item <span className="text-rose-500">*</span></Label>
               <Input
                 value={formData.purpose}
                 onChange={(e) => {
@@ -831,18 +952,57 @@ export default function DuesReceivables() {
                 }}
                 placeholder="e.g. Dinner split, Rent share, Loan"
                 required
-                className="h-9 text-xs rounded-xl"
+                className="h-9 text-xs rounded-xl bg-card border-border text-foreground"
+              />
+              {purposeSuggestionsOpen && historicalPurposes.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-xl p-1 z-50 max-h-36 overflow-y-auto autocomplete-dropdown">
+                  {historicalPurposes.filter(p => p.toLowerCase().includes(formData.purpose.toLowerCase())).map(p => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => handleSelectPurpose(p)}
+                      className="w-full text-left px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-lg font-medium"
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Where / Location */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5 text-primary" /> Where / Place (Optional)
+              </Label>
+              <Input
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="e.g. Starbucks, Main Market, Office"
+                className="h-9 text-xs rounded-xl bg-card border-border text-foreground"
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground">Notes & Details (Optional)</Label>
+              <Input
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="e.g. Promised to return by Friday"
+                className="h-9 text-xs rounded-xl bg-card border-border text-foreground"
               />
             </div>
 
             {/* Date & Time */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold">Date & Time</Label>
+              <Label className="text-xs font-bold text-foreground">Date & Time</Label>
               <Input
                 type="datetime-local"
                 value={formData.datetime}
+                style={{ colorScheme: isDarkTheme ? 'dark' : 'light' }}
                 onChange={(e) => setFormData({ ...formData, datetime: e.target.value })}
-                className="h-9 text-xs rounded-xl"
+                className="h-9 text-xs rounded-xl bg-card border-border text-foreground"
               />
             </div>
 
@@ -858,7 +1018,7 @@ export default function DuesReceivables() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="h-9 text-xs font-bold rounded-xl"
+                className="h-9 text-xs font-bold rounded-xl bg-primary text-primary-foreground"
               >
                 {editId ? 'Save Changes' : 'Create Record'}
               </Button>
@@ -873,29 +1033,58 @@ export default function DuesReceivables() {
         onOpenChange={setShowRecurringDialog}
       />
 
-      {/* Delete Confirmation Dialog */}
+      {/* Settle / Unsettle / Delete Confirmation Dialog */}
       <Dialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
-        <DialogContent className="sm:max-w-xs p-4 text-center z-50">
+        <DialogContent className="sm:max-w-sm p-5 text-center z-50 bg-card border border-border text-foreground rounded-3xl">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold text-center">Confirm Action</DialogTitle>
+            <DialogTitle className="text-base font-bold text-center flex items-center justify-center gap-2">
+              {confirmAction?.type === 'settle' && <CheckCircle className="w-5 h-5 text-emerald-500" />}
+              {confirmAction?.type === 'unsettle' && <Undo className="w-5 h-5 text-amber-500" />}
+              {confirmAction?.type === 'delete' && <Trash2 className="w-5 h-5 text-rose-500" />}
+              <span>
+                {confirmAction?.type === 'settle' && 'Confirm Settlement'}
+                {confirmAction?.type === 'unsettle' && 'Reopen Record'}
+                {confirmAction?.type === 'delete' && 'Delete Record'}
+              </span>
+            </DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-muted-foreground my-2">
-            Are you sure you want to delete this record permanently?
+
+          <p className="text-xs text-muted-foreground my-3 leading-relaxed">
+            {confirmAction?.type === 'settle' && (
+              <>Are you sure you want to mark this <strong>{confirmAction?.debt?.type === 'due' ? 'Due' : 'Receivable'}</strong> of <strong>{currencySymbol}{confirmAction?.debt?.amount}</strong> for <strong>{confirmAction?.debt?.personName}</strong> as settled?</>
+            )}
+            {confirmAction?.type === 'unsettle' && (
+              <>Are you sure you want to move this settled record of <strong>{currencySymbol}{confirmAction?.debt?.amount}</strong> with <strong>{confirmAction?.debt?.personName}</strong> back to pending?</>
+            )}
+            {confirmAction?.type === 'delete' && (
+              <>Are you sure you want to permanently remove the record for <strong>{confirmAction?.debt?.personName}</strong> ({confirmAction?.debt?.purpose})? This action cannot be undone.</>
+            )}
           </p>
-          <div className="flex items-center justify-center gap-2 pt-2">
-            <Button size="sm" variant="outline" onClick={() => setConfirmAction(null)} className="h-8 text-xs rounded-xl">
+
+          <div className="flex items-center justify-center gap-2.5 pt-2">
+            <Button size="sm" variant="outline" onClick={() => setConfirmAction(null)} className="h-9 px-4 text-xs rounded-xl">
               Cancel
             </Button>
             <Button
               size="sm"
-              variant="destructive"
+              variant={confirmAction?.type === 'delete' ? 'destructive' : 'default'}
               onClick={() => {
-                if (confirmAction) deleteDebt(confirmAction.id);
+                if (confirmAction) {
+                  if (confirmAction.type === 'settle') {
+                    settleDebt(confirmAction.id);
+                  } else if (confirmAction.type === 'unsettle') {
+                    unsettleDebt(confirmAction.id);
+                  } else if (confirmAction.type === 'delete') {
+                    deleteDebt(confirmAction.id);
+                  }
+                }
                 setConfirmAction(null);
               }}
-              className="h-8 text-xs font-bold rounded-xl"
+              className="h-9 px-4 text-xs font-bold rounded-xl"
             >
-              Delete
+              {confirmAction?.type === 'settle' && 'Yes, Mark Settled'}
+              {confirmAction?.type === 'unsettle' && 'Yes, Move to Pending'}
+              {confirmAction?.type === 'delete' && 'Yes, Delete'}
             </Button>
           </div>
         </DialogContent>

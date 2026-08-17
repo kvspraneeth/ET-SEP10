@@ -6,12 +6,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Filter, Search, Pencil, Trash2, ChevronDown, ChevronUp, FileText, RotateCcw } from 'lucide-react';
+import { Filter, Search, Pencil, Trash2, ChevronDown, ChevronUp, FileText, RotateCcw, MapPin, Clock, CreditCard, Building2, Tag, Repeat } from 'lucide-react';
 import { getCategoryColor, findCategory } from '@/lib/categories';
 import { getIconComponent } from '@/components/category-selector';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/components/theme-provider';
 import { Expense } from '@shared/schema';
+import { InfoButton } from '@/components/info-button';
 
 interface ExpensesProps {
   onOpenExpenseForm: (expense?: Expense | string) => void;
@@ -22,37 +23,37 @@ function ExpenseItemCard({ expense, category, onEdit, onReuse, onDelete, currenc
   const colors = getCategoryColor(category?.color || 'gray');
 
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-all duration-200">
+    <Card className="overflow-hidden border border-border bg-card hover:shadow-md transition-all duration-200">
       <div 
-        className="p-3 flex items-center justify-between cursor-pointer" 
+        className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors" 
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className={`p-2.5 rounded-full shrink-0 ${colors.bg} ${colors.text}`}>
+          <div className={`p-2.5 rounded-2xl shrink-0 ${colors.bg} ${colors.text} shadow-xs`}>
             {getIconComponent(category?.icon || 'tag', "w-4 h-4")}
           </div>
           <div className="overflow-hidden">
-            <p className="font-medium truncate text-sm sm:text-base">
+            <p className="font-bold truncate text-sm sm:text-base text-foreground">
               {expense.items || 'Unnamed Expense'}
             </p>
             <p className="text-xs text-muted-foreground truncate capitalize">
-              {category?.name || 'Uncategorized'} • {expense.paymentMethod}
+              {category?.name || 'Uncategorized'} • {expense.paymentMethod} {expense.where ? `• ${expense.where}` : ''}
             </p>
           </div>
         </div>
         
         <div className="flex items-center gap-2 shrink-0 ml-2">
-          <div className="text-right mr-2">
-            <p className="font-semibold text-sm sm:text-base">
-              {currencySymbol}{Number(expense.amount).toFixed(2)}
+          <div className="text-right mr-1">
+            <p className="font-black text-sm sm:text-base text-rose-600 dark:text-rose-400">
+              -{currencySymbol}{Number(expense.amount).toFixed(2)}
             </p>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-white/10"
-              onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-xl"
+              onClick={() => setIsExpanded(!isExpanded)}
               aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
             >
               {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -61,9 +62,8 @@ function ExpenseItemCard({ expense, category, onEdit, onReuse, onDelete, currenc
               variant="ghost" 
               size="icon" 
               title="Reuse transaction"
-              className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-              onClick={(e) => { 
-                e.stopPropagation(); 
+              className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-xl"
+              onClick={() => { 
                 onReuse({
                   items: expense.items || '',
                   amount: expense.amount || 0,
@@ -81,8 +81,8 @@ function ExpenseItemCard({ expense, category, onEdit, onReuse, onDelete, currenc
               variant="ghost" 
               size="icon" 
               title="Edit expense"
-              className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-              onClick={(e) => { e.stopPropagation(); onEdit(expense); }}
+              className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl"
+              onClick={() => onEdit(expense)}
             >
               <Pencil className="w-4 h-4" />
             </Button>
@@ -90,8 +90,8 @@ function ExpenseItemCard({ expense, category, onEdit, onReuse, onDelete, currenc
               variant="ghost" 
               size="icon" 
               title="Delete expense"
-              className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-              onClick={(e) => { e.stopPropagation(); onDelete(expense.id); }}
+              className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl"
+              onClick={() => onDelete(expense.id)}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -100,34 +100,79 @@ function ExpenseItemCard({ expense, category, onEdit, onReuse, onDelete, currenc
       </div>
 
       {isExpanded && (
-        <div className="px-4 pb-4 pt-2 text-sm bg-muted/40 border-t border-border text-muted-foreground animate-in slide-in-from-top-2 duration-200">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div>
-              <span className="font-semibold text-foreground">Date & Time: </span>
-              {format(parseISO(expense.date), 'MMM d, yyyy')} at {expense.time}
-            </div>
-            <div>
-              <span className="font-semibold text-foreground">Account: </span>
-              {expense.account || 'Not specified'}
-            </div>
-            {expense.where && (
-              <div>
-                <span className="font-semibold text-foreground">Location: </span>
-                {expense.where}
-              </div>
-            )}
-            {expense.note && (
-              <div className="sm:col-span-2">
-                <span className="font-semibold text-foreground">Notes: </span>
-                <span className="italic">"{expense.note}"</span>
-              </div>
-            )}
-            {expense.attachments && expense.attachments.length > 0 && (
-              <div className="sm:col-span-2 mt-2">
-                <span className="font-semibold text-foreground block mb-1">
-                  Attachments ({expense.attachments.length}):
+        <div className="px-4 pb-4 pt-3 text-xs bg-muted/40 border-t border-border text-foreground space-y-3 animate-in slide-in-from-top-2 duration-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* Category & Badge */}
+            <div className="p-2.5 rounded-xl bg-card border border-border space-y-0.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Category</span>
+              <div className="flex items-center gap-1.5 font-bold text-foreground">
+                <span className={`p-1 rounded-md ${colors.bg} ${colors.text}`}>
+                  {getIconComponent(category?.icon || 'tag', "w-3 h-3")}
                 </span>
-                <div className="flex flex-wrap gap-2">
+                <span>{category?.name || 'General'}</span>
+              </div>
+            </div>
+
+            {/* Date & Time */}
+            <div className="p-2.5 rounded-xl bg-card border border-border space-y-0.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Date & Time</span>
+              <p className="font-semibold text-foreground flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-primary" />
+                {format(parseISO(expense.date), 'EEEE, MMM d, yyyy')} at {expense.time || '00:00'}
+              </p>
+            </div>
+
+            {/* Payment Method */}
+            <div className="p-2.5 rounded-xl bg-card border border-border space-y-0.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Payment Method</span>
+              <p className="font-semibold text-foreground flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-primary" />
+                {expense.paymentMethod || 'UPI'}
+              </p>
+            </div>
+
+            {/* Account / Bank */}
+            <div className="p-2.5 rounded-xl bg-card border border-border space-y-0.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Account / Bank</span>
+              <p className="font-semibold text-foreground flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-primary" />
+                {expense.account || 'SBI'}
+              </p>
+            </div>
+
+            {/* Location / Where */}
+            <div className="p-2.5 rounded-xl bg-card border border-border space-y-0.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Location / Vendor</span>
+              <p className="font-semibold text-foreground flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-primary" />
+                {expense.where || 'Not specified'}
+              </p>
+            </div>
+
+            {/* Recurring Status */}
+            <div className="p-2.5 rounded-xl bg-card border border-border space-y-0.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Type</span>
+              <p className="font-semibold text-foreground flex items-center gap-1.5">
+                <Repeat className="w-3.5 h-3.5 text-primary" />
+                {expense.isRecurring ? 'Recurring Subscription' : 'One-time Transaction'}
+              </p>
+            </div>
+
+            {/* Notes */}
+            {expense.note && (
+              <div className="sm:col-span-2 p-2.5 rounded-xl bg-card border border-border space-y-0.5">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Notes</span>
+                <p className="italic text-foreground">"{expense.note}"</p>
+              </div>
+            )}
+
+            {/* Attachments */}
+            {expense.attachments && expense.attachments.length > 0 && (
+              <div className="sm:col-span-2 p-2.5 rounded-xl bg-card border border-border space-y-1.5">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                  Attachments & Receipts ({expense.attachments.length})
+                </span>
+                <div className="flex flex-wrap gap-2 pt-1">
                   {expense.attachments.map((att: string, i: number) => {
                     const isPdf = att.startsWith('data:application/pdf');
                     return isPdf ? (
@@ -135,7 +180,7 @@ function ExpenseItemCard({ expense, category, onEdit, onReuse, onDelete, currenc
                         key={i}
                         type="button"
                         onClick={() => window.open(att, '_blank')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-card border-border text-xs font-semibold text-primary hover:bg-muted"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border bg-muted border-border text-xs font-semibold text-primary hover:bg-muted/80 transition-colors"
                       >
                         <FileText className="w-4 h-4" />
                         <span>View PDF {i + 1}</span>
@@ -145,7 +190,7 @@ function ExpenseItemCard({ expense, category, onEdit, onReuse, onDelete, currenc
                         key={i}
                         type="button"
                         onClick={() => window.open(att, '_blank')}
-                        className="relative w-14 h-14 rounded-lg overflow-hidden border hover:opacity-90"
+                        className="relative w-16 h-16 rounded-xl overflow-hidden border border-border hover:opacity-90 transition-opacity shadow-xs"
                       >
                         <img src={att} alt={`receipt-${i}`} className="w-full h-full object-cover" />
                       </button>
@@ -154,6 +199,36 @@ function ExpenseItemCard({ expense, category, onEdit, onReuse, onDelete, currenc
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Quick Action Bar inside Drawer */}
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onReuse({
+                items: expense.items || '',
+                amount: expense.amount || 0,
+                category: expense.category || '',
+                where: expense.where || '',
+                paymentMethod: expense.paymentMethod || 'UPI',
+                account: expense.account || 'SBI',
+                note: expense.note || '',
+              })}
+              className="h-8 px-3 text-xs font-semibold rounded-xl text-amber-600 gap-1.5 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Re-log Same</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onEdit(expense)}
+              className="h-8 px-3 text-xs font-semibold rounded-xl text-blue-600 gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              <span>Edit Details</span>
+            </Button>
           </div>
         </div>
       )}
@@ -380,7 +455,13 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
     <div className="p-4 space-y-6 pb-24 relative">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-foreground">Expenses</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-black text-foreground">Expenses</h1>
+            <InfoButton
+              title="Expenses Ledger"
+              description="Chronological log of all your expenses. Click any card to expand full transaction details, notes, attachments, and actions."
+            />
+          </div>
           <p className="text-xs text-muted-foreground font-medium">Manage and search your spending</p>
         </div>
         <Button 
@@ -430,7 +511,13 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
       {showFilters && (
         <Card className="glass-card p-5 space-y-4 rounded-3xl animate-in fade-in slide-in-from-top-2 duration-200 backdrop-blur-2xl bg-card border-border">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-sm text-foreground">Advanced Filters</h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="font-bold text-sm text-foreground">Advanced Filters</h3>
+              <InfoButton
+                title="Filter & Search"
+                description="Search by vendor, item, notes, or location. Filter simultaneously by date range, payment method (UPI/Card/Cash), and bank account."
+              />
+            </div>
             {activeFilterCount > 0 && (
               <Button 
                 variant="ghost" 
@@ -524,13 +611,18 @@ export function Expenses({ onOpenExpenseForm }: ExpensesProps) {
       )}
 
       {/* Filtered Total Display */}
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">
+      <div className="flex items-center justify-between text-sm p-1">
+        <span className="text-muted-foreground text-xs">
           {filteredExpenses.length} {filteredExpenses.length === 1 ? 'transaction' : 'transactions'} found
         </span>
-        <span className="text-muted-foreground">
-          Total: <strong className="text-foreground text-base">{currencySymbol}{filteredTotal.toFixed(2)}</strong>
-        </span>
+        <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+          <span>Total: <strong className="text-foreground text-sm font-bold">{currencySymbol}{filteredTotal.toFixed(2)}</strong></span>
+          <InfoButton
+            title="Filtered Total"
+            description="Sum of all expenses matching the current search, date range, category, payment method, and account filters."
+            align="end"
+          />
+        </div>
       </div>
 
       <div className="space-y-6">

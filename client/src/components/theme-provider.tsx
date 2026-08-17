@@ -303,9 +303,27 @@ export function ThemeProvider({
     root.style.setProperty('--gradient-to', gradTo);
     root.style.setProperty('--gradient-custom', `linear-gradient(${gradAngle}deg, ${gradFrom}, ${gradTo})`);
     
-    // Remove all font classes and apply the active one
-    root.classList.remove('font-jakarta', 'font-outfit', 'font-inter', 'font-manrope', 'font-sora');
+    // Remove all font classes and apply the active one on both html and body
+    const fontClasses = ['font-jakarta', 'font-outfit', 'font-inter', 'font-manrope', 'font-sora'];
+    fontClasses.forEach(cls => {
+      root.classList.remove(cls);
+      if (document.body) document.body.classList.remove(cls);
+    });
     root.classList.add(`font-${fontFamily}`);
+    if (document.body) document.body.classList.add(`font-${fontFamily}`);
+
+    // Map exact font name for --font-app
+    const fontMap: Record<FontFamily, string> = {
+      jakarta: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+      outfit: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif",
+      inter: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      manrope: "'Manrope', -apple-system, BlinkMacSystemFont, sans-serif",
+      sora: "'Sora', -apple-system, BlinkMacSystemFont, sans-serif",
+    };
+    root.style.setProperty('--font-app', fontMap[fontFamily] || fontMap.jakarta);
+    if (document.body) {
+      document.body.style.setProperty('--font-app', fontMap[fontFamily] || fontMap.jakarta);
+    }
 
     // Update meta theme-color for browser tab / mobile status bar
     const selectedThemeObj = THEME_OPTIONS.find(t => t.id === theme);

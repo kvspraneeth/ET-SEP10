@@ -18,6 +18,7 @@ import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { CategorySelector, getIconComponent } from '@/components/category-selector';
 import { getCategoryColor, findCategory } from '@/lib/categories';
 import { Budget as BudgetType } from '@shared/schema';
+import { InfoButton } from '@/components/info-button';
 
 export function Budget() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -207,17 +208,23 @@ export function Budget() {
         </Button>
       </div>
 
-      {/* Overall Monthly Health Overview */}
+      {/* Overall Monthly Health Overview with Home Hero Gradient */}
       {overallMonthlyAnalytics.budgetCount > 0 && (
-        <Card className="overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm bg-gradient-to-br from-white to-gray-50/80 dark:from-gray-800 dark:to-gray-850">
-          <CardContent className="p-5">
+        <Card className="m3-card m3-hero-surface relative overflow-hidden border-border bg-card shadow-sm">
+          <CardContent className="p-5 sm:p-6 relative z-10 space-y-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="space-y-1">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  Monthly Budget Health ({overallMonthlyAnalytics.budgetCount} Active)
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Monthly Budget Health ({overallMonthlyAnalytics.budgetCount} Active)
+                  </span>
+                  <InfoButton
+                    title="Monthly Budget Health"
+                    description="Aggregated view of all active category budgets for the current month. Tracks total spend against your planned ceiling."
+                  />
+                </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black text-gray-900 dark:text-gray-100">
+                  <span className="text-2xl sm:text-3xl font-black text-foreground">
                     {currencySymbol}{overallMonthlyAnalytics.totalSpent.toFixed(2)}
                   </span>
                   <span className="text-sm font-semibold text-muted-foreground">
@@ -228,33 +235,33 @@ export function Budget() {
 
               <div className="flex items-center gap-2">
                 <span
-                  className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 ${
+                  className={`text-xs px-3 py-1.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-xs ${
                     overallMonthlyAnalytics.isOver
-                      ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300'
+                      ? 'bg-red-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
                       : overallMonthlyAnalytics.percentage > 75
-                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
-                      : 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300'
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                      : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                   }`}
                 >
                   {overallMonthlyAnalytics.isOver ? (
                     <><AlertTriangle className="w-3.5 h-3.5" /> Over Budget</>
                   ) : (
-                    <><CheckCircle className="w-3.5 h-3.5" /> {overallMonthlyAnalytics.remaining.toFixed(0)} Left</>
+                    <><CheckCircle className="w-3.5 h-3.5" /> {currencySymbol}{overallMonthlyAnalytics.remaining.toFixed(0)} Left</>
                   )}
                 </span>
               </div>
             </div>
 
             {/* Dynamic Health Progress Bar */}
-            <div className="mt-4 space-y-1.5">
+            <div className="space-y-1.5">
               <Progress
                 value={overallMonthlyAnalytics.percentage}
-                className={`h-3 rounded-full ${
+                className={`h-3 rounded-full bg-border/60 ${
                   overallMonthlyAnalytics.isOver
-                    ? '[&>div]:bg-red-500'
+                    ? '[&>div]:bg-rose-500'
                     : overallMonthlyAnalytics.percentage > 75
                     ? '[&>div]:bg-amber-500'
-                    : '[&>div]:bg-green-500'
+                    : '[&>div]:bg-emerald-500'
                 }`}
               />
               <div className="flex justify-between text-xs text-muted-foreground font-medium">
@@ -272,6 +279,10 @@ export function Budget() {
           <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Recommended for you based on current spending</span>
+            <InfoButton
+              title="Smart Budget Recommendations"
+              description="Calculated based on your actual past spending history. Tap to instantly create a tailored budget limit for this category."
+            />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {suggestedBudgets.map(({ catId, suggestedAmount, currentSpent }) => {
@@ -316,21 +327,27 @@ export function Budget() {
       )}
 
       {/* Period Filter Tabs (One UI 8.5 Floating Capsule) */}
-      <div className="flex bg-muted/80 rounded-full p-1 max-w-md border border-border backdrop-blur-xl">
-        {(['monthly', 'weekly', 'yearly', 'all'] as const).map(tab => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setPeriodFilter(tab)}
-            className={`flex-1 py-1.5 px-3 rounded-full font-bold text-xs capitalize transition-all tap-spring ${
-              periodFilter === tab
-                ? 'bg-card shadow-xs text-foreground ring-1 ring-border'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {tab === 'all' ? 'All Periods' : tab}
-          </button>
-        ))}
+      <div className="flex items-center gap-2">
+        <div className="flex bg-muted/80 rounded-full p-1 max-w-md border border-border backdrop-blur-xl flex-1 sm:flex-initial">
+          {(['monthly', 'weekly', 'yearly', 'all'] as const).map(tab => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setPeriodFilter(tab)}
+              className={`flex-1 py-1.5 px-3 rounded-full font-bold text-xs capitalize transition-all tap-spring ${
+                periodFilter === tab
+                  ? 'bg-card shadow-xs text-foreground ring-1 ring-border'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {tab === 'all' ? 'All Periods' : tab}
+            </button>
+          ))}
+        </div>
+        <InfoButton
+          title="Budget Period Filtering"
+          description="Filter budgets by their recurrence period (Monthly, Weekly, Yearly, or All)."
+        />
       </div>
 
       {/* Budgets List */}
@@ -367,10 +384,16 @@ export function Budget() {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6 z-50">
           <DialogHeader className="pb-2 border-b">
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <PiggyBank className="w-4 h-4 text-primary" />
-              <span>{editingBudget ? 'Edit Budget' : 'Create New Budget'}</span>
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                <PiggyBank className="w-5 h-5 text-primary" />
+                <span>{editingBudget ? 'Edit Budget' : 'Add New Budget'}</span>
+              </DialogTitle>
+              <InfoButton
+                title="Budget Rules"
+                description="Set a target spending limit for a specific category. You can choose weekly, monthly, or yearly reset intervals."
+              />
+            </div>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4 pt-2">

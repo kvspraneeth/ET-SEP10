@@ -38,6 +38,7 @@ import { format } from 'date-fns';
 import { ManageRecurringExpensesDialog, ManageRecurringDebtsDialog } from '@/components/recurring-manager';
 import { processRecurringRules, toCleanDateStr } from '@/lib/recurring-engine';
 import { Category } from '@shared/schema';
+import { InfoButton } from '@/components/info-button';
 
 // A sub-component to handle the Manage Categories Dialog cleanly
 function ManageCategoriesDialog({ children }: { children: React.ReactNode }) {
@@ -1013,6 +1014,10 @@ export function Settings() {
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-primary/15 text-primary shrink-0">
                   {recurringExpensesCount + recurringDebtsCount} Rules
                 </span>
+                <InfoButton
+                  title="Automation & Categories"
+                  description="Setup scheduled recurring subscriptions (Rent, Netflix, SIP) and dues. Customize your category catalog and icons."
+                />
               </div>
               <CardDescription className="text-xs truncate mt-0.5">
                 Manage auto-recurring expenses, debts, and custom categories
@@ -1139,6 +1144,10 @@ export function Settings() {
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-primary/15 text-primary shrink-0 capitalize">
                   {THEME_OPTIONS.find(t => t.id === theme)?.name || theme}
                 </span>
+                <InfoButton
+                  title="Theme & Appearance Studio"
+                  description="Choose from 6 light presets, 5 dark/AMOLED themes, dual-color gradients, and 5 typography fonts with live instant preview."
+                />
               </div>
               <CardDescription className="text-xs truncate mt-0.5">
                 6 Light presets, 5 Dark/AMOLED modes, custom gradients & fonts
@@ -1257,44 +1266,38 @@ export function Settings() {
                       key={colorOpt.id}
                       type="button"
                       onClick={() => setPrimaryColor(colorOpt.id)}
-                      title={colorOpt.name}
-                      className={`flex flex-col items-center gap-1.5 p-2 rounded-2xl border transition-all tap-spring ${
+                      className={`p-2 rounded-2xl border text-center transition-all tap-spring flex flex-col items-center gap-1.5 ${
                         isSelected
                           ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 bg-primary/5 shadow-xs'
                           : 'border-border hover:bg-muted/40'
                       }`}
                     >
-                      <div
-                        className="w-6 h-6 rounded-full flex items-center justify-center shadow-xs transition-transform"
+                      <span
+                        className="w-6 h-6 rounded-full border border-border shadow-xs flex items-center justify-center text-white"
                         style={{ backgroundColor: colorOpt.hex }}
                       >
-                        {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
-                      </div>
-                      <span className="text-[10px] font-bold text-muted-foreground truncate w-full text-center">
-                        {colorOpt.name.split(' ')[0]}
+                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                      </span>
+                      <span className="text-[10px] font-bold truncate max-w-full text-foreground">
+                        {colorOpt.name}
                       </span>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Custom Color Palette Dropper & Hex Input */}
+              {/* Custom Color Picker Tool */}
               <div className="p-3.5 rounded-2xl bg-muted/40 border border-border flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="relative">
-                    <input
-                      type="color"
-                      id="custom-color-picker"
-                      value={customHex}
-                      onChange={(e) => setCustomHex(e.target.value)}
-                      className="w-8 h-8 rounded-full overflow-hidden cursor-pointer border-0 p-0 shadow-sm"
-                    />
-                  </div>
+                  <input
+                    type="color"
+                    value={customHex}
+                    onChange={(e) => setCustomHex(e.target.value)}
+                    className="w-8 h-8 rounded-full overflow-hidden cursor-pointer border-0 p-0 shadow-xs shrink-0"
+                  />
                   <div className="min-w-0">
-                    <Label htmlFor="custom-color-picker" className="text-xs font-bold text-foreground cursor-pointer block">
-                      Custom Color Palette
-                    </Label>
-                    <p className="text-[10px] text-muted-foreground">Pick any shade across the full spectrum</p>
+                    <span className="text-xs font-bold text-foreground block truncate">Custom Color Picker</span>
+                    <span className="text-[11px] text-muted-foreground font-mono uppercase">{customHex}</span>
                   </div>
                 </div>
 
@@ -1495,6 +1498,10 @@ export function Settings() {
                 }`}>
                   {settings.notifications !== false ? 'Active' : 'Disabled'}
                 </span>
+                <InfoButton
+                  title="Notifications & Smart Prompts"
+                  description="Enable mobile/web push notifications, routine habit reminders, budget ceiling warnings, and quiet hours."
+                />
               </div>
               <CardDescription className="text-xs truncate mt-0.5">
                 AI habit detection, budget alerts & mobile push
@@ -1658,6 +1665,10 @@ export function Settings() {
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-primary/15 text-primary shrink-0">
                   {settings.currency || '₹'}
                 </span>
+                <InfoButton
+                  title="Preferences & Currency"
+                  description="Choose your preferred currency symbol. Changes are applied instantly throughout the app."
+                />
               </div>
               <CardDescription className="text-xs truncate mt-0.5">
                 Currency symbols, balances and default formatting
@@ -1709,9 +1720,15 @@ export function Settings() {
               <Download className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <CardTitle className="text-base font-bold text-foreground truncate">
-                Data Management & Backups
-              </CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base font-bold text-foreground truncate">
+                  Data Management & Backups
+                </CardTitle>
+                <InfoButton
+                  title="Data Management & Backup"
+                  description="Export and import complete JSON backups or multi-tab Excel spreadsheets. Your data stays 100% private and on-device."
+                />
+              </div>
               <CardDescription className="text-xs truncate mt-0.5">
                 Full offline JSON backup and Excel spreadsheets
               </CardDescription>
@@ -1800,9 +1817,15 @@ export function Settings() {
               <Trash2 className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <CardTitle className="text-base font-bold text-rose-600 dark:text-rose-400 truncate">
-                App Reset & Danger Zone
-              </CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base font-bold text-rose-600 dark:text-rose-400 truncate">
+                  App Reset & Danger Zone
+                </CardTitle>
+                <InfoButton
+                  title="App Reset"
+                  description="Permanently wipes all transactions, categories, budgets, and resets settings to default."
+                />
+              </div>
               <CardDescription className="text-xs truncate mt-0.5">
                 Permanently erase local records and reset default settings
               </CardDescription>

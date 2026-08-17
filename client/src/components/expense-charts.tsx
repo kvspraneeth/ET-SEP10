@@ -29,6 +29,7 @@ import {
   startOfMonth, endOfMonth, subDays, subMonths, startOfYear, endOfYear, 
   isWithinInterval, eachDayOfInterval, getDaysInMonth, getDate 
 } from 'date-fns';
+import { InfoButton } from './info-button';
 
 const PALETTE = [
   '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', 
@@ -495,9 +496,16 @@ export function ExpenseCharts() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Card className="m3-card bg-card border-border shadow-xs">
               <CardContent className="p-4">
-                <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
-                  Total Spent
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
+                    Total Spent
+                  </p>
+                  <InfoButton
+                    title="Total Spending"
+                    description="Sum of all expenses recorded within the currently selected date period."
+                    align="start"
+                  />
+                </div>
                 <h3 className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">
                   {currency}{overviewStats.totalSpent.toLocaleString()}
                 </h3>
@@ -509,9 +517,15 @@ export function ExpenseCharts() {
 
             <Card className="m3-card bg-card border-border shadow-xs">
               <CardContent className="p-4">
-                <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
-                  Daily Burn Rate
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
+                    Daily Burn Rate
+                  </p>
+                  <InfoButton
+                    title="Daily Burn Rate"
+                    description="Average amount spent per calendar day in the selected time interval."
+                  />
+                </div>
                 <h3 className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
                   {currency}{overviewStats.dailyAvg.toLocaleString()}
                   <span className="text-xs font-normal text-muted-foreground">/day</span>
@@ -524,9 +538,15 @@ export function ExpenseCharts() {
 
             <Card className="m3-card bg-card border-border shadow-xs">
               <CardContent className="p-4">
-                <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
-                  Top Category
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
+                    Top Category
+                  </p>
+                  <InfoButton
+                    title="Top Spending Category"
+                    description="The category responsible for the highest portion of your total outflow in this period."
+                  />
+                </div>
                 <h3 className="text-lg sm:text-xl font-bold text-foreground mt-1 truncate">
                   {overviewStats.topCatObj?.name || 'None'}
                 </h3>
@@ -538,9 +558,18 @@ export function ExpenseCharts() {
 
             <Card className="m3-card bg-card border-border shadow-xs">
               <CardContent className="p-4">
-                <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
-                  {period === 'thisMonth' ? 'Projected Month Spend' : 'Highest Single Expense'}
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
+                    {period === 'thisMonth' ? 'Projected Month Spend' : 'Highest Single Expense'}
+                  </p>
+                  <InfoButton
+                    title={period === 'thisMonth' ? 'Projected Month Spend' : 'Highest Single Expense'}
+                    description={period === 'thisMonth' 
+                      ? 'Forecasted total spend at month end if your current daily spending pace continues.' 
+                      : 'The single largest transaction recorded in this date range.'}
+                    align="end"
+                  />
+                </div>
                 <h3 className="text-xl sm:text-2xl font-black text-primary mt-1">
                   {period === 'thisMonth' 
                     ? `${currency}${overviewStats.projectedSpend.toLocaleString()}`
@@ -558,9 +587,15 @@ export function ExpenseCharts() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base font-bold text-foreground">
-                    Spending Over Time
-                  </CardTitle>
+                  <div className="flex items-center gap-1.5">
+                    <CardTitle className="text-base font-bold text-foreground">
+                      Spending Over Time
+                    </CardTitle>
+                    <InfoButton
+                      title="Spending Timeline"
+                      description="Visual progression showing day-by-day fluctuations and spikes in your expenses."
+                    />
+                  </div>
                   <CardDescription className="text-xs text-muted-foreground">
                     Daily spending progression during the selected window
                   </CardDescription>
@@ -608,9 +643,15 @@ export function ExpenseCharts() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-base font-bold text-foreground">
-                      Distribution Share
-                    </CardTitle>
+                    <div className="flex items-center gap-1.5">
+                      <CardTitle className="text-base font-bold text-foreground">
+                        Distribution Share
+                      </CardTitle>
+                      <InfoButton
+                        title="Distribution Share"
+                        description="Proportional breakdown showing where your money went across categories, payment methods, or bank accounts."
+                      />
+                    </div>
                     <CardDescription className="text-xs text-muted-foreground">
                       Proportions by chosen dimension
                     </CardDescription>

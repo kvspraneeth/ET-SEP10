@@ -326,30 +326,43 @@
    Typography Fonts
    ========================================================================== */
 
-:root,
-body {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  letter-spacing: -0.011em;
+:root {
+  --font-app: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .font-jakarta {
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  --font-app: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .font-outfit {
-  font-family: 'Outfit', sans-serif !important;
+  --font-app: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .font-inter {
-  font-family: 'Inter', sans-serif !important;
+  --font-app: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .font-manrope {
-  font-family: 'Manrope', sans-serif !important;
+  --font-app: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .font-sora {
-  font-family: 'Sora', sans-serif !important;
+  --font-app: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+:root,
+body,
+button,
+input,
+select,
+textarea,
+optgroup,
+.font-app,
+[role="dialog"],
+[data-radix-dialog-content],
+[data-radix-popover-content] {
+  font-family: var(--font-app, 'Plus Jakarta Sans', sans-serif) !important;
+  letter-spacing: -0.011em;
 }
 
 @layer base {
@@ -366,20 +379,39 @@ body {
    Samsung One UI 8.5 Frosted Glass & Border Glow Everywhere (Corner-to-Corner)
    ========================================================================== */
 
-/* Light Mode: Crisp Blackish-Grey Borders with Specular Glow */
+/* Light Mode & All Light Themes: Crisp Blackish-Grey Borders with Specular Glow */
 .light .bg-card,
+.latte .bg-card,
+.sky .bg-card,
+.mint .bg-card,
+.blush .bg-card,
+.cream .bg-card,
 .light .m3-card,
+.latte .m3-card,
+.sky .m3-card,
+.mint .m3-card,
+.blush .m3-card,
+.cream .m3-card,
 .light .glass-card,
+.latte .glass-card,
+.sky .glass-card,
+.mint .glass-card,
+.blush .glass-card,
+.cream .glass-card,
 .light .glass-panel,
+.latte .glass-panel,
+.sky .glass-panel,
+.mint .glass-panel,
+.blush .glass-panel,
+.cream .glass-panel,
 :root .bg-card,
 :root .m3-card,
 :root .glass-card,
 :root .glass-panel {
-  background-color: hsl(var(--card) / 0.82) !important;
-  backdrop-filter: blur(32px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(190%) !important;
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
   border-radius: 1.75rem !important;
-  border: 1.5px solid rgba(15, 23, 42, 0.18) !important;
+  border: 1.5px solid var(--border) !important;
   box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.06), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9) !important;
 }
 
@@ -387,12 +419,17 @@ body {
 .dark .bg-card,
 .dark .m3-card,
 .dark .glass-card,
-.dark .glass-panel {
-  background-color: hsl(var(--card) / 0.72) !important;
-  backdrop-filter: blur(32px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(190%) !important;
+.dark .glass-panel,
+.midnight .bg-card,
+.midnight .m3-card,
+.sunset .bg-card,
+.sunset .m3-card,
+.forest .bg-card,
+.forest .m3-card {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
   border-radius: 1.75rem !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.24) !important;
+  border: 1.5px solid var(--border) !important;
   box-shadow: 0 0 16px 1px rgba(255, 255, 255, 0.08), 0 12px 36px -4px rgba(0, 0, 0, 0.6), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.22) !important;
 }
 
@@ -401,11 +438,10 @@ body {
 .amoled .m3-card,
 .amoled .glass-card,
 .amoled .glass-panel {
-  background-color: rgba(6, 6, 8, 0.84) !important;
-  backdrop-filter: blur(32px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(190%) !important;
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
   border-radius: 1.75rem !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.28) !important;
+  border: 1.5px solid var(--border) !important;
   box-shadow: 0 0 20px 2px rgba(255, 255, 255, 0.10), 0 16px 48px -4px rgba(0, 0, 0, 0.9), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.26) !important;
 }
 
@@ -413,60 +449,128 @@ body {
 [data-radix-dialog-content],
 .dialog-content,
 [role="dialog"] {
-  backdrop-filter: blur(36px) saturate(200%) !important;
-  -webkit-backdrop-filter: blur(36px) saturate(200%) !important;
-  background-color: hsl(var(--card) / 0.84) !important;
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
   border-radius: 2.25rem !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.26) !important;
-  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.4), 0 0 20px 2px rgba(255, 255, 255, 0.08), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.3) !important;
+  border: 1.5px solid var(--border) !important;
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.4), 0 0 20px 2px rgba(255, 255, 255, 0.08) !important;
 }
 
 .light [data-radix-dialog-content],
+.latte [data-radix-dialog-content],
+.sky [data-radix-dialog-content],
+.mint [data-radix-dialog-content],
+.blush [data-radix-dialog-content],
+.cream [data-radix-dialog-content],
 .light .dialog-content,
-.light [role="dialog"] {
-  border: 1.5px solid rgba(15, 23, 42, 0.22) !important;
-  box-shadow: 0 24px 64px -12px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.08), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.9) !important;
+.latte .dialog-content,
+.sky .dialog-content,
+.mint .dialog-content,
+.blush .dialog-content,
+.cream .dialog-content,
+.light [role="dialog"],
+.latte [role="dialog"],
+.sky [role="dialog"],
+.mint [role="dialog"],
+.blush [role="dialog"],
+.cream [role="dialog"] {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border: 1.5px solid var(--border) !important;
+  box-shadow: 0 24px 64px -12px rgba(15, 23, 42, 0.18), 0 0 0 1px var(--border) !important;
 }
 
 [data-radix-dialog-overlay] {
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  background-color: rgba(0, 0, 0, 0.48) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  background-color: rgba(0, 0, 0, 0.45) !important;
 }
 
 .dark [data-radix-dialog-overlay],
-.amoled [data-radix-dialog-overlay] {
+.amoled [data-radix-dialog-overlay],
+.midnight [data-radix-dialog-overlay],
+.sunset [data-radix-dialog-overlay],
+.forest [data-radix-dialog-overlay] {
   background-color: rgba(0, 0, 0, 0.78) !important;
 }
 
 [data-radix-popover-content],
 [data-radix-dropdown-menu-content],
 [data-radix-select-content] {
-  backdrop-filter: blur(36px) saturate(200%) !important;
-  -webkit-backdrop-filter: blur(36px) saturate(200%) !important;
-  background-color: hsl(var(--card) / 0.88) !important;
+  background-color: var(--popover) !important;
+  color: var(--popover-foreground, var(--foreground)) !important;
   border-radius: 1.5rem !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.24) !important;
-  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.3), 0 0 16px rgba(255, 255, 255, 0.06) !important;
+  border: 1.5px solid var(--border) !important;
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.3) !important;
 }
 
 .light [data-radix-popover-content],
+.latte [data-radix-popover-content],
+.sky [data-radix-popover-content],
+.mint [data-radix-popover-content],
+.blush [data-radix-popover-content],
+.cream [data-radix-popover-content],
 .light [data-radix-dropdown-menu-content],
-.light [data-radix-select-content] {
-  border: 1.5px solid rgba(15, 23, 42, 0.20) !important;
-  box-shadow: 0 16px 40px -8px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.06) !important;
+.latte [data-radix-dropdown-menu-content],
+.sky [data-radix-dropdown-menu-content],
+.mint [data-radix-dropdown-menu-content],
+.blush [data-radix-dropdown-menu-content],
+.cream [data-radix-dropdown-menu-content],
+.light [data-radix-select-content],
+.latte [data-radix-select-content],
+.sky [data-radix-select-content],
+.mint [data-radix-select-content],
+.blush [data-radix-select-content],
+.cream [data-radix-select-content] {
+  background-color: var(--popover) !important;
+  color: var(--popover-foreground, var(--foreground)) !important;
+  border: 1.5px solid var(--border) !important;
+  box-shadow: 0 16px 40px -8px rgba(15, 23, 42, 0.12), 0 0 0 1px var(--border) !important;
+}
+
+/* Autocomplete suggestions popup: completely solid and opaque to prevent transparent overlap */
+.autocomplete-dropdown {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border: 1.5px solid var(--border) !important;
+  box-shadow: 0 20px 48px -6px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--border) !important;
+  opacity: 1 !important;
+  z-index: 90 !important;
+}
+
+.autocomplete-dropdown * {
+  color: inherit;
+}
+
+.autocomplete-dropdown .bg-card {
+  background-color: var(--card) !important;
+}
+
+.autocomplete-dropdown .bg-muted {
+  background-color: var(--muted) !important;
+}
+
+.autocomplete-dropdown button {
+  background-color: var(--card) !important;
+}
+
+.autocomplete-dropdown button:hover {
+  background-color: var(--muted) !important;
 }
 
 header {
   backdrop-filter: blur(28px) saturate(190%) !important;
   -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
-  background-color: hsl(var(--background) / 0.80) !important;
-  border-bottom: 1.5px solid rgba(15, 23, 42, 0.15) !important;
+  background-color: var(--background) !important;
+  border-bottom: 1.5px solid var(--border) !important;
 }
 
 .dark header,
-.amoled header {
-  border-bottom: 1.5px solid rgba(255, 255, 255, 0.18) !important;
+.amoled header,
+.midnight header,
+.sunset header,
+.forest header {
+  border-bottom: 1.5px solid var(--border) !important;
 }
 
 /* ==========================================================================
@@ -509,7 +613,12 @@ input,
   border: 1.5px solid rgba(255, 255, 255, 0.2);
 }
 
-.light .tab-pill {
+.light .tab-pill,
+.latte .tab-pill,
+.sky .tab-pill,
+.mint .tab-pill,
+.blush .tab-pill,
+.cream .tab-pill {
   border: 1.5px solid rgba(15, 23, 42, 0.15);
 }
 
@@ -549,16 +658,16 @@ input,
   background: hsl(var(--primary) / 0.65);
 }
 
-/* Material 3 Hero Surface */
+/* Material 3 Hero Surface - Enhanced Vibrant Gradient */
 .m3-hero-surface {
   position: relative;
   overflow: hidden;
   border-radius: 2rem !important;
-  background: linear-gradient(135deg, hsl(var(--primary) / 0.14) 0%, hsl(var(--primary) / 0.04) 100%) !important;
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.24) 0%, hsl(var(--primary) / 0.08) 100%) !important;
   border: 1.5px solid rgba(15, 23, 42, 0.2) !important;
   backdrop-filter: blur(32px) saturate(190%) !important;
   -webkit-backdrop-filter: blur(32px) saturate(190%) !important;
-  box-shadow: 0 12px 36px -6px hsl(var(--primary) / 0.12), inset 0 1px 1.5px rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 12px 36px -6px hsl(var(--primary) / 0.18), inset 0 1px 1.5px rgba(255, 255, 255, 0.7) !important;
 }
 
 .dark .m3-hero-surface,
@@ -566,9 +675,9 @@ input,
 .midnight .m3-hero-surface,
 .sunset .m3-hero-surface,
 .forest .m3-hero-surface {
-  background: linear-gradient(135deg, hsl(var(--primary) / 0.20) 0%, hsl(var(--primary) / 0.05) 100%) !important;
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.32) 0%, hsl(var(--primary) / 0.10) 100%) !important;
   border: 1.5px solid rgba(255, 255, 255, 0.28) !important;
-  box-shadow: 0 0 20px 2px rgba(255, 255, 255, 0.08), 0 16px 40px -6px rgba(0, 0, 0, 0.7), inset 0 1px 1.5px rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 0 24px 2px rgba(255, 255, 255, 0.10), 0 16px 40px -6px rgba(0, 0, 0, 0.75), inset 0 1px 1.5px rgba(255, 255, 255, 0.3) !important;
 }
 
 .m3-tonal-chip {
@@ -602,12 +711,12 @@ input,
 input,
 textarea,
 select {
-  color: hsl(var(--foreground));
+  color: var(--foreground);
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: hsl(var(--muted-foreground) / 0.7);
+  color: var(--muted-foreground);
 }
 
 input:-webkit-autofill,
@@ -616,7 +725,7 @@ input:-webkit-autofill:focus,
 textarea:-webkit-autofill,
 textarea:-webkit-autofill:hover,
 textarea:-webkit-autofill:focus {
-  -webkit-text-fill-color: hsl(var(--foreground));
-  -webkit-box-shadow: 0 0 0px 1000px hsl(var(--card)) inset;
+  -webkit-text-fill-color: var(--foreground);
+  -webkit-box-shadow: 0 0 0px 1000px var(--card) inset;
   transition: background-color 5000s ease-in-out 0s;
 }
