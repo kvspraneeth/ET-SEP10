@@ -15,8 +15,17 @@ export function Header({ onOpenNotifications }: HeaderProps) {
     <header className="app-header text-foreground p-3.5 sm:p-4 sticky top-0 z-40 shadow-xs backdrop-blur-2xl border-b border-border transition-colors duration-200">
       <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-3 min-w-0">
-          <div className="w-10 h-10 bg-primary/15 text-primary rounded-2xl flex items-center justify-center shadow-inner shrink-0 ring-1 ring-primary/25">
-            <Wallet className="w-5 h-5 stroke-[2.3]" />
+          <div className="w-10 h-10 bg-primary/15 text-primary rounded-2xl flex items-center justify-center shadow-inner shrink-0 ring-1 ring-primary/25 overflow-hidden">
+            <img 
+              src="/v3_logo-512.png" 
+              alt="Pocket Ledger" 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // Fallback to Wallet icon if image not available
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+            <Wallet className="w-5 h-5 stroke-[2.3] hidden only:block" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
