@@ -15,16 +15,16 @@ import {
 } from 'lucide-react';
 import { useSettings, useUpdateSettings } from '@/hooks/use-settings';
 import { useNotificationActions } from '@/hooks/use-notifications';
-import { 
-  useTheme, 
-  THEME_OPTIONS, 
+import {
+  useTheme,
+  THEME_OPTIONS,
   LIGHT_THEMES,
   DARK_THEMES,
-  PRIMARY_COLOR_OPTIONS, 
+  PRIMARY_COLOR_OPTIONS,
   GRADIENT_PRESETS,
   FONT_OPTIONS,
-  type Theme, 
-  type PrimaryColor, 
+  type Theme,
+  type PrimaryColor,
   type FontFamily,
   type CustomGradient
 } from '@/components/theme-provider';
@@ -186,19 +186,19 @@ function ManageCategoriesDialog({ children }: { children: React.ReactNode }) {
 export function Settings() {
   const settings = useSettings();
   const updateSettingsMutation = useUpdateSettings();
-  const { 
-    theme, 
-    setTheme, 
-    primaryColor, 
-    setPrimaryColor, 
+  const {
+    theme,
+    setTheme,
+    primaryColor,
+    setPrimaryColor,
     customHex,
     setCustomHex,
     customGradient,
     setCustomGradient,
     gradientPreset,
     setGradientPreset,
-    fontFamily, 
-    setFontFamily 
+    fontFamily,
+    setFontFamily
   } = useTheme();
   const { toast } = useToast();
   const { requestPermission, sendTestNotification } = useNotificationActions();
@@ -573,7 +573,7 @@ export function Settings() {
         try {
           const d = new Date(val);
           if (!isNaN(d.getTime())) return format(d, 'yyyy-MM-dd');
-        } catch {}
+        } catch { }
         return format(new Date(), 'yyyy-MM-dd');
       };
 
@@ -634,7 +634,7 @@ export function Settings() {
       const resolveAndRegisterCategory = (rawCatString: string): string => {
         if (!rawCatString) return 'groceries';
         const canonicalId = normalizeCategoryKey(activeCategories, rawCatString);
-        
+
         // If canonicalId is not among known categories and is a clean custom name, auto-create it
         const exists = activeCategories.some(c => c.id.toLowerCase() === canonicalId.toLowerCase());
         if (!exists && rawCatString.trim().length > 1 && !isGarbageCategory({ name: rawCatString })) {
@@ -873,8 +873,8 @@ export function Settings() {
             if (amt > 0 && name) {
               const rawCat = getCol(['category', 'cat']);
               const period = getCol(['period', 'frequency']).toLowerCase();
-              const canonicalCategory = (!rawCat || rawCat.toLowerCase() === 'overall') 
-                ? 'overall' 
+              const canonicalCategory = (!rawCat || rawCat.toLowerCase() === 'overall')
+                ? 'overall'
                 : resolveAndRegisterCategory(rawCat);
 
               budgetsToImport.push({
@@ -1024,9 +1024,8 @@ export function Settings() {
               </CardDescription>
             </div>
           </div>
-          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${
-            openSections.automation ? 'rotate-180 text-primary' : ''
-          }`} />
+          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${openSections.automation ? 'rotate-180 text-primary' : ''
+            }`} />
         </button>
 
         {openSections.automation && (
@@ -1154,29 +1153,27 @@ export function Settings() {
               </CardDescription>
             </div>
           </div>
-          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${
-            openSections.theme ? 'rotate-180 text-primary' : ''
-          }`} />
+          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${openSections.theme ? 'rotate-180 text-primary' : ''
+            }`} />
         </button>
 
         {openSections.theme && (
           <CardContent className="p-4 pt-1 space-y-5 border-t border-border/60 animate-in slide-in-from-top-2 duration-200">
-            
+
             {/* Theme Presets: Light vs Dark Tabs */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Theme Presets ({THEME_OPTIONS.length})
                 </Label>
-                
+
                 {/* Mode Filter Tab */}
                 <div className="flex bg-muted p-0.5 rounded-xl border border-border">
                   <button
                     type="button"
                     onClick={() => setThemeTab('light')}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                      themeTab === 'light' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'
-                    }`}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${themeTab === 'light' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'
+                      }`}
                   >
                     <Sun className="w-3.5 h-3.5 text-amber-500" />
                     <span>Light ({LIGHT_THEMES.length})</span>
@@ -1184,9 +1181,8 @@ export function Settings() {
                   <button
                     type="button"
                     onClick={() => setThemeTab('dark')}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                      themeTab === 'dark' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'
-                    }`}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${themeTab === 'dark' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'
+                      }`}
                   >
                     <Moon className="w-3.5 h-3.5 text-primary" />
                     <span>Dark ({DARK_THEMES.length})</span>
@@ -1203,11 +1199,10 @@ export function Settings() {
                       key={themeOpt.id}
                       type="button"
                       onClick={() => setTheme(themeOpt.id)}
-                      className={`p-3 rounded-2xl border text-left transition-all relative tap-spring flex flex-col justify-between ${
-                        isSelected
+                      className={`p-3 rounded-2xl border text-left transition-all relative tap-spring flex flex-col justify-between ${isSelected
                           ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 shadow-sm bg-primary/5'
                           : 'border-border hover:border-primary/40 bg-card'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-1.5">
@@ -1266,11 +1261,10 @@ export function Settings() {
                       key={colorOpt.id}
                       type="button"
                       onClick={() => setPrimaryColor(colorOpt.id)}
-                      className={`p-2 rounded-2xl border text-center transition-all tap-spring flex flex-col items-center gap-1.5 ${
-                        isSelected
+                      className={`p-2 rounded-2xl border text-center transition-all tap-spring flex flex-col items-center gap-1.5 ${isSelected
                           ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 bg-primary/5 shadow-xs'
                           : 'border-border hover:bg-muted/40'
-                      }`}
+                        }`}
                     >
                       <span
                         className="w-6 h-6 rounded-full border border-border shadow-xs flex items-center justify-center text-white"
@@ -1349,11 +1343,10 @@ export function Settings() {
                       key={grad.id}
                       type="button"
                       onClick={() => setGradientPreset(grad.id)}
-                      className={`p-2.5 rounded-2xl border text-left transition-all tap-spring flex items-center justify-between ${
-                        isSelected
+                      className={`p-2.5 rounded-2xl border text-left transition-all tap-spring flex items-center justify-between ${isSelected
                           ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 bg-primary/5 shadow-xs'
                           : 'border-border hover:bg-muted/40'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <div
@@ -1383,7 +1376,7 @@ export function Settings() {
                     style={{ background: `linear-gradient(135deg, ${customGradient.from}, ${customGradient.to})` }}
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex items-center gap-2 p-2 rounded-xl bg-card border border-border">
                     <input
@@ -1444,11 +1437,10 @@ export function Settings() {
                       key={fontOpt.id}
                       type="button"
                       onClick={() => setFontFamily(fontOpt.id)}
-                      className={`p-3 rounded-2xl border text-left transition-all tap-spring flex items-center justify-between ${
-                        isSelected
+                      className={`p-3 rounded-2xl border text-left transition-all tap-spring flex items-center justify-between ${isSelected
                           ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 bg-primary/5 shadow-xs'
                           : 'border-border hover:bg-muted/40'
-                      }`}
+                        }`}
                     >
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-1.5">
@@ -1493,9 +1485,8 @@ export function Settings() {
                 <CardTitle className="text-base font-bold text-foreground truncate">
                   Notifications & Smart Prompts
                 </CardTitle>
-                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
-                  settings.notifications !== false ? 'bg-emerald-500/15 text-emerald-600' : 'bg-muted text-muted-foreground'
-                }`}>
+                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${settings.notifications !== false ? 'bg-emerald-500/15 text-emerald-600' : 'bg-muted text-muted-foreground'
+                  }`}>
                   {settings.notifications !== false ? 'Active' : 'Disabled'}
                 </span>
                 <InfoButton
@@ -1508,9 +1499,8 @@ export function Settings() {
               </CardDescription>
             </div>
           </div>
-          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${
-            openSections.notifications ? 'rotate-180 text-primary' : ''
-          }`} />
+          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${openSections.notifications ? 'rotate-180 text-primary' : ''
+            }`} />
         </button>
 
         {openSections.notifications && (
@@ -1534,11 +1524,10 @@ export function Settings() {
               <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-xs text-foreground">Mobile & Web Push</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted'
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted'
                       ? 'bg-emerald-500/15 text-emerald-600'
                       : 'bg-amber-500/15 text-amber-600'
-                  }`}>
+                    }`}>
                     {typeof window !== 'undefined' && 'Notification' in window
                       ? (Notification.permission === 'granted' ? 'Active' : 'Setup Required')
                       : 'Not Supported'}
@@ -1675,9 +1664,8 @@ export function Settings() {
               </CardDescription>
             </div>
           </div>
-          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${
-            openSections.preferences ? 'rotate-180 text-primary' : ''
-          }`} />
+          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${openSections.preferences ? 'rotate-180 text-primary' : ''
+            }`} />
         </button>
 
         {openSections.preferences && (
@@ -1734,9 +1722,8 @@ export function Settings() {
               </CardDescription>
             </div>
           </div>
-          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${
-            openSections.backup ? 'rotate-180 text-primary' : ''
-          }`} />
+          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${openSections.backup ? 'rotate-180 text-primary' : ''
+            }`} />
         </button>
 
         {openSections.backup && (
@@ -1831,9 +1818,8 @@ export function Settings() {
               </CardDescription>
             </div>
           </div>
-          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${
-            openSections.danger ? 'rotate-180 text-rose-500' : ''
-          }`} />
+          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${openSections.danger ? 'rotate-180 text-rose-500' : ''
+            }`} />
         </button>
 
         {openSections.danger && (
@@ -1855,7 +1841,7 @@ export function Settings() {
 
       {/* App Info Footer */}
       <div className="flex flex-col items-center justify-center pt-2 gap-1 text-xs text-muted-foreground">
-        <span>Budget Pilot V3.0 · PWA Offline First</span>
+        <span>Pocket Ledger(Beta) · PWA Offline First</span>
         <div className="px-3 py-1 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground flex items-center space-x-1">
           <span>Made with</span>
           <span className="text-rose-500">❤️</span>

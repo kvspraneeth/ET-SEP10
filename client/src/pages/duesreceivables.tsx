@@ -391,13 +391,13 @@ export default function DuesReceivables() {
         </div>
       </div>
 
-      {/* Hero Net Balance & Health Card (Material 3 Style) */}
-      <Card className="m3-card overflow-hidden border-border bg-card shadow-xs">
+      {/* Hero Net Balance & Health Card (Light Greyish Gradient) */}
+      <Card className="m3-card overflow-hidden border bg-gradient-to-br from-zinc-100 via-slate-100/90 to-neutral-200/70 border-zinc-200/80 text-zinc-900 dark:bg-gradient-to-br dark:from-zinc-800 dark:via-zinc-700/60 dark:to-slate-800 dark:border-zinc-600/40 dark:text-zinc-50 shadow-xs">
         <CardContent className="p-5 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div className="space-y-1">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
                   Overall Net Position
                 </span>
                 <InfoButton
@@ -412,18 +412,18 @@ export default function DuesReceivables() {
                   {netBalance.type === 'receivable' ? '+' : '-'}{currencySymbol}{netBalance.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                  netBalance.type === 'receivable' ? 'bg-emerald-500/15 text-emerald-600' : 'bg-rose-500/15 text-rose-600'
+                  netBalance.type === 'receivable' ? 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' : 'bg-rose-500/15 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300'
                 }`}>
                   {netBalance.type === 'receivable' ? 'Net Receivable' : 'Net Due'}
                 </span>
               </div>
             </div>
 
-            {/* Quick KPI Badges */}
+            {/* Quick KPI Badges with Red & Green Gradients */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="flex-1 sm:flex-initial p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20">
+              <div className="flex-1 sm:flex-initial p-3 rounded-2xl bg-gradient-to-br from-rose-500/15 via-rose-500/10 to-red-600/5 border border-rose-500/25 shadow-xs">
                 <div className="flex items-center justify-between gap-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 block">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 block">
                     You Owe (Dues)
                   </span>
                   <InfoButton
@@ -436,9 +436,9 @@ export default function DuesReceivables() {
                 </span>
               </div>
 
-              <div className="flex-1 sm:flex-initial p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+              <div className="flex-1 sm:flex-initial p-3 rounded-2xl bg-gradient-to-br from-emerald-500/15 via-emerald-500/10 to-teal-600/5 border border-emerald-500/25 shadow-xs">
                 <div className="flex items-center justify-between gap-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 block">
                     Owed to You
                   </span>
                   <InfoButton
@@ -502,18 +502,18 @@ export default function DuesReceivables() {
 
       {/* Tab Switcher & Search/Filter Controls Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-        {/* Tab Switcher (One UI Pill Style) */}
+        {/* Tab Switcher (One UI Pill Style with Red & Green Gradients) */}
         <div className="flex bg-muted/80 p-1 rounded-full border border-border backdrop-blur-xl">
           <button
             type="button"
             onClick={() => setActiveTab('due')}
             className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all tap-spring ${
               activeTab === 'due'
-                ? 'bg-card text-rose-600 dark:text-rose-400 shadow-xs ring-1 ring-border'
-                : 'text-muted-foreground hover:text-foreground'
+                ? 'bg-gradient-to-r from-rose-500 via-rose-600 to-red-600 text-white shadow-md shadow-rose-500/25 ring-1 ring-rose-400/30'
+                : 'text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10'
             }`}
           >
-            <ArrowUpRight className="w-3.5 h-3.5" />
+            <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Dues to Pay ({pendingDebts.filter(d => d.type === 'due').length})</span>
           </button>
 
@@ -522,11 +522,11 @@ export default function DuesReceivables() {
             onClick={() => setActiveTab('receivable')}
             className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all tap-spring ${
               activeTab === 'receivable'
-                ? 'bg-card text-emerald-600 dark:text-emerald-400 shadow-xs ring-1 ring-border'
-                : 'text-muted-foreground hover:text-foreground'
+                ? 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/25 ring-1 ring-emerald-400/30'
+                : 'text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-500/10'
             }`}
           >
-            <ArrowDownRight className="w-3.5 h-3.5" />
+            <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Receivables ({pendingDebts.filter(d => d.type === 'receivable').length})</span>
           </button>
         </div>
@@ -872,15 +872,15 @@ export default function DuesReceivables() {
           </DialogHeader>
 
           <form onSubmit={(e) => { e.preventDefault(); saveDebt(); }} className="p-4 space-y-4">
-            {/* Record Type Selector */}
+            {/* Record Type Selector with Red & Green Gradients */}
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setActiveTab('due')}
-                className={`py-2 rounded-xl text-xs font-bold border transition-all ${
+                className={`py-2 rounded-xl text-xs font-bold transition-all tap-spring ${
                   activeTab === 'due'
-                    ? 'bg-rose-500/15 border-rose-500 text-rose-600 dark:text-rose-400 shadow-xs'
-                    : 'border-border text-muted-foreground'
+                    ? 'bg-gradient-to-r from-rose-500 via-rose-600 to-red-600 text-white shadow-md shadow-rose-500/25 ring-1 ring-rose-400/30'
+                    : 'border border-border text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400'
                 }`}
               >
                 Due (I Owe)
@@ -888,10 +888,10 @@ export default function DuesReceivables() {
               <button
                 type="button"
                 onClick={() => setActiveTab('receivable')}
-                className={`py-2 rounded-xl text-xs font-bold border transition-all ${
+                className={`py-2 rounded-xl text-xs font-bold transition-all tap-spring ${
                   activeTab === 'receivable'
-                    ? 'bg-emerald-500/15 border-emerald-500 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                    : 'border-border text-muted-foreground'
+                    ? 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/25 ring-1 ring-emerald-400/30'
+                    : 'border border-border text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400'
                 }`}
               >
                 Receivable (Owed to Me)

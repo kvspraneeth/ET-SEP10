@@ -12,7 +12,7 @@ export function Header({ onOpenNotifications }: HeaderProps) {
   const { unreadCount } = useNotifications();
 
   return (
-    <header className="bg-card/80 text-foreground p-3.5 sm:p-4 sticky top-0 z-40 shadow-xs backdrop-blur-2xl border-b border-border transition-colors duration-200">
+    <header className="app-header text-foreground p-3.5 sm:p-4 sticky top-0 z-40 shadow-xs backdrop-blur-2xl border-b border-border transition-colors duration-200">
       <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-3 min-w-0">
           <div className="w-10 h-10 bg-primary/15 text-primary rounded-2xl flex items-center justify-center shadow-inner shrink-0 ring-1 ring-primary/25">
@@ -21,16 +21,16 @@ export function Header({ onOpenNotifications }: HeaderProps) {
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <h1 className="text-lg sm:text-xl font-black tracking-tight truncate text-foreground">
-                Budget Pilot
+                Pocket Ledger
               </h1>
               <span className="text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20 tracking-wider shrink-0">
-                V3
+                Beta(v3)
               </span>
             </div>
             <p className="text-xs text-muted-foreground truncate font-semibold">Smart Finance & Habits</p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2 shrink-0">
           <Button
             variant="ghost"

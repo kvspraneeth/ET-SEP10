@@ -1,6 +1,6 @@
-import { 
-  Home, ReceiptText, ArrowLeftRight, BarChart3, Wallet2, 
-  SlidersHorizontal, Plus 
+import {
+  Home, ReceiptText, ArrowLeftRight, BarChart3, Wallet2,
+  SlidersHorizontal, Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -13,21 +13,21 @@ interface BottomNavigationProps {
 export function BottomNavigation({ activeTab, onTabChange, onAddClick }: BottomNavigationProps) {
   const leftTabs = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'expenses', label: 'Expenses', icon: ReceiptText },
     { id: 'debts', label: 'Dues', icon: ArrowLeftRight },
+    { id: 'budget', label: 'Budget', icon: Wallet2 },
   ];
 
   const rightTabs = [
+    { id: 'expenses', label: 'Expenses', icon: ReceiptText },
     { id: 'charts', label: 'Charts', icon: BarChart3 },
-    { id: 'budget', label: 'Budget', icon: Wallet2 },
     { id: 'settings', label: 'Settings', icon: SlidersHorizontal },
   ];
 
   return (
     <div className="fixed bottom-3 sm:bottom-4 inset-x-0 z-40 flex justify-center px-3 pointer-events-none">
-      <nav className="pointer-events-auto w-full max-w-md rounded-full bg-card/90 dark:bg-card/90 backdrop-blur-2xl border border-border/80 shadow-[0_10px_35px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.65)] px-2 py-1.5 transition-all">
+      <nav className="bottom-nav-capsule pointer-events-auto w-full max-w-md rounded-full border border-border/80 shadow-[0_10px_35px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.65)] px-2 py-1.5 transition-all">
         <div className="grid grid-cols-7 items-center justify-items-center relative">
-          
+
           {/* Left Tabs */}
           {leftTabs.map((tab) => {
             const Icon = tab.icon;

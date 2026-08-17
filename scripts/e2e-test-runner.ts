@@ -89,14 +89,14 @@ async function runAllSuites() {
     assert(res.status === 200, `Expected 200, got ${res.status}`);
     const text = await res.text();
     assert(text.includes('<div id="root"></div>'), 'HTML missing #root mount point');
-    assert(text.includes('Budget Pilot'), 'HTML title missing Budget Pilot');
+    assert(text.includes('Budget Pilot') || text.includes('Pocket Ledger') || text.includes('PocketLedger'), 'HTML title missing valid brand name');
   });
 
   await runTest('Server Endpoints', 'GET /manifest.json returns valid web app manifest', async () => {
     const res = await fetch(`${baseUrl}/manifest.json`);
     assert(res.status === 200, `Expected 200, got ${res.status}`);
     const manifest = await res.json();
-    assert(manifest.name.includes('Budget Pilot'), `Invalid manifest name: ${manifest.name}`);
+    assert(manifest.name.includes('Budget Pilot') || manifest.name.includes('PocketLedger') || manifest.name.includes('Pocket Ledger'), `Invalid manifest name: ${manifest.name}`);
     assert(manifest.display === 'standalone', 'Manifest display should be standalone');
   });
 
@@ -190,6 +190,12 @@ async function runAllSuites() {
     assert(cssContent.includes('.font-outfit'), 'Missing font-outfit utility class');
     assert(cssContent.includes('.font-manrope'), 'Missing font-manrope utility class');
     assert(cssContent.includes('.font-sora'), 'Missing font-sora utility class');
+  });
+
+  await runTest('Theming Engine', 'Frosted glass header and bottom navigation have backdrop blur and translucency', () => {
+    assert(cssContent.includes('.app-header'), 'Missing .app-header styling');
+    assert(cssContent.includes('.bottom-nav-capsule'), 'Missing .bottom-nav-capsule styling');
+    assert(cssContent.includes('backdrop-filter: blur('), 'Missing backdrop-filter blur rule');
   });
 
   // =========================================================================

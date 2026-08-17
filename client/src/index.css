@@ -379,13 +379,27 @@ optgroup,
    Samsung One UI 8.5 Frosted Glass & Border Glow Everywhere (Corner-to-Corner)
    ========================================================================== */
 
+/* Frosted Glass Sticky Header with Real-Time Dynamic Blur */
+header.sticky,
+.app-header {
+  background-color: color-mix(in srgb, var(--card) 75%, transparent) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Floating Bottom Navigation Bar (Ultra Frosted Glass Capsule) */
+nav.bottom-nav-capsule,
+.bottom-nav-capsule {
+  background-color: color-mix(in srgb, var(--card) 75%, transparent) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid var(--border) !important;
+}
+
 /* Light Mode & All Light Themes: Crisp Blackish-Grey Borders with Specular Glow */
-.light .bg-card,
-.latte .bg-card,
-.sky .bg-card,
-.mint .bg-card,
-.blush .bg-card,
-.cream .bg-card,
 .light .m3-card,
 .latte .m3-card,
 .sky .m3-card,
@@ -404,7 +418,6 @@ optgroup,
 .mint .glass-panel,
 .blush .glass-panel,
 .cream .glass-panel,
-:root .bg-card,
 :root .m3-card,
 :root .glass-card,
 :root .glass-panel {
@@ -416,15 +429,11 @@ optgroup,
 }
 
 /* Dark Mode: Luminous Frosted Platinum-Grey Glow Borders */
-.dark .bg-card,
 .dark .m3-card,
 .dark .glass-card,
 .dark .glass-panel,
-.midnight .bg-card,
 .midnight .m3-card,
-.sunset .bg-card,
 .sunset .m3-card,
-.forest .bg-card,
 .forest .m3-card {
   background-color: var(--card) !important;
   color: var(--foreground) !important;
@@ -433,8 +442,7 @@ optgroup,
   box-shadow: 0 0 16px 1px rgba(255, 255, 255, 0.08), 0 12px 36px -4px rgba(0, 0, 0, 0.6), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.22) !important;
 }
 
-/* AMOLED: Deep Black Glass with Radiant Grey Metallic Border Glow */
-.amoled .bg-card,
+/* AMOLED: Deep Black Glass with Radiant Metallic Glow */
 .amoled .m3-card,
 .amoled .glass-card,
 .amoled .glass-panel {
