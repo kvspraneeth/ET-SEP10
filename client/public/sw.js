@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pocket-ledger-v3.3';
+const CACHE_NAME = 'pocket-ledger-v3.4';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -6,11 +6,11 @@ const urlsToCache = [
   '/icons/v3_logo_512.png',
   '/icons/v3_maskable_192.png',
   '/icons/v3_maskable_512.png',
+  '/shortcuts/widgets.png',
   '/shortcuts/add.png',
   '/shortcuts/dues.png',
   '/shortcuts/charts.png',
   '/shortcuts/budget.png',
-  '/shortcuts/widgets.png',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'
 ];
 
@@ -98,8 +98,8 @@ self.addEventListener('push', (event) => {
       const data = event.data.json();
       const options = {
         body: data.body || 'You have a new update from Pocket Ledger.',
-        icon: '/icons/v3_maskable_512.png',
-        badge: '/icons/v3_maskable_512.png',
+        icon: '/icons/v3_logo_512.png',
+        badge: '/icons/v3_logo_192.png',
         vibrate: [200, 100, 200],
         tag: data.tag || 'pocket-ledger-alert',
         data: {

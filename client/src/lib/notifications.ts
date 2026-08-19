@@ -84,8 +84,8 @@ export async function dispatchBrowserNotification(title: string, options?: Notif
     if (!isGranted) return;
 
     const notificationPayload: any = {
-      icon: '/icons/v3_maskable_512.png',
-      badge: '/icons/v3_maskable_512.png',
+      icon: '/icons/v3_logo_512.png',
+      badge: '/icons/v3_logo_192.png',
       vibrate: [200, 100, 200, 100, 200],
       tag: options?.tag || `pocket-ledger-${Date.now()}`,
       renotify: true,

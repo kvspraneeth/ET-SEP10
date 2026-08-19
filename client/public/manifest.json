@@ -44,6 +44,19 @@
   ],
   "shortcuts": [
     {
+      "name": "Glass Widgets",
+      "short_name": "Widgets",
+      "description": "Open Mobile Glass Widgets Studio & Speed Loggers",
+      "url": "/?tab=widgets",
+      "icons": [
+        {
+          "src": "/shortcuts/widgets.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
       "name": "Add Expense",
       "short_name": "Add",
       "description": "Quickly add a new expense",
@@ -90,19 +103,6 @@
       "icons": [
         {
           "src": "/shortcuts/budget.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "Glass Widgets",
-      "short_name": "Widgets",
-      "description": "Open Mobile Glass Widgets Studio & Speed Loggers",
-      "url": "/?tab=widgets",
-      "icons": [
-        {
-          "src": "/shortcuts/widgets.png",
           "sizes": "192x192",
           "type": "image/png"
         }
