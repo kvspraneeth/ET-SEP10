@@ -430,9 +430,33 @@ async function runAllSuites() {
       assert(fs.existsSync(iconPath), `App icon file not found on disk: ${iconRel}`);
     }
 
-    // Check widgets
-    assert(Array.isArray(manifest.widgets), 'manifest.json must have widgets array');
-    assert(manifest.widgets.length >= 2, 'manifest.json must declare at least 2 PWA widgets');
+    assert(manifest.shortcuts[0].short_name === 'Widgets', 'First shortcut must be Widgets');
+  });
+
+  await runTest('Native Android Container & Samsung Widgets', 'Android project defines native widgets, providers, and deep links', () => {
+    const capConfigPath = path.resolve(process.cwd(), 'capacitor.config.ts');
+    const manifestXmlPath = path.resolve(process.cwd(), 'android/app/src/main/AndroidManifest.xml');
+    const quickLogLayout = path.resolve(process.cwd(), 'android/app/src/main/res/layout/widget_quick_log.xml');
+    const budgetLayout = path.resolve(process.cwd(), 'android/app/src/main/res/layout/widget_budget_gauge.xml');
+    const duesLayout = path.resolve(process.cwd(), 'android/app/src/main/res/layout/widget_dues.xml');
+    const quickLogJava = path.resolve(process.cwd(), 'android/app/src/main/java/com/budgetpilot/app/QuickLogWidgetProvider.java');
+    const budgetJava = path.resolve(process.cwd(), 'android/app/src/main/java/com/budgetpilot/app/BudgetGaugeWidgetProvider.java');
+    const duesJava = path.resolve(process.cwd(), 'android/app/src/main/java/com/budgetpilot/app/DuesWidgetProvider.java');
+
+    assert(fs.existsSync(capConfigPath), 'capacitor.config.ts must exist');
+    assert(fs.existsSync(manifestXmlPath), 'AndroidManifest.xml must exist');
+    assert(fs.existsSync(quickLogLayout), 'widget_quick_log.xml must exist');
+    assert(fs.existsSync(budgetLayout), 'widget_budget_gauge.xml must exist');
+    assert(fs.existsSync(duesLayout), 'widget_dues.xml must exist');
+    assert(fs.existsSync(quickLogJava), 'QuickLogWidgetProvider.java must exist');
+    assert(fs.existsSync(budgetJava), 'BudgetGaugeWidgetProvider.java must exist');
+    assert(fs.existsSync(duesJava), 'DuesWidgetProvider.java must exist');
+
+    const manifestContent = fs.readFileSync(manifestXmlPath, 'utf8');
+    assert(manifestContent.includes('scheme="budgetpilot"'), 'AndroidManifest.xml must contain budgetpilot deep link schema');
+    assert(manifestContent.includes('QuickLogWidgetProvider'), 'AndroidManifest.xml must declare QuickLogWidgetProvider');
+    assert(manifestContent.includes('BudgetGaugeWidgetProvider'), 'AndroidManifest.xml must declare BudgetGaugeWidgetProvider');
+    assert(manifestContent.includes('DuesWidgetProvider'), 'AndroidManifest.xml must declare DuesWidgetProvider');
   });
 
   await runTest('Excel & Recurring Engine Fidelity', 'Settings page preserves categories and recurring rules on Excel import/export', () => {

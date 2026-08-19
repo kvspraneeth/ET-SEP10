@@ -21,6 +21,9 @@ import { cleanupAndDeduplicateCategories } from "./lib/categories";
 import { runAllNotificationChecks } from "./lib/notifications";
 import db from "./lib/db";
 
+import { App as CapApp } from '@capacitor/app';
+import { format } from "date-fns";
+
 function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
@@ -29,15 +32,37 @@ function App() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [standaloneWidgetId, setStandaloneWidgetId] = useState<string | null>(null);
 
-  // Handle URL Query Parameters on mount (for PWA App Shortcuts & Pin Links)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const action = params.get('action');
-      const tab = params.get('tab');
-      const widget = params.get('widget');
+  // Helper to handle navigation from Web URLs, PWA Shortcuts & Native Android Widgets
+  const handleUrlNavigation = (urlStr: string) => {
+    try {
+      const cleanUrl = urlStr.replace('budgetpilot://', window.location.origin + '/?');
+      const parsed = new URL(cleanUrl.startsWith('http') ? cleanUrl : window.location.origin + '/' + cleanUrl);
+      const action = parsed.searchParams.get('action') || (urlStr.includes('quick-log') ? 'quick-log' : null);
+      const tab = parsed.searchParams.get('tab');
+      const amount = parsed.searchParams.get('amount');
+      const widget = parsed.searchParams.get('widget');
 
-      if (action === 'add-expense' || action === 'add') {
+      if (action === 'quick-log' && amount) {
+        const numAmount = parseFloat(amount) || 100;
+        db.expenses.add({
+          id: crypto.randomUUID(),
+          amount: numAmount,
+          date: format(new Date(), 'yyyy-MM-dd'),
+          time: format(new Date(), 'HH:mm'),
+          items: `Quick Log ₹${numAmount}`,
+          category: 'food',
+          paymentMethod: 'UPI',
+          account: 'SBI',
+          isRecurring: false,
+          isTemplate: false,
+          attachments: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }).then(() => {
+          queryClient.invalidateQueries({ queryKey: ['expenses'] });
+        });
+        setActiveTab('expenses');
+      } else if (action === 'add-expense' || action === 'add') {
         setIsExpenseFormOpen(true);
       } else if (tab) {
         if (['home', 'expenses', 'debts', 'dues', 'charts', 'budget', 'settings', 'widgets'].includes(tab)) {
@@ -47,6 +72,33 @@ function App() {
         setStandaloneWidgetId(widget);
         setActiveTab('widgets');
       }
+    } catch (e) {
+      console.warn('Navigation URL parsing error:', e);
+    }
+  };
+
+  // Handle URL Query Parameters on mount and listen to Native Deep Links
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      handleUrlNavigation(window.location.href);
+
+      // Listen for Native Android/iOS Deep Links (e.g. from Widgets)
+      let listenerHandle: any = null;
+      try {
+        CapApp.addListener('appUrlOpen', (data) => {
+          if (data && data.url) {
+            handleUrlNavigation(data.url);
+          }
+        }).then(h => { listenerHandle = h; });
+      } catch (e) {
+        // Running purely in browser
+      }
+
+      return () => {
+        if (listenerHandle && typeof listenerHandle.remove === 'function') {
+          listenerHandle.remove();
+        }
+      };
     }
   }, []);
 

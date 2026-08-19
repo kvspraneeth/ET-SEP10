@@ -9,9 +9,16 @@
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "check": "tsc",
     "test:e2e": "tsx scripts/e2e-test-runner.ts",
+    "test:playwright": "tsx scripts/playwright-e2e-bot.ts",
+    "cap:sync": "npm run build && npx cap sync android",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@neondatabase/serverless": "^0.10.4",
@@ -84,6 +91,8 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.6.8",
+    "@playwright/test": "^1.62.1",
     "@replit/vite-plugin-cartographer": "^0.2.7",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",

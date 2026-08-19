@@ -146,54 +146,6 @@
       "label": "Desktop Workspace"
     }
   ],
-  "widgets": [
-    {
-      "name": "Pocket Ledger Quick Log",
-      "short_name": "Quick Log",
-      "description": "1-Tap Expense Speed Logger and Recent Balance",
-      "tag": "pocket-ledger-quick-log",
-      "template": "widget-quick-log",
-      "ms_ac_template": "/widgets/quick-log.json",
-      "data": "/?tab=widgets",
-      "type": "application/json",
-      "screenshots": [
-        {
-          "src": "/Mobile Screenshots/Widgets_pg1.jpeg",
-          "sizes": "1080x1920",
-          "label": "Quick Log Widget Preview"
-        }
-      ],
-      "icons": [
-        {
-          "src": "/shortcuts/widgets.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Budget Health Gauge",
-      "short_name": "Budget Gauge",
-      "description": "Monthly Budget Progress & Safe Daily Burn Rate",
-      "tag": "pocket-ledger-budget-gauge",
-      "template": "widget-budget",
-      "ms_ac_template": "/widgets/budget.json",
-      "data": "/?tab=widgets",
-      "type": "application/json",
-      "screenshots": [
-        {
-          "src": "/Mobile Screenshots/Widgets_pg1.jpeg",
-          "sizes": "1080x1920",
-          "label": "Budget Health Preview"
-        }
-      ],
-      "icons": [
-        {
-          "src": "/shortcuts/budget.png",
-          "sizes": "192x192"
-        }
-      ]
-    }
-  ],
   "share_target": {
     "action": "/",
     "method": "GET",
