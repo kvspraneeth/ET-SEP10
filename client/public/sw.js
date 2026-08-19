@@ -93,40 +93,65 @@ async function syncExpenses() {
   }
 }
 
-// Push notifications for budget alerts
+// Push notifications for budget alerts & smart prompts
 self.addEventListener('push', (event) => {
   if (event.data) {
-    const data = event.data.json();
-    const options = {
-      body: data.body,
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: 'budget-alert',
-      actions: [
-        {
-          action: 'view',
-          title: 'View Budget'
+    try {
+      const data = event.data.json();
+      const options = {
+        body: data.body || 'You have a new update from Pocket Ledger.',
+        icon: '/v3_logo-512.png',
+        badge: '/v3_logo-512.png',
+        vibrate: [200, 100, 200],
+        tag: data.tag || 'pocket-ledger-alert',
+        data: {
+          url: data.url || '/',
         },
-        {
-          action: 'dismiss',
-          title: 'Dismiss'
-        }
-      ]
-    };
+        actions: [
+          {
+            action: 'view',
+            title: 'Open Ledger'
+          },
+          {
+            action: 'dismiss',
+            title: 'Dismiss'
+          }
+        ]
+      };
 
-    event.waitUntil(
-      self.registration.showNotification(data.title, options)
-    );
+      event.waitUntil(
+        self.registration.showNotification(data.title || 'Pocket Ledger', options)
+      );
+    } catch (e) {
+      console.warn('Failed to parse push data:', e);
+    }
   }
 });
 
-// Handle notification clicks
+// Handle notification clicks (deep-linking to tabs or focus open window)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  if (event.action === 'view') {
-    event.waitUntil(
-      clients.openWindow('/?tab=budget')
-    );
+  if (event.action === 'dismiss') {
+    return;
   }
+
+  const targetUrl = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          if ('navigate' in client && targetUrl !== '/') {
+            client.navigate(targetUrl);
+          }
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
 });
+

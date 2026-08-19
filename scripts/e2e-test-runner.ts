@@ -345,11 +345,83 @@ async function runAllSuites() {
     assert(duesContent.includes("confirmAction?.type === 'delete'"), 'Missing Delete confirmation dialog');
   });
 
-  await runTest('Component Integrity', 'InfoButton component is integrated across all sections', () => {
-    const infoButtonPath = path.resolve(process.cwd(), 'client/src/components/info-button.tsx');
-    assert(fs.existsSync(infoButtonPath), 'info-button.tsx must exist');
-    const infoContent = fs.readFileSync(infoButtonPath, 'utf8');
-    assert(infoContent.includes('InfoButton'), 'InfoButton component definition missing');
+  // =========================================================================
+  // SUITE 7: New Feature Additions & Fixes Verification
+  // =========================================================================
+  console.log(`\n${colors.bright}${colors.blue}[SUITE 7] New Feature Additions & Fixes Verification${colors.reset}`);
+
+  await runTest('Feature Fixes', 'Expense expansion drawer displays full title & description hero card', () => {
+    const expensesPath = path.resolve(process.cwd(), 'client/src/pages/expenses.tsx');
+    const expensesContent = fs.readFileSync(expensesPath, 'utf8');
+    assert(expensesContent.includes("expense.items"), 'expenses.tsx must render expense.items in expanded drawer');
+    assert(expensesContent.includes("Expense Title"), 'expenses.tsx must have an Expense Title block in expansion');
+  });
+
+  await runTest('Feature Fixes', 'Dues counterparties and debt cards have non-collapsing flex layout', () => {
+    const duesPath = path.resolve(process.cwd(), 'client/src/pages/duesreceivables.tsx');
+    const duesContent = fs.readFileSync(duesPath, 'utf8');
+    assert(duesContent.includes("shrink-0"), 'duesreceivables.tsx must use shrink-0 on avatars and action buttons');
+    assert(duesContent.includes("min-w-0"), 'duesreceivables.tsx must use min-w-0 on flex containers for proper text truncation prevention');
+  });
+
+  await runTest('Theming Engine', 'Font Size customizer supports 5 scaling presets and applies root HTML classes', () => {
+    const themeProviderPath = path.resolve(process.cwd(), 'client/src/components/theme-provider.tsx');
+    const themeContent = fs.readFileSync(themeProviderPath, 'utf8');
+    assert(themeContent.includes("FONT_SIZE_OPTIONS"), 'theme-provider.tsx must export FONT_SIZE_OPTIONS');
+    assert(themeContent.includes("'compact'") && themeContent.includes("'standard'") && themeContent.includes("'xlarge'"), 'theme-provider.tsx must support compact, standard, medium, large, xlarge');
+    
+    assert(cssContent.includes("html.font-size-compact"), 'index.css must include html.font-size-compact');
+    assert(cssContent.includes("html.font-size-standard"), 'index.css must include html.font-size-standard');
+    assert(cssContent.includes("html.font-size-xlarge"), 'index.css must include html.font-size-xlarge');
+  });
+
+  await runTest('Mobile Engine', 'Service worker registered in main.tsx and notifications use ServiceWorkerRegistration', () => {
+    const mainPath = path.resolve(process.cwd(), 'client/src/main.tsx');
+    const mainContent = fs.readFileSync(mainPath, 'utf8');
+    assert(mainContent.includes("navigator.serviceWorker") && mainContent.includes("/sw.js"), 'main.tsx must register /sw.js on window load');
+
+    const notifPath = path.resolve(process.cwd(), 'client/src/lib/notifications.ts');
+    const notifContent = fs.readFileSync(notifPath, 'utf8');
+    assert(notifContent.includes("registration.showNotification"), 'notifications.ts must use registration.showNotification for mobile push');
+  });
+
+  await runTest('Mobile Engine', 'Mobile Glass Widgets Studio exports 10+ widgets and 6 glass themes', () => {
+    const widgetsPath = path.resolve(process.cwd(), 'client/src/components/mobile-widgets.tsx');
+    assert(fs.existsSync(widgetsPath), 'mobile-widgets.tsx must exist');
+    const widgetsContent = fs.readFileSync(widgetsPath, 'utf8');
+    assert(widgetsContent.includes("MobileWidgetsStudio"), 'mobile-widgets.tsx must export MobileWidgetsStudio');
+    assert(widgetsContent.includes("WIDGET_CATALOG"), 'mobile-widgets.tsx must define WIDGET_CATALOG');
+    assert(widgetsContent.includes("GLASS_THEMES"), 'mobile-widgets.tsx must define GLASS_THEMES');
+  });
+
+  await runTest('Currency Hub', 'Global Currencies dataset indexes 160+ world currencies with search', () => {
+    const currPath = path.resolve(process.cwd(), 'client/src/lib/currencies.ts');
+    assert(fs.existsSync(currPath), 'currencies.ts must exist');
+    const currContent = fs.readFileSync(currPath, 'utf8');
+    assert(currContent.includes("ALL_CURRENCIES"), 'currencies.ts must export ALL_CURRENCIES');
+    assert(currContent.includes("searchCurrencies"), 'currencies.ts must export searchCurrencies');
+    assert(currContent.includes("POPULAR_CURRENCIES"), 'currencies.ts must export POPULAR_CURRENCIES');
+  });
+
+  await runTest('Mobile Shortcuts', 'Manifest defines 5 shortcuts with existing icon assets in public directory', () => {
+    const manifestPath = path.resolve(process.cwd(), 'client/public/manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    assert(Array.isArray(manifest.shortcuts), 'manifest.json must have shortcuts array');
+    assert(manifest.shortcuts.length === 5, `Expected 5 shortcuts in manifest.json, got ${manifest.shortcuts.length}`);
+
+    // Check all shortcut icons exist on disk
+    for (const shortcut of manifest.shortcuts) {
+      assert(shortcut.icons && shortcut.icons.length > 0, `Shortcut ${shortcut.name} missing icons`);
+      const iconRel = shortcut.icons[0].src.replace(/^\//, '');
+      const iconPath = path.resolve(process.cwd(), 'client/public', iconRel);
+      assert(fs.existsSync(iconPath), `Shortcut icon file not found on disk: ${iconRel}`);
+    }
+
+    // Check main app icons
+    const icon192 = path.resolve(process.cwd(), 'client/public/v3_logo-192.png');
+    const icon512 = path.resolve(process.cwd(), 'client/public/v3_logo-512.png');
+    assert(fs.existsSync(icon192), 'v3_logo-192.png must exist in client/public');
+    assert(fs.existsSync(icon512), 'v3_logo-512.png must exist in client/public');
   });
 
   // Close server

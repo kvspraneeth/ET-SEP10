@@ -7,6 +7,7 @@ export type Theme =
 
 export type PrimaryColor = 'violet' | 'emerald' | 'blue' | 'amber' | 'rose' | 'teal' | 'indigo' | 'gold' | 'custom' | 'gradient';
 export type FontFamily = 'jakarta' | 'outfit' | 'inter' | 'manrope' | 'sora';
+export type FontSize = 'compact' | 'standard' | 'medium' | 'large' | 'xlarge';
 
 export interface ThemeOption {
   id: Theme;
@@ -45,6 +46,22 @@ export interface FontOption {
   label: string;
   fontClass: string;
 }
+
+export interface FontSizeOption {
+  id: FontSize;
+  name: string;
+  label: string;
+  percentage: string;
+  pxSize: string;
+}
+
+export const FONT_SIZE_OPTIONS: FontSizeOption[] = [
+  { id: 'compact', name: 'Compact', label: 'Dense & Compact', percentage: '88%', pxSize: '14px' },
+  { id: 'standard', name: 'Standard', label: 'Balanced Default', percentage: '100%', pxSize: '16px' },
+  { id: 'medium', name: 'Medium', label: 'Comfortable', percentage: '108%', pxSize: '17.5px' },
+  { id: 'large', name: 'Large', label: 'High Readability', percentage: '118%', pxSize: '19px' },
+  { id: 'xlarge', name: 'Extra Large', label: 'Maximum Size', percentage: '128%', pxSize: '21px' },
+];
 
 export const LIGHT_THEMES: ThemeOption[] = [
   { id: 'light', name: 'Clean Milk', description: 'Pure, bright & high readability', bgHex: '#fcfcfc', cardHex: '#ffffff', isDark: false, tag: 'Standard' },
@@ -147,6 +164,8 @@ type ThemeProviderState = {
   setGradientPreset: (presetId: string) => void;
   fontFamily: FontFamily;
   setFontFamily: (font: FontFamily) => void;
+  fontSize: FontSize;
+  setFontSize: (size: FontSize) => void;
   toggleTheme: () => void;
   isDarkTheme: boolean;
 };
@@ -164,6 +183,8 @@ const initialState: ThemeProviderState = {
   setGradientPreset: () => null,
   fontFamily: 'jakarta',
   setFontFamily: () => null,
+  fontSize: 'standard',
+  setFontSize: () => null,
   toggleTheme: () => null,
   isDarkTheme: false,
 };
@@ -233,6 +254,16 @@ export function ThemeProvider({
     return 'jakarta';
   });
 
+  const [fontSize, setFontSizeState] = useState<FontSize>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('font_size') as FontSize;
+      if (saved && ['compact', 'standard', 'medium', 'large', 'xlarge'].includes(saved)) {
+        return saved;
+      }
+    }
+    return 'standard';
+  });
+
   // Load from IndexedDB on startup
   useEffect(() => {
     db.settings.toCollection().first().then((settings) => {
@@ -250,6 +281,9 @@ export function ThemeProvider({
         }
         if (settings.fontFamily && ['jakarta', 'outfit', 'inter', 'manrope', 'sora'].includes(settings.fontFamily)) {
           setFontFamilyState(settings.fontFamily as FontFamily);
+        }
+        if (settings.fontSize && ['compact', 'standard', 'medium', 'large', 'xlarge'].includes(settings.fontSize)) {
+          setFontSizeState(settings.fontSize as FontSize);
         }
       }
     }).catch(err => console.warn('Could not load theme from DB:', err));
@@ -325,6 +359,11 @@ export function ThemeProvider({
       document.body.style.setProperty('--font-app', fontMap[fontFamily] || fontMap.jakarta);
     }
 
+    // Apply Font Size scaling classes
+    const fontSizeClasses = ['font-size-compact', 'font-size-standard', 'font-size-medium', 'font-size-large', 'font-size-xlarge'];
+    fontSizeClasses.forEach(cls => root.classList.remove(cls));
+    root.classList.add(`font-size-${fontSize}`);
+
     // Update meta theme-color for browser tab / mobile status bar
     const selectedThemeObj = THEME_OPTIONS.find(t => t.id === theme);
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
@@ -338,7 +377,8 @@ export function ThemeProvider({
     localStorage.setItem('custom_gradient', JSON.stringify(customGradient));
     localStorage.setItem('gradient_preset', gradientPreset);
     localStorage.setItem('font_family', fontFamily);
-  }, [theme, primaryColor, customHex, customGradient, gradientPreset, fontFamily]);
+    localStorage.setItem('font_size', fontSize);
+  }, [theme, primaryColor, customHex, customGradient, gradientPreset, fontFamily, fontSize]);
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
@@ -395,6 +435,15 @@ export function ThemeProvider({
     }).catch(() => null);
   };
 
+  const setFontSize = (newSize: FontSize) => {
+    setFontSizeState(newSize);
+    db.settings.toCollection().first().then((current) => {
+      if (current) {
+        db.settings.update(current.id, { fontSize: newSize });
+      }
+    }).catch(() => null);
+  };
+
   const toggleTheme = () => {
     const isDark = DARK_THEMES.some(t => t.id === theme);
     setTheme(isDark ? 'light' : 'dark');
@@ -415,6 +464,8 @@ export function ThemeProvider({
     setGradientPreset,
     fontFamily,
     setFontFamily,
+    fontSize,
+    setFontSize,
     toggleTheme,
     isDarkTheme,
   };

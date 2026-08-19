@@ -476,20 +476,20 @@ export default function DuesReceivables() {
                   setFilterPerson(cp.name);
                   setSearchTerm(cp.name);
                 }}
-                className="p-3 rounded-2xl border border-border bg-card hover:bg-muted/40 text-left transition-all tap-spring flex flex-col justify-between"
+                className="p-3 rounded-2xl border border-border bg-card hover:bg-muted/40 text-left transition-all tap-spring flex flex-col justify-between overflow-hidden"
               >
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                <div className="flex items-center gap-2 min-w-0 w-full">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
                     {cp.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-xs font-bold text-foreground truncate block">
+                  <span className="text-xs font-bold text-foreground truncate block flex-1 min-w-0" title={cp.name}>
                     {cp.name}
                   </span>
                 </div>
-                <div className="mt-2 text-[10px] text-muted-foreground flex items-center justify-between">
-                  <span>{cp.count} logs</span>
+                <div className="mt-2 text-[10px] text-muted-foreground flex items-center justify-between gap-1 w-full min-w-0">
+                  <span className="shrink-0">{cp.count} logs</span>
                   {cp.pendingTotal > 0 && (
-                    <span className="font-bold text-primary">
+                    <span className="font-bold text-primary truncate">
                       {currencySymbol}{cp.pendingTotal}
                     </span>
                   )}
@@ -650,21 +650,25 @@ export default function DuesReceivables() {
                   className="p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-muted/30 transition-colors"
                   onClick={() => setExpandedCardId(isExpanded ? null : debt.id!)}
                 >
-                  <div className="flex items-center gap-3 min-w-0 pr-2">
+                  <div className="flex items-center gap-3 min-w-0 pr-2 flex-1">
                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 ${
                       isDue ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
                     }`}>
                       {debt.personName?.charAt(0).toUpperCase() || '?'}
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs sm:text-sm text-foreground truncate">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
+                        <span className="font-bold text-xs sm:text-sm text-foreground truncate max-w-[130px] sm:max-w-none" title={debt.personName}>
                           {debt.personName}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">·</span>
-                        <span className="text-[11px] text-muted-foreground truncate font-medium">
-                          {debt.purpose}
-                        </span>
+                        {debt.purpose && (
+                          <>
+                            <span className="text-[10px] text-muted-foreground hidden xs:inline">·</span>
+                            <span className="text-[11px] text-muted-foreground truncate font-medium flex-1">
+                              {debt.purpose}
+                            </span>
+                          </>
+                        )}
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
                         {debt.datetime ? format(parseISO(debt.datetime), 'dd MMM yyyy, hh:mm a') : 'Date unavailable'}
@@ -726,6 +730,28 @@ export default function DuesReceivables() {
                 {/* Expanded Detailed Information Drawer */}
                 {isExpanded && (
                   <div className="px-4 pb-4 pt-3 text-xs bg-muted/40 border-t border-border text-foreground space-y-3 animate-in slide-in-from-top-2 duration-200">
+                    {/* Prominent Counterparty & Purpose Hero Header */}
+                    <div className="p-3 rounded-2xl bg-card border border-border flex items-center justify-between gap-3 shadow-xs">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                          {isDue ? 'Payee (You owe)' : 'Payer (Owes you)'}
+                        </span>
+                        <p className="font-black text-sm sm:text-base text-foreground break-words mt-0.5 leading-snug">
+                          {debt.personName}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                          Pending Amount
+                        </span>
+                        <p className={`font-black text-base sm:text-lg ${
+                          isDue ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+                        }`}>
+                          {isDue ? '-' : '+'}{currencySymbol}{Number(debt.amount).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div className="p-2.5 rounded-xl bg-card border border-border space-y-0.5">
                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Party & Role</span>

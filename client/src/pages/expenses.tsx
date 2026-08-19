@@ -101,6 +101,26 @@ function ExpenseItemCard({ expense, category, onEdit, onReuse, onDelete, currenc
 
       {isExpanded && (
         <div className="px-4 pb-4 pt-3 text-xs bg-muted/40 border-t border-border text-foreground space-y-3 animate-in slide-in-from-top-2 duration-200">
+          {/* Prominent Full Title & Amount Header */}
+          <div className="p-3 rounded-2xl bg-card border border-border flex items-center justify-between gap-3 shadow-xs">
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                Expense Title / Description
+              </span>
+              <p className="font-black text-sm sm:text-base text-foreground break-words mt-0.5 leading-snug">
+                {expense.items || category?.name || 'Unnamed Expense'}
+              </p>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                Total Paid
+              </span>
+              <p className="font-black text-base sm:text-lg text-rose-600 dark:text-rose-400">
+                -{currencySymbol}{Number(expense.amount).toFixed(2)}
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {/* Category & Badge */}
             <div className="p-2.5 rounded-xl bg-card border border-border space-y-0.5">

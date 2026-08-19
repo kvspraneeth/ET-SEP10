@@ -1,7 +1,7 @@
 {
   "name": "PocketLedger - Beta",
   "short_name": "Pocket Ledger",
-  "description": "Track your expenses, manage budgets and dues, and analyze spending patterns offline",
+  "description": "Track expenses, manage budgets and dues, and analyze spending patterns with Glass Widgets and Smart Prompts",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -17,7 +17,7 @@
   ],
   "icons": [
     {
-      "src": "/v3_logo-512.png",
+      "src": "/v3_logo-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
@@ -32,7 +32,7 @@
   "screenshots": [
     {
       "src": "/screenshot-mobile.png",
-      "sizes": "853×1844",
+      "sizes": "853x1844",
       "type": "image/png",
       "form_factor": "narrow"
     },
@@ -51,20 +51,59 @@
       "url": "/?action=add-expense",
       "icons": [
         {
-          "src": "/v3_logo-192.png",
+          "src": "/shortcut-add.png",
           "sizes": "192x192",
           "type": "image/png"
         }
       ]
     },
     {
-      "name": "View Charts",
+      "name": "Dues & Receivables",
+      "short_name": "Dues",
+      "description": "Manage money owed and to collect",
+      "url": "/?tab=dues",
+      "icons": [
+        {
+          "src": "/shortcut-dues.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Spending Charts",
       "short_name": "Charts",
-      "description": "View spending analytics",
+      "description": "View analytics and category breakdown",
       "url": "/?tab=charts",
       "icons": [
         {
-          "src": "/v3_logo-192.png",
+          "src": "/shortcut-charts.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Budget Limits",
+      "short_name": "Budget",
+      "description": "Check monthly budget and health gauge",
+      "url": "/?tab=budget",
+      "icons": [
+        {
+          "src": "/shortcut-budget.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Glass Widgets",
+      "short_name": "Widgets",
+      "description": "Open Mobile Glass Widgets Studio & Speed Loggers",
+      "url": "/?tab=widgets",
+      "icons": [
+        {
+          "src": "/shortcut-widgets.png",
           "sizes": "192x192",
           "type": "image/png"
         }

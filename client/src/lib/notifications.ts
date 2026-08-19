@@ -72,20 +72,45 @@ export function isQuietHours(startStr = '22:00', endStr = '07:00'): boolean {
 
 /**
  * Dispatch an operating-system / mobile-device browser notification
+ * Uses ServiceWorkerRegistration.showNotification() for Android Chrome/PWAs with desktop fallback
  */
-export function dispatchBrowserNotification(title: string, options?: NotificationOptions) {
-  if (!isBrowserNotificationSupported() || Notification.permission !== 'granted') {
+export async function dispatchBrowserNotification(title: string, options?: NotificationOptions) {
+  if (!isBrowserNotificationSupported()) {
     return;
   }
 
   try {
-    const notif = new Notification(title, {
-      icon: '/v2_logo-192.png',
-      badge: '/v2_logo-192.png',
-      vibrate: [150, 50, 150],
-      ...options,
-    } as any);
+    const isGranted = Notification.permission === 'granted';
+    if (!isGranted) return;
 
+    const notificationPayload: any = {
+      icon: '/v3_logo-512.png',
+      badge: '/v3_logo-512.png',
+      vibrate: [200, 100, 200, 100, 200],
+      tag: options?.tag || `pocket-ledger-${Date.now()}`,
+      renotify: true,
+      data: {
+        url: '/',
+        ...((options as any)?.data || {}),
+      },
+      ...options,
+    };
+
+    // 1. Try ServiceWorker registration first (Essential for mobile Chrome and PWAs)
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        if (registration && typeof registration.showNotification === 'function') {
+          await registration.showNotification(title, notificationPayload);
+          return;
+        }
+      } catch (swErr) {
+        console.warn('ServiceWorker showNotification failed, trying standard Notification constructor:', swErr);
+      }
+    }
+
+    // 2. Fallback to standard Notification constructor (for desktop browsers)
+    const notif = new Notification(title, notificationPayload);
     notif.onclick = () => {
       window.focus();
       notif.close();

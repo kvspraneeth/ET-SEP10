@@ -6,12 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
   Download, Upload, Trash2, Pencil, Check, X, ChevronRight, ChevronDown,
   Tags, FileSpreadsheet, Repeat, ArrowRightLeft, Sparkles, Layers, RefreshCw,
   Bell, Zap, AlertTriangle, Clock, Palette, Type, Plus, Sun, Moon,
-  Sliders, Shield, SlidersHorizontal, SlidersVertical
+  Sliders, Shield, SlidersHorizontal, SlidersVertical, Search, Globe, Coins, LayoutGrid, CheckCircle,
+  Smartphone, Wallet
 } from 'lucide-react';
 import { useSettings, useUpdateSettings } from '@/hooks/use-settings';
 import { useNotificationActions } from '@/hooks/use-notifications';
@@ -23,11 +24,14 @@ import {
   PRIMARY_COLOR_OPTIONS,
   GRADIENT_PRESETS,
   FONT_OPTIONS,
+  FONT_SIZE_OPTIONS,
   type Theme,
   type PrimaryColor,
   type FontFamily,
+  type FontSize,
   type CustomGradient
 } from '@/components/theme-provider';
+import { POPULAR_CURRENCIES, ALL_CURRENCIES, searchCurrencies, findCurrencyInfo, type CurrencyInfo } from '@/lib/currencies';
 import { useToast } from '@/hooks/use-toast';
 import db, { DebtRecord, RecurringExpense, RecurringDebt, RecurrenceFrequency, CustomIntervalUnit } from '@/lib/db';
 import { DEFAULT_CATEGORIES, getCategoryColor, findCategory, cleanupAndDeduplicateCategories, isGarbageCategory, normalizeCategoryKey, guessCategoryProperties } from '@/lib/categories';
@@ -198,7 +202,9 @@ export function Settings() {
     gradientPreset,
     setGradientPreset,
     fontFamily,
-    setFontFamily
+    setFontFamily,
+    fontSize,
+    setFontSize
   } = useTheme();
   const { toast } = useToast();
   const { requestPermission, sendTestNotification } = useNotificationActions();
@@ -219,6 +225,19 @@ export function Settings() {
       [sectionKey]: !prev[sectionKey]
     }));
   };
+
+  // Currency Search & Custom Currency State
+  const [isCurrencyDialogOpen, setIsCurrencyDialogOpen] = useState(false);
+  const [currencySearchQuery, setCurrencySearchQuery] = useState('');
+  const [customCurrencyInput, setCustomCurrencyInput] = useState('');
+
+  const filteredCurrencies = useMemo(() => {
+    return searchCurrencies(currencySearchQuery);
+  }, [currencySearchQuery]);
+
+  const activeCurrencyInfo = useMemo(() => {
+    return findCurrencyInfo(settings?.currency || '₹');
+  }, [settings?.currency]);
 
   const [isRecurringExpensesOpen, setIsRecurringExpensesOpen] = useState(false);
   const [isRecurringDebtsOpen, setIsRecurringDebtsOpen] = useState(false);
@@ -1463,6 +1482,67 @@ export function Settings() {
                 })}
               </div>
             </div>
+
+            <Separator />
+
+            {/* Font Size & Display Scale Customizer */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Font Size & Display Scale
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Adjust text sizing and UI density across the entire app
+                  </p>
+                </div>
+                <span className="text-[10px] text-primary font-extrabold uppercase px-2 py-0.5 rounded-full bg-primary/10">
+                  {FONT_SIZE_OPTIONS.find(s => s.id === fontSize)?.name || fontSize} ({FONT_SIZE_OPTIONS.find(s => s.id === fontSize)?.percentage})
+                </span>
+              </div>
+
+              {/* Segmented Font Size Selector */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1 bg-muted/60 rounded-2xl border border-border">
+                {FONT_SIZE_OPTIONS.map((sizeOpt) => {
+                  const isSelected = fontSize === sizeOpt.id;
+                  return (
+                    <button
+                      key={sizeOpt.id}
+                      type="button"
+                      onClick={() => setFontSize(sizeOpt.id)}
+                      className={`py-2 px-2 rounded-xl text-center transition-all tap-spring flex flex-col items-center justify-center gap-0.5 ${
+                        isSelected
+                          ? 'bg-card text-primary font-black shadow-xs border border-border ring-1 ring-primary/30'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
+                      }`}
+                    >
+                      <span className="text-xs font-bold">{sizeOpt.name}</span>
+                      <span className="text-[10px] text-muted-foreground opacity-80">{sizeOpt.percentage}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Live Preview Box */}
+              <div className="p-3.5 rounded-2xl bg-card border border-border flex items-center justify-between gap-3 shadow-xs">
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                    Live Typography Preview
+                  </span>
+                  <p className="font-bold text-sm text-foreground truncate mt-0.5">
+                    Morning Coffee · {settings.currency || '₹'}120.00
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Food & Dining • Paid via UPI
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600">
+                    {FONT_SIZE_OPTIONS.find(s => s.id === fontSize)?.pxSize} Base
+                  </span>
+                </div>
+              </div>
+            </div>
           </CardContent>
         )}
       </Card>
@@ -1670,24 +1750,196 @@ export function Settings() {
 
         {openSections.preferences && (
           <CardContent className="p-4 pt-1 space-y-4 border-t border-border/60 animate-in slide-in-from-top-2 duration-200">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 py-1">
-              <div className="space-y-0.5">
-                <Label className="text-sm font-bold text-foreground">Currency Symbol</Label>
-                <p className="text-xs text-muted-foreground">Used across balances, totals, and charts</p>
+            {/* Active Currency Hero Card */}
+            <div className="p-3.5 rounded-2xl bg-card border border-border flex items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-3xl shrink-0">{activeCurrencyInfo.flag}</span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-black text-sm text-foreground">
+                      {activeCurrencyInfo.name}
+                    </span>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                      {activeCurrencyInfo.code}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Symbol: <strong className="text-foreground font-bold">{settings.currency || '₹'}</strong> • {activeCurrencyInfo.country}
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-right shrink-0">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                  Preview
+                </span>
+                <span className="text-base font-black text-primary">
+                  {settings.currency || '₹'}1,250.00
+                </span>
+              </div>
+            </div>
+
+            {/* Popular Quick-Select Currencies Bar */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-foreground">Popular Currencies</Label>
+                <span className="text-[10px] text-muted-foreground">1-Tap Switch</span>
               </div>
               <div className="flex items-center gap-1.5 flex-wrap">
-                {['₹', '$', '€', '£', '¥'].map((curr) => (
+                {POPULAR_CURRENCIES.map((curr) => {
+                  const isSelected = settings.currency === curr.symbol || settings.currency === curr.code;
+                  return (
+                    <Button
+                      key={curr.code}
+                      type="button"
+                      variant={isSelected ? 'default' : 'outline'}
+                      size="sm"
+                      className="h-8 px-2.5 text-xs font-bold rounded-xl gap-1.5 tap-spring"
+                      onClick={() => updateSettingsMutation.mutate({ currency: curr.symbol })}
+                    >
+                      <span>{curr.flag}</span>
+                      <span>{curr.code} ({curr.symbol})</span>
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Search All 160+ Currencies Button & Dialog */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <Dialog open={isCurrencyDialogOpen} onOpenChange={setIsCurrencyDialogOpen}>
+                <DialogTrigger asChild>
                   <Button
-                    key={curr}
-                    type="button"
-                    variant={settings.currency === curr ? 'default' : 'outline'}
-                    size="sm"
-                    className="w-9 h-9 p-0 font-bold text-xs rounded-xl"
-                    onClick={() => updateSettingsMutation.mutate({ currency: curr })}
+                    variant="outline"
+                    className="w-full justify-between h-10 px-3 text-xs font-bold rounded-xl border-primary/30 text-primary hover:bg-primary/10"
                   >
-                    {curr}
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4" />
+                      <span>Search All 160+ Global Currencies</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 opacity-70" />
                   </Button>
-                ))}
+                </DialogTrigger>
+
+                <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-5 rounded-3xl bg-card border-border">
+                  <DialogHeader className="pb-2">
+                    <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                      <Globe className="w-5 h-5 text-primary" />
+                      Global Currency Directory (160+)
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground">
+                      Select your preferred currency symbol. Instantly applied to all reports, budgets, and dues.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  {/* Search Input Box */}
+                  <div className="relative my-2">
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={currencySearchQuery}
+                      onChange={(e) => setCurrencySearchQuery(e.target.value)}
+                      placeholder="Search currency, code, country, or symbol..."
+                      className="h-9 pl-9 text-xs rounded-full bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
+                    />
+                    {currencySearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setCurrencySearchQuery('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Currencies Scroll List */}
+                  <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 max-h-[50vh] no-scrollbar">
+                    {filteredCurrencies.length === 0 ? (
+                      <div className="p-6 text-center text-xs text-muted-foreground space-y-1">
+                        <Coins className="w-8 h-8 mx-auto text-muted-foreground/50" />
+                        <p className="font-bold text-foreground">No currency matched "{currencySearchQuery}"</p>
+                        <p className="text-[11px]">You can enter a custom currency symbol below.</p>
+                      </div>
+                    ) : (
+                      filteredCurrencies.map((curr) => {
+                        const isSelected = settings.currency === curr.symbol || settings.currency === curr.code;
+                        return (
+                          <button
+                            key={curr.code}
+                            type="button"
+                            onClick={() => {
+                              updateSettingsMutation.mutate({ currency: curr.symbol });
+                              setIsCurrencyDialogOpen(false);
+                              toast({
+                                title: `Currency Changed to ${curr.code} (${curr.symbol})`,
+                                description: `Now displaying balances in ${curr.name}.`,
+                              });
+                            }}
+                            className={`w-full p-2.5 rounded-2xl border text-left transition-all tap-spring flex items-center justify-between ${
+                              isSelected
+                                ? 'bg-primary/10 border-primary shadow-xs ring-1 ring-primary'
+                                : 'bg-card border-border hover:bg-muted/50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="text-2xl shrink-0">{curr.flag}</span>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-bold text-foreground truncate">
+                                    {curr.name}
+                                  </span>
+                                  <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">
+                                    {curr.code}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground truncate">
+                                  {curr.country} • Sample: {curr.symbol}1,250
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="font-black text-sm text-primary">{curr.symbol}</span>
+                              {isSelected && (
+                                <div className="w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                </div>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Custom Currency Symbol Input */}
+              <div className="flex items-center gap-1.5">
+                <Input
+                  value={customCurrencyInput}
+                  onChange={(e) => setCustomCurrencyInput(e.target.value)}
+                  placeholder="Custom symbol (e.g. ₿, NZ$, etc.)"
+                  className="h-10 text-xs rounded-xl bg-card border-border text-foreground font-bold"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (customCurrencyInput.trim()) {
+                      updateSettingsMutation.mutate({ currency: customCurrencyInput.trim() });
+                      toast({
+                        title: 'Custom Currency Applied',
+                        description: `Using "${customCurrencyInput.trim()}" across the app.`,
+                      });
+                      setCustomCurrencyInput('');
+                    }
+                  }}
+                  disabled={!customCurrencyInput.trim()}
+                  className="h-10 px-3 text-xs font-bold rounded-xl text-primary shrink-0"
+                >
+                  Apply
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -1791,7 +2043,83 @@ export function Settings() {
       </Card>
 
       {/* =========================================================================
-          SECTION 6: Danger Zone / Reset
+          SECTION 6: App Shortcuts & Mobile Glass Widgets
+          ========================================================================= */}
+      <Card className="m3-card overflow-hidden border-border bg-card shadow-xs">
+        <button
+          type="button"
+          onClick={() => toggleSection('shortcuts')}
+          className="w-full p-4 flex items-center justify-between text-left hover:bg-muted/40 transition-colors tap-spring"
+        >
+          <div className="flex items-center gap-3 min-w-0 pr-2">
+            <div className="p-2 rounded-2xl bg-primary/10 text-primary shrink-0">
+              <Smartphone className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base font-bold text-foreground truncate">
+                  App Shortcuts & Mobile Widgets
+                </CardTitle>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 shrink-0">
+                  5 Shortcuts Active
+                </span>
+              </div>
+              <CardDescription className="text-xs truncate mt-0.5">
+                Long-press icon options, quick launchers and widget shortcuts
+              </CardDescription>
+            </div>
+          </div>
+          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 shrink-0 ${openSections.shortcuts ? 'rotate-180 text-primary' : ''}`} />
+        </button>
+
+        {openSections.shortcuts && (
+          <CardContent className="p-4 pt-1 space-y-3 border-t border-border/60 animate-in slide-in-from-top-2 duration-200">
+            <p className="text-xs text-muted-foreground">
+              When you long press the Pocket Ledger icon on your mobile device home screen, these instant actions are available:
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {[
+                { name: 'Add Expense', desc: 'Instantly opens new expense entry modal', icon: Plus, link: '/?action=add-expense', color: 'text-rose-500 bg-rose-500/10' },
+                { name: 'Dues & Receivables', desc: 'Directly manage pending balances', icon: ArrowRightLeft, link: '/?tab=dues', color: 'text-emerald-500 bg-emerald-500/10' },
+                { name: 'Spending Charts', desc: 'View monthly breakdown & analytics', icon: FileSpreadsheet, link: '/?tab=charts', color: 'text-blue-500 bg-blue-500/10' },
+                { name: 'Budget Limits', desc: 'Check threshold caps & category limits', icon: Wallet, link: '/?tab=budget', color: 'text-purple-500 bg-purple-500/10' },
+                { name: 'Glass Widgets Studio', desc: 'Open 10+ mobile glass widgets & speed loggers', icon: Sparkles, link: '/?tab=widgets', color: 'text-amber-500 bg-amber-500/10' },
+              ].map((shortcut) => {
+                const Icon = shortcut.icon;
+                return (
+                  <div key={shortcut.name} className="p-3 rounded-2xl bg-card border border-border flex items-center justify-between gap-2.5 shadow-xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${shortcut.color}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-foreground block truncate">
+                          {shortcut.name}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground block truncate">
+                          {shortcut.desc}
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.location.href = shortcut.link}
+                      className="h-7 px-2 text-[10px] font-bold rounded-lg shrink-0 text-primary"
+                    >
+                      Launch
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* =========================================================================
+          SECTION 7: Danger Zone / Reset
           ========================================================================= */}
       <Card className="m3-card overflow-hidden border-rose-500/30 bg-card shadow-xs">
         <button

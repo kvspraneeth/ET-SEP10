@@ -5,9 +5,10 @@ import { useNotifications } from '@/hooks/use-notifications';
 
 interface HeaderProps {
   onOpenNotifications?: () => void;
+  onOpenWidgets?: () => void;
 }
 
-export function Header({ onOpenNotifications }: HeaderProps) {
+export function Header({ onOpenNotifications, onOpenWidgets }: HeaderProps) {
   const { theme, toggleTheme, isDarkTheme } = useTheme();
   const { unreadCount } = useNotifications();
 
@@ -41,6 +42,19 @@ export function Header({ onOpenNotifications }: HeaderProps) {
         </div>
 
         <div className="flex items-center space-x-2 shrink-0">
+          {onOpenWidgets && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onOpenWidgets}
+              aria-label="Open mobile glass widgets"
+              title="Mobile Glass Widgets Studio"
+              className="w-9 h-9 sm:w-10 sm:h-10 bg-primary/10 hover:bg-primary/20 active:scale-95 rounded-full transition-all text-primary border border-primary/25 shadow-xs tap-spring"
+            >
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+            </Button>
+          )}
+
           <Button
             variant="ghost"
             size="icon"

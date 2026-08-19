@@ -737,3 +737,69 @@ textarea:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0px 1000px var(--card) inset;
   transition: background-color 5000s ease-in-out 0s;
 }
+
+/* ==========================================================================
+   Font Size Scaling System (Tweakable by User in Appearance Studio)
+   ========================================================================== */
+html.font-size-compact {
+  font-size: 14px;
+}
+
+html.font-size-standard {
+  font-size: 16px;
+}
+
+html.font-size-medium {
+  font-size: 17.5px;
+}
+
+html.font-size-large {
+  font-size: 19px;
+}
+
+html.font-size-xlarge {
+  font-size: 21px;
+}
+
+/* ==========================================================================
+   Glass Effect Mobile Widget Styles
+   ========================================================================== */
+.widget-glass-card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+}
+
+.dark .widget-glass-card {
+  background: rgba(20, 22, 32, 0.65);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 35px -5px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+}
+
+.widget-glass-neon {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(6, 182, 212, 0.15));
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 12px 35px -5px rgba(139, 92, 246, 0.25), 0 0 15px rgba(6, 182, 212, 0.15) inset;
+}
+
+.widget-glass-obsidian {
+  background: rgba(10, 10, 14, 0.85);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 14px 40px -5px rgba(0, 0, 0, 0.75);
+}
+
+.widget-glass-aurora {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15));
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 12px 35px -5px rgba(16, 185, 129, 0.2);
+}

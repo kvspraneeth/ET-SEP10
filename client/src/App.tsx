@@ -14,6 +14,7 @@ import { Charts } from "@/pages/charts";
 import { Budget } from "@/pages/budget";
 import { Settings } from "@/pages/settings";
 import DuesReceivables from "./pages/duesreceivables"; 
+import { MobileWidgetsStudio } from "./components/mobile-widgets";
 import { Expense } from "@shared/schema";
 import { processRecurringRules } from "./lib/recurring-engine";
 import { cleanupAndDeduplicateCategories } from "./lib/categories";
@@ -26,6 +27,28 @@ function App() {
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [standaloneWidgetId, setStandaloneWidgetId] = useState<string | null>(null);
+
+  // Handle URL Query Parameters on mount (for PWA App Shortcuts & Pin Links)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const action = params.get('action');
+      const tab = params.get('tab');
+      const widget = params.get('widget');
+
+      if (action === 'add-expense' || action === 'add') {
+        setIsExpenseFormOpen(true);
+      } else if (tab) {
+        if (['home', 'expenses', 'debts', 'dues', 'charts', 'budget', 'settings', 'widgets'].includes(tab)) {
+          setActiveTab(tab === 'dues' ? 'debts' : tab);
+        }
+      } else if (widget) {
+        setStandaloneWidgetId(widget);
+        setActiveTab('widgets');
+      }
+    }
+  }, []);
 
   // Automatically clean up categories, process recurring rules, and run smart notification checks
   useEffect(() => {
@@ -89,6 +112,8 @@ function App() {
       setActiveTab('debts');
     } else if (actionType === 'view_charts') {
       setActiveTab('charts');
+    } else if (actionType === 'view_widgets') {
+      setActiveTab('widgets');
     }
   };
 
@@ -97,7 +122,10 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
-            <Header onOpenNotifications={() => setIsNotificationCenterOpen(true)} />
+            <Header 
+              onOpenNotifications={() => setIsNotificationCenterOpen(true)} 
+              onOpenWidgets={() => setActiveTab('widgets')}
+            />
             
             {/* Zero-Lag Tab Switching: Tabs stay rendered in DOM, eliminating mount/unmount lag */}
             <main className="pb-28 md:pb-16 w-full max-w-screen-2xl mx-auto">
@@ -115,6 +143,13 @@ function App() {
               </div>
               <div className={activeTab === 'budget' ? 'block' : 'hidden'}>
                 <Budget />
+              </div>
+              <div className={activeTab === 'widgets' ? 'block' : 'hidden'}>
+                <MobileWidgetsStudio 
+                  onOpenExpenseForm={handleOpenExpenseForm}
+                  onTabChange={setActiveTab}
+                  standaloneWidgetId={standaloneWidgetId}
+                />
               </div>
               <div className={activeTab === 'settings' ? 'block' : 'hidden'}>
                 <Settings />

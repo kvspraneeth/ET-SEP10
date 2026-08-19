@@ -27,6 +27,20 @@ if (typeof window !== "undefined") {
       event.preventDefault();
     }
   });
+
+  // Register PWA Service Worker for Mobile Notifications & Offline Sync
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((registration) => {
+          console.log("PWA Service Worker registered with scope:", registration.scope);
+        })
+        .catch((err) => {
+          console.warn("Service Worker registration failed:", err);
+        });
+    });
+  }
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

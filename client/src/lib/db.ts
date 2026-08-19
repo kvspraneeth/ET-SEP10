@@ -24,6 +24,7 @@ export interface Setting {
   primaryColor?: string; // e.g. "violet" | "emerald" | "blue" | "amber" | "rose" | "teal" | "indigo" | "gold"
   customGradient?: string;
   fontFamily?: string; // e.g. "jakarta" | "outfit" | "inter" | "manrope" | "sora"
+  fontSize?: string; // e.g. "compact" | "standard" | "medium" | "large" | "xlarge"
 }
 
 // Define the Debt interface for TypeScript
