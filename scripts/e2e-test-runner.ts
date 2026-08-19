@@ -403,7 +403,7 @@ async function runAllSuites() {
     assert(currContent.includes("POPULAR_CURRENCIES"), 'currencies.ts must export POPULAR_CURRENCIES');
   });
 
-  await runTest('Mobile Shortcuts', 'Manifest defines 5 shortcuts with existing icon assets in public directory', () => {
+  await runTest('Mobile Shortcuts & Icons', 'Manifest defines 5 shortcuts, maskable & transparent icons, and widgets', () => {
     const manifestPath = path.resolve(process.cwd(), 'client/public/manifest.json');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     assert(Array.isArray(manifest.shortcuts), 'manifest.json must have shortcuts array');
@@ -417,11 +417,33 @@ async function runAllSuites() {
       assert(fs.existsSync(iconPath), `Shortcut icon file not found on disk: ${iconRel}`);
     }
 
-    // Check main app icons
-    const icon192 = path.resolve(process.cwd(), 'client/public/v3_logo-192.png');
-    const icon512 = path.resolve(process.cwd(), 'client/public/v3_logo-512.png');
-    assert(fs.existsSync(icon192), 'v3_logo-192.png must exist in client/public');
-    assert(fs.existsSync(icon512), 'v3_logo-512.png must exist in client/public');
+    // Check main app icons with purpose maskable and any
+    assert(Array.isArray(manifest.icons), 'manifest.json must have icons array');
+    const maskableIcons = manifest.icons.filter((i: any) => i.purpose === 'maskable');
+    const anyIcons = manifest.icons.filter((i: any) => i.purpose === 'any');
+    assert(maskableIcons.length >= 2, 'manifest.json must have at least 2 maskable icons');
+    assert(anyIcons.length >= 2, 'manifest.json must have at least 2 any purpose icons');
+
+    for (const icon of manifest.icons) {
+      const iconRel = icon.src.replace(/^\//, '');
+      const iconPath = path.resolve(process.cwd(), 'client/public', iconRel);
+      assert(fs.existsSync(iconPath), `App icon file not found on disk: ${iconRel}`);
+    }
+
+    // Check widgets
+    assert(Array.isArray(manifest.widgets), 'manifest.json must have widgets array');
+    assert(manifest.widgets.length >= 2, 'manifest.json must declare at least 2 PWA widgets');
+  });
+
+  await runTest('Excel & Recurring Engine Fidelity', 'Settings page preserves categories and recurring rules on Excel import/export', () => {
+    const settingsPath = path.resolve(process.cwd(), 'client/src/pages/settings.tsx');
+    const settingsCode = fs.readFileSync(settingsPath, 'utf8');
+    
+    assert(settingsCode.includes("workbook.addWorksheet('Categories')"), 'exportToExcel must export Categories sheet');
+    assert(settingsCode.includes("workbook.addWorksheet('Recurring Expenses')"), 'exportToExcel must export Recurring Expenses sheet');
+    assert(settingsCode.includes("workbook.addWorksheet('Recurring Dues')"), 'exportToExcel must export Recurring Dues sheet');
+    assert(settingsCode.includes("processRecurringRules()"), 'importFromExcel must trigger processRecurringRules after import');
+    assert(settingsCode.includes("categoriesToImport.push(autoCat)"), 'importFromExcel must auto-register custom categories');
   });
 
   // Close server

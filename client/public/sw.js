@@ -1,77 +1,77 @@
-const CACHE_NAME = 'expense-tracker-v1';
+const CACHE_NAME = 'pocket-ledger-v3.3';
 const urlsToCache = [
   '/',
-  '/src/main.tsx',
-  '/src/index.css',
   '/manifest.json',
+  '/icons/v3_logo_192.png',
+  '/icons/v3_logo_512.png',
+  '/icons/v3_maskable_192.png',
+  '/icons/v3_maskable_512.png',
+  '/shortcuts/add.png',
+  '/shortcuts/dues.png',
+  '/shortcuts/charts.png',
+  '/shortcuts/budget.png',
+  '/shortcuts/widgets.png',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'
 ];
 
-// Install event - cache resources
+// Install event - cache resources and activate immediately
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Opened cache');
+        console.log('[SW] Opened cache', CACHE_NAME);
         return cache.addAll(urlsToCache);
       })
       .catch((error) => {
-        console.error('Failed to cache resources during install:', error);
+        console.error('[SW] Failed to cache resources during install:', error);
       })
   );
 });
 
-// Fetch event - serve from cache, fallback to network
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version if available
-        if (response) {
-          return response;
-        }
-        
-        // Otherwise fetch from network
-        return fetch(event.request)
-          .then((response) => {
-            // Check if valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Clone response
-            const responseToCache = response.clone();
-
-            // Add to cache
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          })
-          .catch(() => {
-            // If both cache and network fail, return offline page for navigation requests
-            if (event.request.destination === 'document') {
-              return caches.match('/');
-            }
-          });
-      })
-  );
-});
-
-// Activate event - clean up old caches
+// Activate event - clean up old caches and claim clients immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
+    Promise.all([
+      self.clients.claim(),
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('[SW] Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      })
+    ])
+  );
+});
+
+// Fetch event - network first for HTML / dynamic API, stale-while-revalidate for assets
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
           }
+          return networkResponse;
         })
-      );
+        .catch(() => {
+          if (event.request.destination === 'document') {
+            return caches.match('/');
+          }
+          return cachedResponse;
+        });
+
+      return cachedResponse || fetchPromise;
     })
   );
 });
@@ -85,11 +85,9 @@ self.addEventListener('sync', (event) => {
 
 async function syncExpenses() {
   try {
-    // This would sync any pending expenses when back online
-    console.log('Syncing expenses...');
-    // Implementation would depend on your sync strategy
+    console.log('[SW] Syncing offline expenses...');
   } catch (error) {
-    console.error('Failed to sync expenses:', error);
+    console.error('[SW] Failed to sync expenses:', error);
   }
 }
 
@@ -100,8 +98,8 @@ self.addEventListener('push', (event) => {
       const data = event.data.json();
       const options = {
         body: data.body || 'You have a new update from Pocket Ledger.',
-        icon: '/v3_logo-512.png',
-        badge: '/v3_logo-512.png',
+        icon: '/icons/v3_maskable_512.png',
+        badge: '/icons/v3_maskable_512.png',
         vibrate: [200, 100, 200],
         tag: data.tag || 'pocket-ledger-alert',
         data: {
@@ -123,7 +121,7 @@ self.addEventListener('push', (event) => {
         self.registration.showNotification(data.title || 'Pocket Ledger', options)
       );
     } catch (e) {
-      console.warn('Failed to parse push data:', e);
+      console.warn('[SW] Failed to parse push data:', e);
     }
   }
 });
@@ -154,4 +152,3 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
-

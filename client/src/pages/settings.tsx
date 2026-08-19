@@ -326,7 +326,7 @@ export function Settings() {
     } catch (error) {
       toast({
         title: "Import Failed",
-        description: "Please provide a valid Budget Pilot backup file.",
+        description: "Please provide a valid Pocket Ledger backup file.",
         variant: "destructive",
       });
     }
@@ -341,15 +341,35 @@ export function Settings() {
       const recurringExpenses = await db.recurringExpenses.toArray();
       const recurringDebts = await db.recurringDebts.toArray();
       const budgets = await db.budgets.toArray();
-      const customCategories = await db.categories.toArray();
+      const categories = await db.categories.toArray();
 
       const workbook = new ExcelJS.Workbook();
-      workbook.creator = 'Budget Pilot V3';
+      workbook.creator = 'Pocket Ledger Beta';
       workbook.created = new Date();
 
-      // 1. Expenses Sheet
+      // 1. Categories Sheet (Export FIRST so lookup and custom categories are top-level)
+      const catSheet = workbook.addWorksheet('Categories');
+      catSheet.columns = [
+        { header: 'ID', key: 'id', width: 20 },
+        { header: 'Name', key: 'name', width: 22 },
+        { header: 'Icon', key: 'icon', width: 16 },
+        { header: 'Color', key: 'color', width: 16 },
+        { header: 'Is Default', key: 'isDefault', width: 14 },
+      ];
+      categories.forEach(c => {
+        catSheet.addRow({
+          id: c.id,
+          name: c.name,
+          icon: c.icon,
+          color: c.color,
+          isDefault: c.isDefault ? 'Yes' : 'No',
+        });
+      });
+
+      // 2. Expenses Sheet
       const expSheet = workbook.addWorksheet('Expenses');
       expSheet.columns = [
+        { header: 'ID', key: 'id', width: 36 },
         { header: 'Date', key: 'date', width: 14 },
         { header: 'Time', key: 'time', width: 10 },
         { header: 'Item / Purpose', key: 'items', width: 28 },
@@ -359,9 +379,12 @@ export function Settings() {
         { header: 'Account', key: 'account', width: 16 },
         { header: 'Location / Where', key: 'where', width: 20 },
         { header: 'Notes', key: 'note', width: 25 },
+        { header: 'Is Recurring', key: 'isRecurring', width: 14 },
+        { header: 'Recurring Rule ID', key: 'recurringRuleId', width: 36 },
       ];
       expenses.forEach(e => {
         expSheet.addRow({
+          id: e.id,
           date: e.date,
           time: e.time,
           items: e.items,
@@ -371,23 +394,28 @@ export function Settings() {
           account: e.account,
           where: e.where || '',
           note: e.note || '',
+          isRecurring: e.isRecurring ? 'Yes' : 'No',
+          recurringRuleId: e.recurringRuleId || '',
         });
       });
 
-      // 2. Debts & Receivables Sheet
+      // 3. Debts & Receivables Sheet
       const debtSheet = workbook.addWorksheet('Dues & Receivables');
       debtSheet.columns = [
+        { header: 'ID', key: 'id', width: 12 },
         { header: 'Type', key: 'type', width: 16 },
         { header: 'Person', key: 'personName', width: 22 },
         { header: 'Amount', key: 'amount', width: 14 },
         { header: 'Purpose', key: 'purpose', width: 24 },
         { header: 'Status', key: 'status', width: 12 },
-        { header: 'Date', key: 'date', width: 16 },
+        { header: 'Date', key: 'date', width: 18 },
         { header: 'Location', key: 'location', width: 18 },
         { header: 'Notes', key: 'notes', width: 25 },
+        { header: 'Recurring Rule ID', key: 'recurringRuleId', width: 36 },
       ];
       debts.forEach(d => {
         debtSheet.addRow({
+          id: d.id,
           type: d.type === 'due' ? 'Due (To Pay)' : 'Receivable (To Get)',
           personName: d.personName,
           amount: Number(d.amount),
@@ -396,12 +424,14 @@ export function Settings() {
           date: d.datetime,
           location: d.location || '',
           notes: d.notes || '',
+          recurringRuleId: d.recurringRuleId || '',
         });
       });
 
-      // 3. Recurring Expenses Sheet
+      // 4. Recurring Expenses Sheet
       const recExpSheet = workbook.addWorksheet('Recurring Expenses');
       recExpSheet.columns = [
+        { header: 'ID', key: 'id', width: 36 },
         { header: 'Item / Purpose', key: 'items', width: 26 },
         { header: 'Amount', key: 'amount', width: 14 },
         { header: 'Category', key: 'category', width: 18 },
@@ -412,12 +442,14 @@ export function Settings() {
         { header: 'Account', key: 'account', width: 16 },
         { header: 'Start Date', key: 'startDate', width: 14 },
         { header: 'End Date', key: 'endDate', width: 14 },
+        { header: 'Last Generated Date', key: 'lastGeneratedDate', width: 18 },
         { header: 'Location / Where', key: 'where', width: 18 },
         { header: 'Notes', key: 'note', width: 25 },
         { header: 'Status', key: 'status', width: 12 },
       ];
       recurringExpenses.forEach(r => {
         recExpSheet.addRow({
+          id: r.id,
           items: r.items,
           amount: Number(r.amount),
           category: r.category,
@@ -428,15 +460,17 @@ export function Settings() {
           account: r.account,
           startDate: r.startDate,
           endDate: r.endDate || '',
+          lastGeneratedDate: r.lastGeneratedDate || '',
           where: r.where || '',
           note: r.note || '',
           status: r.isActive ? 'Active' : 'Paused',
         });
       });
 
-      // 4. Recurring Dues & Receivables Sheet
+      // 5. Recurring Dues & Receivables Sheet
       const recDebtSheet = workbook.addWorksheet('Recurring Dues');
       recDebtSheet.columns = [
+        { header: 'ID', key: 'id', width: 36 },
         { header: 'Type', key: 'type', width: 16 },
         { header: 'Person', key: 'personName', width: 22 },
         { header: 'Amount', key: 'amount', width: 14 },
@@ -446,12 +480,14 @@ export function Settings() {
         { header: 'Interval Unit', key: 'customIntervalUnit', width: 14 },
         { header: 'Start Date', key: 'startDate', width: 14 },
         { header: 'End Date', key: 'endDate', width: 14 },
+        { header: 'Last Generated Date', key: 'lastGeneratedDate', width: 18 },
         { header: 'Location', key: 'location', width: 18 },
         { header: 'Notes', key: 'notes', width: 25 },
         { header: 'Status', key: 'status', width: 12 },
       ];
       recurringDebts.forEach(r => {
         recDebtSheet.addRow({
+          id: r.id,
           type: r.type === 'due' ? 'Due (To Pay)' : 'Receivable (To Get)',
           personName: r.personName,
           amount: Number(r.amount),
@@ -461,45 +497,33 @@ export function Settings() {
           customIntervalUnit: r.customIntervalUnit || 'months',
           startDate: r.startDate,
           endDate: r.endDate || '',
+          lastGeneratedDate: r.lastGeneratedDate || '',
           location: r.location || '',
           notes: r.notes || '',
           status: r.isActive ? 'Active' : 'Paused',
         });
       });
 
-      // 5. Budgets Sheet
+      // 6. Budgets Sheet
       const budgetSheet = workbook.addWorksheet('Budgets');
       budgetSheet.columns = [
+        { header: 'ID', key: 'id', width: 36 },
         { header: 'Name', key: 'name', width: 22 },
         { header: 'Amount', key: 'amount', width: 14 },
         { header: 'Category', key: 'category', width: 18 },
         { header: 'Period', key: 'period', width: 14 },
+        { header: 'Start Date', key: 'startDate', width: 14 },
+        { header: 'Status', key: 'status', width: 12 },
       ];
       budgets.forEach(b => {
         budgetSheet.addRow({
+          id: b.id,
           name: b.name,
           amount: Number(b.amount),
           category: b.category,
           period: b.period || 'monthly',
-        });
-      });
-
-      // 6. Custom Categories Sheet
-      const catSheet = workbook.addWorksheet('Categories');
-      catSheet.columns = [
-        { header: 'ID', key: 'id', width: 18 },
-        { header: 'Name', key: 'name', width: 22 },
-        { header: 'Icon', key: 'icon', width: 16 },
-        { header: 'Color', key: 'color', width: 16 },
-        { header: 'Is Custom', key: 'isCustom', width: 12 },
-      ];
-      customCategories.forEach(c => {
-        catSheet.addRow({
-          id: c.id,
-          name: c.name,
-          icon: c.icon,
-          color: c.color,
-          isCustom: !c.isDefault ? 'Yes' : 'No',
+          startDate: b.startDate || '',
+          status: b.isActive ? 'Active' : 'Paused',
         });
       });
 
@@ -508,7 +532,7 @@ export function Settings() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `budget-pilot-full-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+      a.download = `pocket-ledger-backup-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -516,7 +540,7 @@ export function Settings() {
 
       toast({
         title: "Excel Workbook Exported",
-        description: `Exported ${expenses.length} expenses, ${debts.length} dues, ${recurringExpenses.length + recurringDebts.length} recurring rules, ${budgets.length} budgets.`,
+        description: `Exported ${expenses.length} expenses, ${debts.length} dues, ${recurringExpenses.length + recurringDebts.length} recurring rules, ${budgets.length} budgets, ${categories.length} categories.`,
       });
     } catch (e) {
       toast({
@@ -612,7 +636,7 @@ export function Settings() {
         return { map: headerMap, startRow };
       };
 
-      // 1. Process Categories Sheet FIRST so all custom categories exist in lookup
+      // 1. Process Categories Sheet FIRST so all categories exist in lookup
       const catSheet = workbook.getWorksheet('Categories') || workbook.getWorksheet('Custom Categories');
       if (catSheet) {
         const { map, startRow } = getHeaderMap(catSheet);
@@ -630,6 +654,7 @@ export function Settings() {
               const id = getCol(['id', 'key']) || name.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
               const icon = getCol(['icon']) || guessCategoryProperties(name).icon;
               const color = getCol(['color']) || guessCategoryProperties(name).color;
+              const isDef = getCol(['isdefault', 'default']).toLowerCase() === 'yes';
 
               const newCat = {
                 id,
@@ -637,7 +662,7 @@ export function Settings() {
                 name,
                 icon,
                 color,
-                isDefault: false,
+                isDefault: isDef,
                 updatedAt: new Date(),
               };
               categoriesToImport.push(newCat);
@@ -649,21 +674,37 @@ export function Settings() {
         });
       }
 
-      // Helper to resolve category ID with auto-creation of missing custom categories
+      // Helper to resolve category ID with auto-creation of missing categories
       const resolveAndRegisterCategory = (rawCatString: string): string => {
         if (!rawCatString) return 'groceries';
-        const canonicalId = normalizeCategoryKey(activeCategories, rawCatString);
+        const raw = String(rawCatString).trim();
+        const clean = raw.toLowerCase();
 
-        // If canonicalId is not among known categories and is a clean custom name, auto-create it
-        const exists = activeCategories.some(c => c.id.toLowerCase() === canonicalId.toLowerCase());
-        if (!exists && rawCatString.trim().length > 1 && !isGarbageCategory({ name: rawCatString })) {
-          const cleanName = rawCatString.trim();
-          const cleanId = cleanName.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
-          const guess = guessCategoryProperties(cleanName);
+        // 1. Check exact ID match in active categories
+        const byId = activeCategories.find(c => c.id.toLowerCase() === clean);
+        if (byId && !isGarbageCategory(byId)) return byId.id;
+
+        // 2. Check exact Name match in active categories
+        const byName = activeCategories.find(c => c.name.toLowerCase() === clean);
+        if (byName && !isGarbageCategory(byName)) return byName.id;
+
+        // 3. Check default categories
+        const byDef = DEFAULT_CATEGORIES.find(c => c.id.toLowerCase() === clean || c.name.toLowerCase() === clean);
+        if (byDef) return byDef.id;
+
+        // 4. Check emoji / icon map
+        if (ICON_AND_EMOJI_TO_CATEGORY[clean] || ICON_AND_EMOJI_TO_CATEGORY[raw]) {
+          return ICON_AND_EMOJI_TO_CATEGORY[clean] || ICON_AND_EMOJI_TO_CATEGORY[raw];
+        }
+
+        // 5. If it's a new custom category name, auto-create it so custom categories aren't lost
+        if (raw.length > 1 && !isGarbageCategory({ name: raw })) {
+          const cleanId = raw.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+          const guess = guessCategoryProperties(raw);
           const autoCat = {
             id: cleanId,
             userId: 'default',
-            name: cleanName,
+            name: raw,
             icon: guess.icon,
             color: guess.color,
             isDefault: false,
@@ -674,10 +715,10 @@ export function Settings() {
           return cleanId;
         }
 
-        return canonicalId;
+        return 'groceries';
       };
 
-      // 2. Process Expenses Sheet (or first sheet)
+      // 2. Process Expenses Sheet
       const expSheet = workbook.getWorksheet('Expenses') || (!workbook.getWorksheet('Recurring Expenses') ? workbook.worksheets[0] : null);
       if (expSheet) {
         const { map, startRow } = getHeaderMap(expSheet);
@@ -692,6 +733,7 @@ export function Settings() {
 
             const amt = parseAmount(getCol(['amount', 'spent', 'cost', 'price', 'total']));
             if (amt > 0) {
+              const rawId = getCol(['id', 'expenseid']);
               const rawDate = getCol(['date', 'day', 'datetime', 'timestamp']);
               const rawTime = getCol(['time', 'hour']);
               const rawItem = getCol(['item', 'items', 'purpose', 'description', 'title', 'itempurpose']);
@@ -700,11 +742,13 @@ export function Settings() {
               const rawAcc = getCol(['account', 'bank', 'acc']);
               const rawWhere = getCol(['where', 'location', 'place', 'merchant', 'store']);
               const rawNote = getCol(['note', 'notes', 'remark', 'remarks']);
+              const rawIsRec = getCol(['isrecurring', 'recurring']).toLowerCase();
+              const rawRecId = getCol(['recurringruleid', 'recruleid', 'ruleid']);
 
               const canonicalCategory = resolveAndRegisterCategory(rawCat);
 
               expensesToImport.push({
-                id: crypto.randomUUID(),
+                id: rawId || crypto.randomUUID(),
                 amount: amt,
                 date: parseExcelDate(rawDate),
                 time: rawTime && /^\d{2}:\d{2}$/.test(rawTime) ? rawTime : format(new Date(), 'HH:mm'),
@@ -714,7 +758,8 @@ export function Settings() {
                 account: rawAcc || 'SBI',
                 where: rawWhere || undefined,
                 note: rawNote || undefined,
-                isRecurring: false,
+                isRecurring: rawIsRec === 'yes' || rawIsRec === 'true' || !!rawRecId,
+                recurringRuleId: rawRecId || undefined,
                 isTemplate: false,
                 attachments: [],
                 createdAt: new Date().toISOString(),
@@ -741,6 +786,7 @@ export function Settings() {
             const amt = parseAmount(getCol(['amount', 'total', 'due']));
             const person = getCol(['person', 'personname', 'name', 'who']);
             if (amt > 0 && person) {
+              const rawId = parseInt(getCol(['id', 'debtid'])) || undefined;
               const rawType = getCol(['type', 'duetype']).toLowerCase();
               const isReceivable = rawType.includes('receivable') || rawType.includes('get') || rawType.includes('collect');
               const rawPurpose = getCol(['purpose', 'reason', 'item', 'notes']);
@@ -748,8 +794,10 @@ export function Settings() {
               const rawDate = getCol(['date', 'datetime', 'createdat']);
               const rawLoc = getCol(['location', 'where', 'place']);
               const rawNote = getCol(['notes', 'note', 'remarks']);
+              const rawRecId = getCol(['recurringruleid', 'ruleid']);
 
               debtsToImport.push({
+                ...(rawId ? { id: rawId } : {}),
                 type: isReceivable ? 'receivable' : 'due',
                 personName: person,
                 amount: amt,
@@ -758,6 +806,7 @@ export function Settings() {
                 location: rawLoc || undefined,
                 notes: rawNote || undefined,
                 datetime: parseExcelDate(rawDate) + 'T12:00',
+                recurringRuleId: rawRecId || undefined,
                 createdAt: new Date().toISOString(),
               });
             }
@@ -781,6 +830,7 @@ export function Settings() {
             const amt = parseAmount(getCol(['amount', 'cost', 'price', 'total']));
             const item = getCol(['item', 'items', 'name', 'purpose', 'description', 'itempurpose']);
             if (amt > 0 && item) {
+              const rawId = getCol(['id', 'ruleid']);
               const rawCat = getCol(['category', 'cat']);
               const rawFreq = getCol(['frequency', 'freq']).toLowerCase() as RecurrenceFrequency;
               const validFreq: RecurrenceFrequency = ['daily', 'weekly', 'monthly', 'yearly', 'custom'].includes(rawFreq) ? rawFreq : 'monthly';
@@ -791,6 +841,7 @@ export function Settings() {
               const rawAcc = getCol(['account', 'bank']);
               const rawStart = getCol(['startdate', 'start', 'date']);
               const rawEnd = getCol(['enddate', 'end']);
+              const rawLastGen = getCol(['lastgenerateddate', 'lastgenerated', 'lastdate']);
               const rawWhere = getCol(['where', 'location', 'place']);
               const rawNote = getCol(['note', 'notes', 'remarks']);
               const rawStatus = getCol(['status', 'active', 'state']).toLowerCase();
@@ -799,7 +850,7 @@ export function Settings() {
               const canonicalCategory = resolveAndRegisterCategory(rawCat);
 
               recurringExpensesToImport.push({
-                id: crypto.randomUUID(),
+                id: rawId || crypto.randomUUID(),
                 amount: amt,
                 items: item,
                 category: canonicalCategory,
@@ -810,6 +861,7 @@ export function Settings() {
                 account: rawAcc || 'SBI',
                 startDate: parseExcelDate(rawStart),
                 endDate: rawEnd ? parseExcelDate(rawEnd) : undefined,
+                lastGeneratedDate: rawLastGen ? parseExcelDate(rawLastGen) : undefined,
                 where: rawWhere || undefined,
                 note: rawNote || undefined,
                 isActive,
@@ -837,6 +889,7 @@ export function Settings() {
             const amt = parseAmount(getCol(['amount', 'total', 'due']));
             const person = getCol(['person', 'personname', 'name', 'who']);
             if (amt > 0 && person) {
+              const rawId = getCol(['id', 'ruleid']);
               const rawType = getCol(['type', 'duetype']).toLowerCase();
               const isReceivable = rawType.includes('receivable') || rawType.includes('get');
               const rawPurpose = getCol(['purpose', 'reason', 'item', 'notes']);
@@ -847,13 +900,14 @@ export function Settings() {
               const validUnit: CustomIntervalUnit = ['days', 'weeks', 'months', 'years'].includes(rawUnit) ? rawUnit : 'months';
               const rawStart = getCol(['startdate', 'start']);
               const rawEnd = getCol(['enddate', 'end']);
+              const rawLastGen = getCol(['lastgenerateddate', 'lastgenerated']);
               const rawLoc = getCol(['location', 'where']);
               const rawNotes = getCol(['notes', 'note']);
               const rawStatus = getCol(['status', 'active']).toLowerCase();
               const isActive = !rawStatus.includes('pause') && !rawStatus.includes('inactive');
 
               recurringDebtsToImport.push({
-                id: crypto.randomUUID(),
+                id: rawId || crypto.randomUUID(),
                 type: isReceivable ? 'receivable' : 'due',
                 personName: person,
                 amount: amt,
@@ -863,6 +917,7 @@ export function Settings() {
                 customIntervalUnit: validUnit,
                 startDate: parseExcelDate(rawStart),
                 endDate: rawEnd ? parseExcelDate(rawEnd) : undefined,
+                lastGeneratedDate: rawLastGen ? parseExcelDate(rawLastGen) : undefined,
                 location: rawLoc || undefined,
                 notes: rawNotes || undefined,
                 isActive,
@@ -890,21 +945,25 @@ export function Settings() {
             const amt = parseAmount(getCol(['amount', 'limit', 'total']));
             const name = getCol(['name', 'title', 'budgetname']);
             if (amt > 0 && name) {
+              const rawId = getCol(['id', 'budgetid']);
               const rawCat = getCol(['category', 'cat']);
               const period = getCol(['period', 'frequency']).toLowerCase();
+              const rawStart = getCol(['startdate', 'start']);
+              const rawStatus = getCol(['status', 'active']).toLowerCase();
+              const isActive = !rawStatus.includes('pause') && !rawStatus.includes('inactive');
               const canonicalCategory = (!rawCat || rawCat.toLowerCase() === 'overall')
                 ? 'overall'
                 : resolveAndRegisterCategory(rawCat);
 
               budgetsToImport.push({
-                id: crypto.randomUUID(),
+                id: rawId || crypto.randomUUID(),
                 userId: 'default',
                 name,
                 amount: amt,
                 category: canonicalCategory,
                 period: ['monthly', 'weekly', 'yearly'].includes(period) ? period : 'monthly',
-                startDate: format(new Date(), 'yyyy-MM-01'),
-                isActive: true,
+                startDate: rawStart ? parseExcelDate(rawStart) : format(new Date(), 'yyyy-MM-01'),
+                isActive,
                 updatedAt: new Date(),
               });
             }
@@ -921,20 +980,40 @@ export function Settings() {
               await db.categories.put(cat);
             }
           }
-          if (expensesToImport.length > 0) await db.expenses.bulkAdd(expensesToImport);
-          if (debtsToImport.length > 0) await db.debts.bulkAdd(debtsToImport);
-          if (recurringExpensesToImport.length > 0) await db.recurringExpenses.bulkAdd(recurringExpensesToImport);
-          if (recurringDebtsToImport.length > 0) await db.recurringDebts.bulkAdd(recurringDebtsToImport);
-          if (budgetsToImport.length > 0) await db.budgets.bulkAdd(budgetsToImport);
+          if (expensesToImport.length > 0) {
+            for (const exp of expensesToImport) {
+              await db.expenses.put(exp);
+            }
+          }
+          if (debtsToImport.length > 0) {
+            for (const debt of debtsToImport) {
+              await db.debts.put(debt);
+            }
+          }
+          if (recurringExpensesToImport.length > 0) {
+            for (const recExp of recurringExpensesToImport) {
+              await db.recurringExpenses.put(recExp);
+            }
+          }
+          if (recurringDebtsToImport.length > 0) {
+            for (const recDebt of recurringDebtsToImport) {
+              await db.recurringDebts.put(recDebt);
+            }
+          }
+          if (budgetsToImport.length > 0) {
+            for (const b of budgetsToImport) {
+              await db.budgets.put(b);
+            }
+          }
         });
 
-        // Run automated cleanup and recurring scheduler
+        // Run automated category cleanup and trigger recurring scheduler to process pending occurrences
         await cleanupAndDeduplicateCategories(db);
-        await processRecurringRules();
+        const { expensesAdded, debtsAdded } = await processRecurringRules();
 
         toast({
           title: "Import Completed Successfully",
-          description: `Imported ${expensesToImport.length} expenses, ${debtsToImport.length} dues, ${recurringExpensesToImport.length + recurringDebtsToImport.length} recurring rules, ${budgetsToImport.length} budgets, ${categoriesToImport.length} categories.`,
+          description: `Imported ${expensesToImport.length} expenses, ${debtsToImport.length} dues, ${recurringExpensesToImport.length + recurringDebtsToImport.length} recurring rules, ${budgetsToImport.length} budgets, ${categoriesToImport.length} categories.${expensesAdded > 0 ? ` Generated ${expensesAdded} recurring transactions.` : ''}`,
         });
       } else {
         toast({
@@ -951,7 +1030,6 @@ export function Settings() {
       });
     }
 
-    // Reset input
     event.target.value = '';
   };
 
@@ -1219,8 +1297,8 @@ export function Settings() {
                       type="button"
                       onClick={() => setTheme(themeOpt.id)}
                       className={`p-3 rounded-2xl border text-left transition-all relative tap-spring flex flex-col justify-between ${isSelected
-                          ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 shadow-sm bg-primary/5'
-                          : 'border-border hover:border-primary/40 bg-card'
+                        ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 shadow-sm bg-primary/5'
+                        : 'border-border hover:border-primary/40 bg-card'
                         }`}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -1281,8 +1359,8 @@ export function Settings() {
                       type="button"
                       onClick={() => setPrimaryColor(colorOpt.id)}
                       className={`p-2 rounded-2xl border text-center transition-all tap-spring flex flex-col items-center gap-1.5 ${isSelected
-                          ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 bg-primary/5 shadow-xs'
-                          : 'border-border hover:bg-muted/40'
+                        ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 bg-primary/5 shadow-xs'
+                        : 'border-border hover:bg-muted/40'
                         }`}
                     >
                       <span
@@ -1363,8 +1441,8 @@ export function Settings() {
                       type="button"
                       onClick={() => setGradientPreset(grad.id)}
                       className={`p-2.5 rounded-2xl border text-left transition-all tap-spring flex items-center justify-between ${isSelected
-                          ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 bg-primary/5 shadow-xs'
-                          : 'border-border hover:bg-muted/40'
+                        ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 bg-primary/5 shadow-xs'
+                        : 'border-border hover:bg-muted/40'
                         }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
@@ -1457,8 +1535,8 @@ export function Settings() {
                       type="button"
                       onClick={() => setFontFamily(fontOpt.id)}
                       className={`p-3 rounded-2xl border text-left transition-all tap-spring flex items-center justify-between ${isSelected
-                          ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 bg-primary/5 shadow-xs'
-                          : 'border-border hover:bg-muted/40'
+                        ? 'border-primary ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900 bg-primary/5 shadow-xs'
+                        : 'border-border hover:bg-muted/40'
                         }`}
                     >
                       <div className="space-y-0.5">
@@ -1510,11 +1588,10 @@ export function Settings() {
                       key={sizeOpt.id}
                       type="button"
                       onClick={() => setFontSize(sizeOpt.id)}
-                      className={`py-2 px-2 rounded-xl text-center transition-all tap-spring flex flex-col items-center justify-center gap-0.5 ${
-                        isSelected
+                      className={`py-2 px-2 rounded-xl text-center transition-all tap-spring flex flex-col items-center justify-center gap-0.5 ${isSelected
                           ? 'bg-card text-primary font-black shadow-xs border border-border ring-1 ring-primary/30'
                           : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
-                      }`}
+                        }`}
                     >
                       <span className="text-xs font-bold">{sizeOpt.name}</span>
                       <span className="text-[10px] text-muted-foreground opacity-80">{sizeOpt.percentage}</span>
@@ -1605,8 +1682,8 @@ export function Settings() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-xs text-foreground">Mobile & Web Push</span>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted'
-                      ? 'bg-emerald-500/15 text-emerald-600'
-                      : 'bg-amber-500/15 text-amber-600'
+                    ? 'bg-emerald-500/15 text-emerald-600'
+                    : 'bg-amber-500/15 text-amber-600'
                     }`}>
                     {typeof window !== 'undefined' && 'Notification' in window
                       ? (Notification.permission === 'granted' ? 'Active' : 'Setup Required')
@@ -1875,11 +1952,10 @@ export function Settings() {
                                 description: `Now displaying balances in ${curr.name}.`,
                               });
                             }}
-                            className={`w-full p-2.5 rounded-2xl border text-left transition-all tap-spring flex items-center justify-between ${
-                              isSelected
+                            className={`w-full p-2.5 rounded-2xl border text-left transition-all tap-spring flex items-center justify-between ${isSelected
                                 ? 'bg-primary/10 border-primary shadow-xs ring-1 ring-primary'
                                 : 'bg-card border-border hover:bg-muted/50'
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
                               <span className="text-2xl shrink-0">{curr.flag}</span>

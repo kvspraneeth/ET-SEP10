@@ -3,6 +3,7 @@
   "short_name": "Pocket Ledger",
   "description": "Track expenses, manage budgets and dues, and analyze spending patterns with Glass Widgets and Smart Prompts",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#8b5cf6",
@@ -17,30 +18,28 @@
   ],
   "icons": [
     {
-      "src": "/v3_logo-192.png",
+      "src": "/icons/v3_logo_192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/v3_logo-512.png",
+      "src": "/icons/v3_logo_512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshot-mobile.png",
-      "sizes": "853x1844",
-      "type": "image/png",
-      "form_factor": "narrow"
+      "purpose": "any"
     },
     {
-      "src": "/screenshot-desktop.png",
-      "sizes": "2752x1536",
+      "src": "/icons/v3_maskable_192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "form_factor": "wide"
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/v3_maskable_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
@@ -51,7 +50,7 @@
       "url": "/?action=add-expense",
       "icons": [
         {
-          "src": "/shortcut-add.png",
+          "src": "/shortcuts/add.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -64,7 +63,7 @@
       "url": "/?tab=dues",
       "icons": [
         {
-          "src": "/shortcut-dues.png",
+          "src": "/shortcuts/dues.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -77,7 +76,7 @@
       "url": "/?tab=charts",
       "icons": [
         {
-          "src": "/shortcut-charts.png",
+          "src": "/shortcuts/charts.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -90,7 +89,7 @@
       "url": "/?tab=budget",
       "icons": [
         {
-          "src": "/shortcut-budget.png",
+          "src": "/shortcuts/budget.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -103,9 +102,94 @@
       "url": "/?tab=widgets",
       "icons": [
         {
-          "src": "/shortcut-widgets.png",
+          "src": "/shortcuts/widgets.png",
           "sizes": "192x192",
           "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/Mobile Screenshots/Home_pg1.jpeg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Home Dashboard"
+    },
+    {
+      "src": "/Mobile Screenshots/Expenses_pg1.jpeg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Expenses Stream"
+    },
+    {
+      "src": "/Mobile Screenshots/Charts_pg1.jpeg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Analytics Charts"
+    },
+    {
+      "src": "/Mobile Screenshots/Widgets_pg1.jpeg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Glass Widgets Studio"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "2752x1536",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop Workspace"
+    }
+  ],
+  "widgets": [
+    {
+      "name": "Pocket Ledger Quick Log",
+      "short_name": "Quick Log",
+      "description": "1-Tap Expense Speed Logger and Recent Balance",
+      "tag": "pocket-ledger-quick-log",
+      "template": "widget-quick-log",
+      "ms_ac_template": "/widgets/quick-log.json",
+      "data": "/?tab=widgets",
+      "type": "application/json",
+      "screenshots": [
+        {
+          "src": "/Mobile Screenshots/Widgets_pg1.jpeg",
+          "sizes": "1080x1920",
+          "label": "Quick Log Widget Preview"
+        }
+      ],
+      "icons": [
+        {
+          "src": "/shortcuts/widgets.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Budget Health Gauge",
+      "short_name": "Budget Gauge",
+      "description": "Monthly Budget Progress & Safe Daily Burn Rate",
+      "tag": "pocket-ledger-budget-gauge",
+      "template": "widget-budget",
+      "ms_ac_template": "/widgets/budget.json",
+      "data": "/?tab=widgets",
+      "type": "application/json",
+      "screenshots": [
+        {
+          "src": "/Mobile Screenshots/Widgets_pg1.jpeg",
+          "sizes": "1080x1920",
+          "label": "Budget Health Preview"
+        }
+      ],
+      "icons": [
+        {
+          "src": "/shortcuts/budget.png",
+          "sizes": "192x192"
         }
       ]
     }

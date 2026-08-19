@@ -18,7 +18,7 @@ export function Header({ onOpenNotifications, onOpenWidgets }: HeaderProps) {
         <div className="flex items-center space-x-3 min-w-0">
           <div className="w-10 h-10 bg-primary/15 text-primary rounded-2xl flex items-center justify-center shadow-inner shrink-0 ring-1 ring-primary/25 overflow-hidden">
             <img 
-              src="/v3_logo-512.png" 
+              src="/icons/v3_maskable_512.png" 
               alt="Pocket Ledger" 
               className="w-full h-full object-cover"
               onError={(e) => {

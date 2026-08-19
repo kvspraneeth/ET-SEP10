@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { 
-  Bell, Zap, AlertTriangle, Repeat, ArrowRightLeft, Check, 
-  Trash2, CheckCheck, RefreshCw, X, Sparkles, Plus, ChevronRight, Clock 
+import {
+  Bell, Zap, AlertTriangle, Repeat, ArrowRightLeft, Check,
+  Trash2, CheckCheck, RefreshCw, X, Sparkles, Plus, ChevronRight, Clock
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ export function NotificationCenter({ open, onOpenChange, onActionClick }: Notifi
   const { notifications, unreadCount } = useNotifications();
   const { markAsRead, markAllAsRead, deleteNotification, clearAllNotifications, checkNow } = useNotificationActions();
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
-  
+
   const [filterTab, setFilterTab] = useState<'all' | 'unread' | 'prompts' | 'alerts'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -153,33 +153,30 @@ export function NotificationCenter({ open, onOpenChange, onActionClick }: Notifi
           <button
             type="button"
             onClick={() => setFilterTab('all')}
-            className={`px-3 py-1 rounded-full font-bold text-xs transition-all ${
-              filterTab === 'all'
+            className={`px-3 py-1 rounded-full font-bold text-xs transition-all ${filterTab === 'all'
                 ? 'bg-primary text-primary-foreground shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
           >
             All ({notifications.length})
           </button>
           <button
             type="button"
             onClick={() => setFilterTab('unread')}
-            className={`px-3 py-1 rounded-full font-bold text-xs transition-all ${
-              filterTab === 'unread'
+            className={`px-3 py-1 rounded-full font-bold text-xs transition-all ${filterTab === 'unread'
                 ? 'bg-primary text-primary-foreground shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
           >
             Unread ({unreadCount})
           </button>
           <button
             type="button"
             onClick={() => setFilterTab('prompts')}
-            className={`px-3 py-1 rounded-full font-bold text-xs transition-all flex items-center gap-1 ${
-              filterTab === 'prompts'
+            className={`px-3 py-1 rounded-full font-bold text-xs transition-all flex items-center gap-1 ${filterTab === 'prompts'
                 ? 'bg-primary text-primary-foreground shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
           >
             <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
             <span>Habits</span>
@@ -187,11 +184,10 @@ export function NotificationCenter({ open, onOpenChange, onActionClick }: Notifi
           <button
             type="button"
             onClick={() => setFilterTab('alerts')}
-            className={`px-3 py-1 rounded-full font-bold text-xs transition-all flex items-center gap-1 ${
-              filterTab === 'alerts'
+            className={`px-3 py-1 rounded-full font-bold text-xs transition-all flex items-center gap-1 ${filterTab === 'alerts'
                 ? 'bg-primary text-primary-foreground shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
           >
             <AlertTriangle className="w-3 h-3 text-rose-500" />
             <span>Alerts</span>
@@ -207,7 +203,7 @@ export function NotificationCenter({ open, onOpenChange, onActionClick }: Notifi
               </div>
               <h3 className="font-bold text-sm text-foreground">You're All Caught Up!</h3>
               <p className="text-xs text-muted-foreground max-w-xs">
-                No notifications right now. Budget Pilot will automatically prompt you at your usual spending times and alert you if budgets are near limit.
+                No notifications right now. Pocket Ledger will automatically prompt you at your usual spending times and alert you if budgets are near limit.
               </p>
             </div>
           ) : (
@@ -227,13 +223,11 @@ export function NotificationCenter({ open, onOpenChange, onActionClick }: Notifi
               return (
                 <div
                   key={notif.id}
-                  className={`relative p-3 rounded-2xl border transition-all ${
-                    meta.accent
-                  } border-l-[3.5px] ${
-                    !notif.isRead
+                  className={`relative p-3 rounded-2xl border transition-all ${meta.accent
+                    } border-l-[3.5px] ${!notif.isRead
                       ? 'bg-card shadow-xs border-border ring-1 ring-primary/25'
                       : 'bg-muted/30 border-border/60 opacity-80'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <div className="flex items-center gap-1.5">
