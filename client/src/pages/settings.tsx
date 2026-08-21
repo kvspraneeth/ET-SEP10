@@ -360,7 +360,7 @@ export function Settings() {
       const categories = await db.categories.toArray();
 
       const workbook = new ExcelJS.Workbook();
-      workbook.creator = 'Pocket Ledger Beta';
+      workbook.creator = 'Pocket Ledger';
       workbook.created = new Date();
 
       // 1. Categories Sheet (Export FIRST so lookup and custom categories are top-level)

@@ -33,9 +33,6 @@ export function Header({ onOpenNotifications, onOpenWidgets }: HeaderProps) {
               <h1 className="text-lg sm:text-xl font-black tracking-tight truncate text-foreground">
                 Pocket Ledger
               </h1>
-              <span className="text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20 tracking-wider shrink-0">
-                Beta
-              </span>
             </div>
             <p className="text-xs text-muted-foreground truncate font-semibold">Smart Finance & Habits</p>
           </div>
