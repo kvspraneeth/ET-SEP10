@@ -1,8 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import db, { AppNotification } from '@/lib/db';
-import { 
-  requestBrowserNotificationPermission, 
-  dispatchBrowserNotification, 
+import {
+  requestBrowserNotificationPermission,
+  dispatchBrowserNotification,
   runAllNotificationChecks,
   getBrowserNotificationPermission,
   isBrowserNotificationSupported
@@ -10,7 +10,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 export function useNotifications() {
-  const notifications = useLiveQuery(() => 
+  const notifications = useLiveQuery(() =>
     db.notifications.orderBy('createdAt').reverse().toArray()
   ) || [];
 
@@ -75,7 +75,7 @@ export function useNotificationActions() {
         title: "Notifications Enabled!",
         description: "You'll now receive timely smart prompts and budget alerts on this device.",
       });
-      dispatchBrowserNotification("🔔 Budget Pilot Notifications Active", {
+      dispatchBrowserNotification("🔔 Pocket Ledger Notifications Active", {
         body: "You're all set! We'll help you stay on top of your daily spending.",
       });
     } else {

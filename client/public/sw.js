@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pocket-ledger-v3.4';
+const CACHE_NAME = 'pocket-ledger-v3.5';
 const urlsToCache = [
   '/',
   '/manifest.json',
