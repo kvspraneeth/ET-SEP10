@@ -459,15 +459,19 @@ async function runAllSuites() {
     assert(manifestContent.includes('DuesWidgetProvider'), 'AndroidManifest.xml must declare DuesWidgetProvider');
   });
 
-  await runTest('Excel & Recurring Engine Fidelity', 'Settings page preserves categories and recurring rules on Excel import/export', () => {
+  await runTest('Excel & Recurring Engine Fidelity', 'Settings page preserves categories, recurring rules, and dues on Excel import/export', () => {
     const settingsPath = path.resolve(process.cwd(), 'client/src/pages/settings.tsx');
     const settingsCode = fs.readFileSync(settingsPath, 'utf8');
     
     assert(settingsCode.includes("workbook.addWorksheet('Categories')"), 'exportToExcel must export Categories sheet');
     assert(settingsCode.includes("workbook.addWorksheet('Recurring Expenses')"), 'exportToExcel must export Recurring Expenses sheet');
     assert(settingsCode.includes("workbook.addWorksheet('Recurring Dues')"), 'exportToExcel must export Recurring Dues sheet');
+    assert(settingsCode.includes("findSheet(workbook"), 'importFromExcel must use findSheet for fuzzy sheet discovery');
+    assert(settingsCode.includes("getHeaderMap(recExpSheet"), 'importFromExcel must use getHeaderMap with keyword scoring');
     assert(settingsCode.includes("processRecurringRules()"), 'importFromExcel must trigger processRecurringRules after import');
-    assert(settingsCode.includes("categoriesToImport.push(autoCat)"), 'importFromExcel must auto-register custom categories');
+    assert(settingsCode.includes("queryClient.invalidateQueries"), 'importFromExcel must invalidate React Query caches');
+    assert(settingsCode.includes("normalizeFrequency"), 'importFromExcel must normalize recurrence frequencies');
+    assert(settingsCode.includes("normalizeDueType"), 'importFromExcel must normalize due vs receivable types');
   });
 
   // Close server

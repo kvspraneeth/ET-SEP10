@@ -43,6 +43,7 @@ import { ManageRecurringExpensesDialog, ManageRecurringDebtsDialog } from '@/com
 import { processRecurringRules, toCleanDateStr } from '@/lib/recurring-engine';
 import { Category } from '@shared/schema';
 import { InfoButton } from '@/components/info-button';
+import { queryClient } from '@/lib/queryClient';
 
 // A sub-component to handle the Manage Categories Dialog cleanly
 function ManageCategoriesDialog({ children }: { children: React.ReactNode }) {
@@ -316,9 +317,24 @@ export function Settings() {
           if (data.settings) await db.settings.put(data.settings);
         });
 
+        await cleanupAndDeduplicateCategories(db);
+        const { expensesAdded, debtsAdded } = await processRecurringRules();
+
+        queryClient.invalidateQueries({ queryKey: ['expenses'] });
+        queryClient.invalidateQueries({ queryKey: ['debts'] });
+        queryClient.invalidateQueries({ queryKey: ['recurring-expenses'] });
+        queryClient.invalidateQueries({ queryKey: ['recurring-debts'] });
+        queryClient.invalidateQueries({ queryKey: ['budgets'] });
+        queryClient.invalidateQueries({ queryKey: ['categories'] });
+        queryClient.invalidateQueries({ queryKey: ['settings'] });
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('database-updated'));
+        }
+
         toast({
           title: "Import Successful",
-          description: `Restored ${data.expenses?.length || 0} expenses & complete data.`,
+          description: `Restored ${data.expenses?.length || 0} expenses, ${(data.recurringExpenses?.length || 0) + (data.recurringDebts?.length || 0)} recurring rules & complete data.${expensesAdded > 0 ? ` Processed ${expensesAdded} recurring transactions.` : ''}`,
         });
       } else {
         throw new Error('Invalid backup file format');
@@ -399,7 +415,7 @@ export function Settings() {
         });
       });
 
-      // 3. Debts & Receivables Sheet
+      // 3. Dues & Receivables Sheet
       const debtSheet = workbook.addWorksheet('Dues & Receivables');
       debtSheet.columns = [
         { header: 'ID', key: 'id', width: 12 },
@@ -407,10 +423,10 @@ export function Settings() {
         { header: 'Person', key: 'personName', width: 22 },
         { header: 'Amount', key: 'amount', width: 14 },
         { header: 'Purpose', key: 'purpose', width: 24 },
-        { header: 'Status', key: 'status', width: 12 },
-        { header: 'Date', key: 'date', width: 18 },
+        { header: 'Status', key: 'status', width: 14 },
         { header: 'Location', key: 'location', width: 18 },
         { header: 'Notes', key: 'notes', width: 25 },
+        { header: 'Date & Time', key: 'datetime', width: 20 },
         { header: 'Recurring Rule ID', key: 'recurringRuleId', width: 36 },
       ];
       debts.forEach(d => {
@@ -420,10 +436,10 @@ export function Settings() {
           personName: d.personName,
           amount: Number(d.amount),
           purpose: d.purpose,
-          status: d.status,
-          date: d.datetime,
+          status: d.status === 'settled' ? 'Settled' : 'Pending',
           location: d.location || '',
           notes: d.notes || '',
+          datetime: d.datetime,
           recurringRuleId: d.recurringRuleId || '',
         });
       });
@@ -570,8 +586,8 @@ export function Settings() {
       const existingCategories = await db.categories.toArray();
       const activeCategories: any[] = [...existingCategories];
 
-      const parseAmount = (val: string): number => {
-        if (!val) return 0;
+      const parseAmount = (val: any): number => {
+        if (val === null || val === undefined || val === '') return 0;
         const cleaned = String(val).replace(/[^0-9.-]/g, '');
         const num = parseFloat(cleaned);
         return isNaN(num) ? 0 : Math.abs(num);
@@ -583,6 +599,9 @@ export function Settings() {
         if (typeof cell.value === 'object') {
           if ('text' in cell.value) return String(cell.value.text || '').trim();
           if ('result' in cell.value) return String(cell.value.result || '').trim();
+          if ('richText' in cell.value && Array.isArray(cell.value.richText)) {
+            return cell.value.richText.map(t => t.text).join('').trim();
+          }
           if (cell.value instanceof Date) {
             return format(cell.value, 'yyyy-MM-dd');
           }
@@ -590,71 +609,187 @@ export function Settings() {
         return String(cell.value).trim();
       };
 
-      // Helper to parse dates robustly
-      const parseExcelDate = (val: string): string => {
+      // Helper to parse dates robustly into strict YYYY-MM-DD
+      const parseExcelDate = (val: any): string => {
         if (!val) return format(new Date(), 'yyyy-MM-dd');
-        // If it's standard YYYY-MM-DD
-        if (/^\d{4}-\d{2}-\d{2}/.test(val)) {
-          return val.substring(0, 10);
+        if (val instanceof Date) {
+          if (!isNaN(val.getTime())) {
+            return format(val, 'yyyy-MM-dd');
+          }
         }
-        // If DD/MM/YYYY or DD-MM-YYYY
-        const ddmmyyyy = val.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+        const str = String(val).trim();
+        if (!str) return format(new Date(), 'yyyy-MM-dd');
+
+        // If standard YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+          return str.substring(0, 10);
+        }
+
+        // If DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+        const ddmmyyyy = str.match(/^(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{4})/);
         if (ddmmyyyy) {
           const d = ddmmyyyy[1].padStart(2, '0');
           const m = ddmmyyyy[2].padStart(2, '0');
           const y = ddmmyyyy[3];
+          if (parseInt(m) > 12 && parseInt(d) <= 12) {
+            return `${y}-${d}-${m}`;
+          }
           return `${y}-${m}-${d}`;
         }
-        // If numeric Excel timestamp
-        const num = parseFloat(val);
-        if (!isNaN(num) && num > 25000 && num < 60000) {
+
+        // If numeric Excel timestamp (serial number)
+        const num = parseFloat(str);
+        if (!isNaN(num) && num > 1000 && num < 100000) {
           const excelEpoch = new Date(Date.UTC(1899, 11, 30));
           const jsDate = new Date(excelEpoch.getTime() + num * 86400000);
-          return format(jsDate, 'yyyy-MM-dd');
+          if (!isNaN(jsDate.getTime())) {
+            return format(jsDate, 'yyyy-MM-dd');
+          }
         }
+
         // Try Date.parse fallback
         try {
-          const d = new Date(val);
-          if (!isNaN(d.getTime())) return format(d, 'yyyy-MM-dd');
+          const parsed = new Date(str);
+          if (!isNaN(parsed.getTime())) {
+            return format(parsed, 'yyyy-MM-dd');
+          }
         } catch { }
+
         return format(new Date(), 'yyyy-MM-dd');
       };
 
-      // Helper to build header map for a sheet
-      const getHeaderMap = (sheet: ExcelJS.Worksheet): { map: Record<string, number>; startRow: number } => {
-        const headerMap: Record<string, number> = {};
-        let startRow = 1;
-        sheet.eachRow((row, rowNumber) => {
-          if (Object.keys(headerMap).length === 0) {
-            row.eachCell((cell, colNumber) => {
-              const h = getVal(cell).toLowerCase().replace(/[^a-z0-9]/g, '');
-              if (h) headerMap[h] = colNumber;
-            });
-            startRow = rowNumber;
+      // Helper to find a worksheet by fuzzy name matching across all workbook sheets
+      const findSheet = (wb: ExcelJS.Workbook, aliases: string[]): ExcelJS.Worksheet | undefined => {
+        const cleanAliases = aliases.map(a => a.toLowerCase().replace(/[^a-z0-9]/g, ''));
+        for (const ws of wb.worksheets) {
+          const wsNameClean = (ws.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (cleanAliases.some(alias => wsNameClean === alias || wsNameClean.includes(alias) || alias.includes(wsNameClean))) {
+            return ws;
           }
-        });
-        return { map: headerMap, startRow };
+        }
+        return undefined;
       };
 
-      // 1. Process Categories Sheet FIRST so all categories exist in lookup
-      const catSheet = workbook.getWorksheet('Categories') || workbook.getWorksheet('Custom Categories');
+      // Helper to find the actual header row by scoring rows against expected column keywords
+      const getHeaderMap = (sheet: ExcelJS.Worksheet, expectedKeywords: string[]): { map: Record<string, number>; startRow: number } => {
+        let bestRow = 1;
+        let maxScore = -1;
+        let bestMap: Record<string, number> = {};
+
+        const cleanKeywords = expectedKeywords.map(k => k.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+        // Scan the first 15 rows to find the one with the highest header keyword match score
+        sheet.eachRow((row, rowNumber) => {
+          if (rowNumber <= 15) {
+            let currentScore = 0;
+            const currentMap: Record<string, number> = {};
+
+            row.eachCell((cell, colNumber) => {
+              const h = getVal(cell).toLowerCase().replace(/[^a-z0-9]/g, '');
+              if (h) {
+                currentMap[h] = colNumber;
+                if (cleanKeywords.some(k => h === k || h.includes(k) || k.includes(h))) {
+                  currentScore++;
+                }
+              }
+            });
+
+            if (currentScore > maxScore) {
+              maxScore = currentScore;
+              bestRow = rowNumber;
+              bestMap = currentMap;
+            }
+          }
+        });
+
+        // Fallback if no matching row scored high: use the first non-empty row
+        if (Object.keys(bestMap).length === 0) {
+          sheet.eachRow((row, rowNumber) => {
+            if (Object.keys(bestMap).length === 0) {
+              row.eachCell((cell, colNumber) => {
+                const h = getVal(cell).toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (h) bestMap[h] = colNumber;
+              });
+              bestRow = rowNumber;
+            }
+          });
+        }
+
+        return { map: bestMap, startRow: bestRow };
+      };
+
+      // Helper to extract column value by trying multiple alias keys
+      const getCol = (map: Record<string, number>, row: ExcelJS.Row, keys: string[]): string => {
+        for (const k of keys) {
+          const cleanK = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (map[cleanK]) {
+            const v = getVal(row.getCell(map[cleanK]));
+            if (v) return v;
+          }
+          for (const mapKey of Object.keys(map)) {
+            if (mapKey === cleanK || mapKey.includes(cleanK) || cleanK.includes(mapKey)) {
+              const v = getVal(row.getCell(map[mapKey]));
+              if (v) return v;
+            }
+          }
+        }
+        return '';
+      };
+
+      // Helper to normalize recurrence frequencies
+      const normalizeFrequency = (rawFreq: string): { freq: RecurrenceFrequency; count?: number; unit?: CustomIntervalUnit } => {
+        const f = String(rawFreq || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+        if (f.includes('daily') || f === 'day' || f.includes('everyday')) {
+          return { freq: 'daily' };
+        }
+        if (f.includes('weekly') || f === 'week' || f.includes('everyweek')) {
+          return { freq: 'weekly' };
+        }
+        if (f.includes('yearly') || f === 'year' || f.includes('annual') || f.includes('annually') || f.includes('everyyear')) {
+          return { freq: 'yearly' };
+        }
+        if (f.includes('quarter') || f.includes('3month')) {
+          return { freq: 'custom', count: 3, unit: 'months' };
+        }
+        if (f.includes('biweek') || f.includes('2week')) {
+          return { freq: 'custom', count: 2, unit: 'weeks' };
+        }
+        if (f.includes('custom')) {
+          return { freq: 'custom' };
+        }
+        return { freq: 'monthly' };
+      };
+
+      // Helper to normalize due types
+      const normalizeDueType = (rawType: string): 'due' | 'receivable' => {
+        const t = String(rawType || '').toLowerCase().trim();
+        if (t.includes('receivable') || t.includes('get') || t.includes('collect') || t.includes('lend') || t.includes('given') || t.includes('credit') || t.includes('asset') || t.includes('owed to me') || t.includes('incoming')) {
+          return 'receivable';
+        }
+        return 'due';
+      };
+
+      // Helper to normalize active/paused status
+      const normalizeIsActive = (rawStatus: string): boolean => {
+        const s = String(rawStatus || '').toLowerCase().trim();
+        if (s.includes('pause') || s.includes('inactive') || s.includes('disabled') || s === 'no' || s === 'false' || s === '0' || s.includes('stop')) {
+          return false;
+        }
+        return true;
+      };
+
+      // 1. Process Categories Sheet FIRST so all custom categories exist in lookup
+      const catSheet = findSheet(workbook, ['categories', 'custom categories', 'category', 'cats']);
       if (catSheet) {
-        const { map, startRow } = getHeaderMap(catSheet);
+        const { map, startRow } = getHeaderMap(catSheet, ['name', 'category', 'icon', 'color', 'default']);
         catSheet.eachRow((row, rowNumber) => {
           if (rowNumber > startRow) {
-            const getCol = (keys: string[]): string => {
-              for (const k of keys) {
-                if (map[k]) return getVal(row.getCell(map[k]));
-              }
-              return '';
-            };
-
-            const name = getCol(['name', 'categoryname', 'title']);
+            const name = getCol(map, row, ['name', 'categoryname', 'title', 'category', 'label']);
             if (name && !isGarbageCategory({ name })) {
-              const id = getCol(['id', 'key']) || name.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
-              const icon = getCol(['icon']) || guessCategoryProperties(name).icon;
-              const color = getCol(['color']) || guessCategoryProperties(name).color;
-              const isDef = getCol(['isdefault', 'default']).toLowerCase() === 'yes';
+              const id = getCol(map, row, ['id', 'key', 'code']) || name.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+              const icon = getCol(map, row, ['icon', 'symbol', 'emoji']) || guessCategoryProperties(name).icon;
+              const color = getCol(map, row, ['color', 'colour', 'hex']) || guessCategoryProperties(name).color;
+              const isDef = getCol(map, row, ['isdefault', 'default', 'system']).toLowerCase() === 'yes';
 
               const newCat = {
                 id,
@@ -697,7 +832,7 @@ export function Settings() {
           return ICON_AND_EMOJI_TO_CATEGORY[clean] || ICON_AND_EMOJI_TO_CATEGORY[raw];
         }
 
-        // 5. If it's a new custom category name, auto-create it so custom categories aren't lost
+        // 5. If it's a new custom category name, auto-create it
         if (raw.length > 1 && !isGarbageCategory({ name: raw })) {
           const cleanId = raw.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
           const guess = guessCategoryProperties(raw);
@@ -719,31 +854,26 @@ export function Settings() {
       };
 
       // 2. Process Expenses Sheet
-      const expSheet = workbook.getWorksheet('Expenses') || (!workbook.getWorksheet('Recurring Expenses') ? workbook.worksheets[0] : null);
+      const expSheet = findSheet(workbook, ['expenses', 'expense', 'transactions', 'spending', 'all expenses']) ||
+        (!findSheet(workbook, ['recurring expenses', 'recurring', 'subscriptions']) ? workbook.worksheets[0] : undefined);
+      
       if (expSheet) {
-        const { map, startRow } = getHeaderMap(expSheet);
+        const { map, startRow } = getHeaderMap(expSheet, ['amount', 'item', 'category', 'date', 'payment', 'account']);
         expSheet.eachRow((row, rowNumber) => {
           if (rowNumber > startRow) {
-            const getCol = (keys: string[]): string => {
-              for (const k of keys) {
-                if (map[k]) return getVal(row.getCell(map[k]));
-              }
-              return '';
-            };
-
-            const amt = parseAmount(getCol(['amount', 'spent', 'cost', 'price', 'total']));
+            const amt = parseAmount(getCol(map, row, ['amount', 'spent', 'cost', 'price', 'total', 'amt', 'value']));
             if (amt > 0) {
-              const rawId = getCol(['id', 'expenseid']);
-              const rawDate = getCol(['date', 'day', 'datetime', 'timestamp']);
-              const rawTime = getCol(['time', 'hour']);
-              const rawItem = getCol(['item', 'items', 'purpose', 'description', 'title', 'itempurpose']);
-              const rawCat = getCol(['category', 'cat', 'categoryname']);
-              const rawPay = getCol(['paymentmethod', 'payment', 'method', 'mode']);
-              const rawAcc = getCol(['account', 'bank', 'acc']);
-              const rawWhere = getCol(['where', 'location', 'place', 'merchant', 'store']);
-              const rawNote = getCol(['note', 'notes', 'remark', 'remarks']);
-              const rawIsRec = getCol(['isrecurring', 'recurring']).toLowerCase();
-              const rawRecId = getCol(['recurringruleid', 'recruleid', 'ruleid']);
+              const rawId = getCol(map, row, ['id', 'expenseid']);
+              const rawDate = getCol(map, row, ['date', 'day', 'datetime', 'timestamp', 'createdat']);
+              const rawTime = getCol(map, row, ['time', 'hour']);
+              const rawItem = getCol(map, row, ['item', 'items', 'purpose', 'description', 'title', 'itempurpose', 'name', 'details']);
+              const rawCat = getCol(map, row, ['category', 'cat', 'categoryname', 'tag']);
+              const rawPay = getCol(map, row, ['paymentmethod', 'payment', 'method', 'mode', 'paidvia']);
+              const rawAcc = getCol(map, row, ['account', 'bank', 'acc', 'source', 'wallet']);
+              const rawWhere = getCol(map, row, ['where', 'location', 'place', 'merchant', 'store', 'vendor']);
+              const rawNote = getCol(map, row, ['note', 'notes', 'remark', 'remarks', 'comment', 'memo']);
+              const rawIsRec = getCol(map, row, ['isrecurring', 'recurring', 'repeat']).toLowerCase();
+              const rawRecId = getCol(map, row, ['recurringruleid', 'recruleid', 'ruleid', 'rule_id']);
 
               const canonicalCategory = resolveAndRegisterCategory(rawCat);
 
@@ -771,38 +901,30 @@ export function Settings() {
       }
 
       // 3. Process Dues & Receivables Sheet
-      const debtSheet = workbook.getWorksheet('Dues & Receivables') || workbook.getWorksheet('Dues') || workbook.getWorksheet('Debts');
+      const debtSheet = findSheet(workbook, ['dues & receivables', 'dues and receivables', 'dues', 'debts', 'receivables', 'dues & debts', 'money owed', 'loans']);
       if (debtSheet) {
-        const { map, startRow } = getHeaderMap(debtSheet);
+        const { map, startRow } = getHeaderMap(debtSheet, ['amount', 'person', 'type', 'purpose', 'status', 'due']);
         debtSheet.eachRow((row, rowNumber) => {
           if (rowNumber > startRow) {
-            const getCol = (keys: string[]): string => {
-              for (const k of keys) {
-                if (map[k]) return getVal(row.getCell(map[k]));
-              }
-              return '';
-            };
-
-            const amt = parseAmount(getCol(['amount', 'total', 'due']));
-            const person = getCol(['person', 'personname', 'name', 'who']);
+            const amt = parseAmount(getCol(map, row, ['amount', 'total', 'due', 'amt', 'value', 'dueamount']));
+            const person = getCol(map, row, ['person', 'personname', 'name', 'who', 'party', 'counterparty', 'contact', 'friend']);
             if (amt > 0 && person) {
-              const rawId = parseInt(getCol(['id', 'debtid'])) || undefined;
-              const rawType = getCol(['type', 'duetype']).toLowerCase();
-              const isReceivable = rawType.includes('receivable') || rawType.includes('get') || rawType.includes('collect');
-              const rawPurpose = getCol(['purpose', 'reason', 'item', 'notes']);
-              const rawStatus = getCol(['status']).toLowerCase();
-              const rawDate = getCol(['date', 'datetime', 'createdat']);
-              const rawLoc = getCol(['location', 'where', 'place']);
-              const rawNote = getCol(['notes', 'note', 'remarks']);
-              const rawRecId = getCol(['recurringruleid', 'ruleid']);
+              const rawId = parseInt(getCol(map, row, ['id', 'debtid'])) || undefined;
+              const rawType = getCol(map, row, ['type', 'duetype', 'direction', 'kind']);
+              const rawPurpose = getCol(map, row, ['purpose', 'reason', 'item', 'notes', 'description', 'for', 'details']);
+              const rawStatus = getCol(map, row, ['status', 'state', 'settled']).toLowerCase();
+              const rawDate = getCol(map, row, ['date', 'datetime', 'createdat', 'duedate']);
+              const rawLoc = getCol(map, row, ['location', 'where', 'place', 'city']);
+              const rawNote = getCol(map, row, ['notes', 'note', 'remarks', 'remark', 'comment']);
+              const rawRecId = getCol(map, row, ['recurringruleid', 'recruleid', 'ruleid']);
 
               debtsToImport.push({
                 ...(rawId ? { id: rawId } : {}),
-                type: isReceivable ? 'receivable' : 'due',
+                type: normalizeDueType(rawType),
                 personName: person,
                 amount: amt,
                 purpose: rawPurpose || 'Imported Due',
-                status: rawStatus.includes('settle') ? 'settled' : 'pending',
+                status: rawStatus.includes('settle') || rawStatus.includes('paid') ? 'settled' : 'pending',
                 location: rawLoc || undefined,
                 notes: rawNote || undefined,
                 datetime: parseExcelDate(rawDate) + 'T12:00',
@@ -815,37 +937,34 @@ export function Settings() {
       }
 
       // 4. Process Recurring Expenses Sheet
-      const recExpSheet = workbook.getWorksheet('Recurring Expenses') || workbook.getWorksheet('Recurring') || workbook.getWorksheet('Subscriptions');
+      const recExpSheet = findSheet(workbook, [
+        'recurring expenses', 'recurring expense', 'recurring', 'subscriptions',
+        'recurringbills', 'recurring payments', 'bills', 'fixed expenses',
+        'monthly bills', 'recurring_expenses', 'recurring-expenses'
+      ]);
+
       if (recExpSheet) {
-        const { map, startRow } = getHeaderMap(recExpSheet);
+        const { map, startRow } = getHeaderMap(recExpSheet, ['amount', 'item', 'frequency', 'category', 'start', 'items', 'rule']);
         recExpSheet.eachRow((row, rowNumber) => {
           if (rowNumber > startRow) {
-            const getCol = (keys: string[]): string => {
-              for (const k of keys) {
-                if (map[k]) return getVal(row.getCell(map[k]));
-              }
-              return '';
-            };
-
-            const amt = parseAmount(getCol(['amount', 'cost', 'price', 'total']));
-            const item = getCol(['item', 'items', 'name', 'purpose', 'description', 'itempurpose']);
+            const amt = parseAmount(getCol(map, row, ['amount', 'cost', 'price', 'total', 'amt', 'value', 'recurringamount']));
+            const item = getCol(map, row, ['item', 'items', 'name', 'purpose', 'description', 'itempurpose', 'title', 'expense', 'subscription', 'bill', 'label']);
             if (amt > 0 && item) {
-              const rawId = getCol(['id', 'ruleid']);
-              const rawCat = getCol(['category', 'cat']);
-              const rawFreq = getCol(['frequency', 'freq']).toLowerCase() as RecurrenceFrequency;
-              const validFreq: RecurrenceFrequency = ['daily', 'weekly', 'monthly', 'yearly', 'custom'].includes(rawFreq) ? rawFreq : 'monthly';
-              const rawInterval = parseInt(getCol(['intervalcount', 'interval', 'customintervalcount'])) || 1;
-              const rawUnit = getCol(['intervalunit', 'unit', 'customintervalunit']).toLowerCase() as CustomIntervalUnit;
-              const validUnit: CustomIntervalUnit = ['days', 'weeks', 'months', 'years'].includes(rawUnit) ? rawUnit : 'months';
-              const rawPay = getCol(['paymentmethod', 'payment', 'method']);
-              const rawAcc = getCol(['account', 'bank']);
-              const rawStart = getCol(['startdate', 'start', 'date']);
-              const rawEnd = getCol(['enddate', 'end']);
-              const rawLastGen = getCol(['lastgenerateddate', 'lastgenerated', 'lastdate']);
-              const rawWhere = getCol(['where', 'location', 'place']);
-              const rawNote = getCol(['note', 'notes', 'remarks']);
-              const rawStatus = getCol(['status', 'active', 'state']).toLowerCase();
-              const isActive = !rawStatus.includes('pause') && !rawStatus.includes('inactive') && !rawStatus.includes('no');
+              const rawId = getCol(map, row, ['id', 'ruleid', 'code']);
+              const rawCat = getCol(map, row, ['category', 'cat', 'categoryname', 'tag']);
+              const rawFreq = getCol(map, row, ['frequency', 'freq', 'interval', 'period', 'recurrence', 'repeat', 'howoften', 'every', 'cycle', 'schedule']);
+              const parsedFreq = normalizeFrequency(rawFreq);
+              const rawInterval = parseInt(getCol(map, row, ['customintervalcount', 'intervalcount', 'count', 'interval', 'everyx', 'repeatevery', 'step'])) || parsedFreq.count || 1;
+              const rawUnit = getCol(map, row, ['customintervalunit', 'intervalunit', 'unit', 'periodunit', 'frequencyunit']).toLowerCase() as CustomIntervalUnit;
+              const validUnit: CustomIntervalUnit = ['days', 'weeks', 'months', 'years'].includes(rawUnit) ? rawUnit : (parsedFreq.unit || 'months');
+              const rawPay = getCol(map, row, ['paymentmethod', 'payment', 'method', 'mode', 'paidvia']);
+              const rawAcc = getCol(map, row, ['account', 'bank', 'acc', 'source', 'wallet']);
+              const rawStart = getCol(map, row, ['startdate', 'start', 'date', 'firstdate', 'fromdate', 'startingdate', 'effectivefrom', 'from']);
+              const rawEnd = getCol(map, row, ['enddate', 'end', 'until', 'todate', 'expirationdate', 'expirydate', 'to']);
+              const rawLastGen = getCol(map, row, ['lastgenerateddate', 'lastgenerated', 'lastdate', 'lastprocessed', 'lastrun', 'lastcharged', 'lastbilled', 'lastoccurrence']);
+              const rawWhere = getCol(map, row, ['where', 'location', 'place', 'merchant', 'store', 'vendor']);
+              const rawNote = getCol(map, row, ['note', 'notes', 'remarks', 'remark', 'comment', 'memo']);
+              const rawStatus = getCol(map, row, ['status', 'active', 'state', 'isactive', 'enabled', 'paused']);
 
               const canonicalCategory = resolveAndRegisterCategory(rawCat);
 
@@ -854,7 +973,7 @@ export function Settings() {
                 amount: amt,
                 items: item,
                 category: canonicalCategory,
-                frequency: validFreq,
+                frequency: parsedFreq.freq,
                 customIntervalCount: rawInterval,
                 customIntervalUnit: validUnit,
                 paymentMethod: rawPay || 'UPI',
@@ -864,7 +983,7 @@ export function Settings() {
                 lastGeneratedDate: rawLastGen ? parseExcelDate(rawLastGen) : undefined,
                 where: rawWhere || undefined,
                 note: rawNote || undefined,
-                isActive,
+                isActive: normalizeIsActive(rawStatus),
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
               });
@@ -873,46 +992,43 @@ export function Settings() {
         });
       }
 
-      // 5. Process Recurring Dues Sheet
-      const recDebtSheet = workbook.getWorksheet('Recurring Dues') || workbook.getWorksheet('Recurring Debts');
+      // 5. Process Recurring Dues & Receivables Sheet
+      const recDebtSheet = findSheet(workbook, [
+        'recurring dues', 'recurring due', 'recurring debts', 'recurring debt',
+        'recurring receivables', 'recurring receivable', 'recurring dues & receivables',
+        'recurring_dues', 'recurring-dues', 'recurring_debts', 'recurringdebts',
+        'recurringdues', 'dues recurring', 'recurring loans', 'periodic dues'
+      ]);
+
       if (recDebtSheet) {
-        const { map, startRow } = getHeaderMap(recDebtSheet);
+        const { map, startRow } = getHeaderMap(recDebtSheet, ['amount', 'person', 'type', 'frequency', 'purpose', 'start', 'due']);
         recDebtSheet.eachRow((row, rowNumber) => {
           if (rowNumber > startRow) {
-            const getCol = (keys: string[]): string => {
-              for (const k of keys) {
-                if (map[k]) return getVal(row.getCell(map[k]));
-              }
-              return '';
-            };
-
-            const amt = parseAmount(getCol(['amount', 'total', 'due']));
-            const person = getCol(['person', 'personname', 'name', 'who']);
+            const amt = parseAmount(getCol(map, row, ['amount', 'total', 'due', 'amt', 'value', 'dueamount']));
+            const person = getCol(map, row, ['person', 'personname', 'name', 'who', 'party', 'counterparty', 'contact', 'borrower', 'lender', 'client', 'friend']);
             if (amt > 0 && person) {
-              const rawId = getCol(['id', 'ruleid']);
-              const rawType = getCol(['type', 'duetype']).toLowerCase();
-              const isReceivable = rawType.includes('receivable') || rawType.includes('get');
-              const rawPurpose = getCol(['purpose', 'reason', 'item', 'notes']);
-              const rawFreq = getCol(['frequency', 'freq']).toLowerCase() as RecurrenceFrequency;
-              const validFreq: RecurrenceFrequency = ['daily', 'weekly', 'monthly', 'yearly', 'custom'].includes(rawFreq) ? rawFreq : 'monthly';
-              const rawInterval = parseInt(getCol(['intervalcount', 'interval'])) || 1;
-              const rawUnit = getCol(['intervalunit', 'unit']).toLowerCase() as CustomIntervalUnit;
-              const validUnit: CustomIntervalUnit = ['days', 'weeks', 'months', 'years'].includes(rawUnit) ? rawUnit : 'months';
-              const rawStart = getCol(['startdate', 'start']);
-              const rawEnd = getCol(['enddate', 'end']);
-              const rawLastGen = getCol(['lastgenerateddate', 'lastgenerated']);
-              const rawLoc = getCol(['location', 'where']);
-              const rawNotes = getCol(['notes', 'note']);
-              const rawStatus = getCol(['status', 'active']).toLowerCase();
-              const isActive = !rawStatus.includes('pause') && !rawStatus.includes('inactive');
+              const rawId = getCol(map, row, ['id', 'ruleid', 'code']);
+              const rawType = getCol(map, row, ['type', 'duetype', 'direction', 'kind', 'due_receivable', 'transactiontype']);
+              const rawPurpose = getCol(map, row, ['purpose', 'reason', 'item', 'notes', 'description', 'for', 'details']);
+              const rawFreq = getCol(map, row, ['frequency', 'freq', 'recurrence', 'repeat', 'interval', 'period', 'cycle']);
+              const parsedFreq = normalizeFrequency(rawFreq);
+              const rawInterval = parseInt(getCol(map, row, ['customintervalcount', 'intervalcount', 'count', 'interval', 'everyx', 'repeatevery'])) || parsedFreq.count || 1;
+              const rawUnit = getCol(map, row, ['customintervalunit', 'intervalunit', 'unit', 'periodunit', 'frequencyunit']).toLowerCase() as CustomIntervalUnit;
+              const validUnit: CustomIntervalUnit = ['days', 'weeks', 'months', 'years'].includes(rawUnit) ? rawUnit : (parsedFreq.unit || 'months');
+              const rawStart = getCol(map, row, ['startdate', 'start', 'date', 'fromdate', 'startingdate', 'from']);
+              const rawEnd = getCol(map, row, ['enddate', 'end', 'until', 'todate', 'expirydate', 'to']);
+              const rawLastGen = getCol(map, row, ['lastgenerateddate', 'lastgenerated', 'lastdate', 'lastprocessed', 'lastrun']);
+              const rawLoc = getCol(map, row, ['location', 'where', 'place', 'city']);
+              const rawNotes = getCol(map, row, ['notes', 'note', 'remarks', 'remark', 'comment']);
+              const rawStatus = getCol(map, row, ['status', 'active', 'state', 'isactive', 'enabled', 'paused']);
 
               recurringDebtsToImport.push({
                 id: rawId || crypto.randomUUID(),
-                type: isReceivable ? 'receivable' : 'due',
+                type: normalizeDueType(rawType),
                 personName: person,
                 amount: amt,
                 purpose: rawPurpose || 'Recurring Due',
-                frequency: validFreq,
+                frequency: parsedFreq.freq,
                 customIntervalCount: rawInterval,
                 customIntervalUnit: validUnit,
                 startDate: parseExcelDate(rawStart),
@@ -920,7 +1036,7 @@ export function Settings() {
                 lastGeneratedDate: rawLastGen ? parseExcelDate(rawLastGen) : undefined,
                 location: rawLoc || undefined,
                 notes: rawNotes || undefined,
-                isActive,
+                isActive: normalizeIsActive(rawStatus),
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
               });
@@ -930,27 +1046,19 @@ export function Settings() {
       }
 
       // 6. Process Budgets Sheet
-      const budgetSheet = workbook.getWorksheet('Budgets');
+      const budgetSheet = findSheet(workbook, ['budgets', 'budget', 'monthly budgets', 'category budgets', 'spending limits']);
       if (budgetSheet) {
-        const { map, startRow } = getHeaderMap(budgetSheet);
+        const { map, startRow } = getHeaderMap(budgetSheet, ['amount', 'name', 'category', 'period', 'limit', 'budget']);
         budgetSheet.eachRow((row, rowNumber) => {
           if (rowNumber > startRow) {
-            const getCol = (keys: string[]): string => {
-              for (const k of keys) {
-                if (map[k]) return getVal(row.getCell(map[k]));
-              }
-              return '';
-            };
-
-            const amt = parseAmount(getCol(['amount', 'limit', 'total']));
-            const name = getCol(['name', 'title', 'budgetname']);
+            const amt = parseAmount(getCol(map, row, ['amount', 'limit', 'total', 'budgetamount', 'budgetlimit', 'amt', 'value']));
+            const name = getCol(map, row, ['name', 'title', 'budgetname', 'label', 'description']);
             if (amt > 0 && name) {
-              const rawId = getCol(['id', 'budgetid']);
-              const rawCat = getCol(['category', 'cat']);
-              const period = getCol(['period', 'frequency']).toLowerCase();
-              const rawStart = getCol(['startdate', 'start']);
-              const rawStatus = getCol(['status', 'active']).toLowerCase();
-              const isActive = !rawStatus.includes('pause') && !rawStatus.includes('inactive');
+              const rawId = getCol(map, row, ['id', 'budgetid']);
+              const rawCat = getCol(map, row, ['category', 'cat', 'categoryname', 'tag']);
+              const period = getCol(map, row, ['period', 'frequency', 'budgetperiod', 'cycle', 'interval']).toLowerCase();
+              const rawStart = getCol(map, row, ['startdate', 'start', 'date', 'fromdate', 'startingdate']);
+              const rawStatus = getCol(map, row, ['status', 'active', 'state', 'isactive', 'enabled']);
               const canonicalCategory = (!rawCat || rawCat.toLowerCase() === 'overall')
                 ? 'overall'
                 : resolveAndRegisterCategory(rawCat);
@@ -963,7 +1071,7 @@ export function Settings() {
                 category: canonicalCategory,
                 period: ['monthly', 'weekly', 'yearly'].includes(period) ? period : 'monthly',
                 startDate: rawStart ? parseExcelDate(rawStart) : format(new Date(), 'yyyy-MM-01'),
-                isActive,
+                isActive: normalizeIsActive(rawStatus),
                 updatedAt: new Date(),
               });
             }
@@ -1011,18 +1119,34 @@ export function Settings() {
         await cleanupAndDeduplicateCategories(db);
         const { expensesAdded, debtsAdded } = await processRecurringRules();
 
+        // Invalidate React Query caches so all pages immediately re-render with new data
+        queryClient.invalidateQueries({ queryKey: ['expenses'] });
+        queryClient.invalidateQueries({ queryKey: ['debts'] });
+        queryClient.invalidateQueries({ queryKey: ['recurring-expenses'] });
+        queryClient.invalidateQueries({ queryKey: ['recurring-debts'] });
+        queryClient.invalidateQueries({ queryKey: ['budgets'] });
+        queryClient.invalidateQueries({ queryKey: ['categories'] });
+        queryClient.invalidateQueries({ queryKey: ['settings'] });
+        queryClient.invalidateQueries({ queryKey: ['custom-charts'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('database-updated'));
+        }
+
         toast({
           title: "Import Completed Successfully",
-          description: `Imported ${expensesToImport.length} expenses, ${debtsToImport.length} dues, ${recurringExpensesToImport.length + recurringDebtsToImport.length} recurring rules, ${budgetsToImport.length} budgets, ${categoriesToImport.length} categories.${expensesAdded > 0 ? ` Generated ${expensesAdded} recurring transactions.` : ''}`,
+          description: `Imported ${expensesToImport.length} expenses, ${debtsToImport.length} dues, ${recurringExpensesToImport.length + recurringDebtsToImport.length} recurring rules (${recurringExpensesToImport.length} expenses + ${recurringDebtsToImport.length} dues), ${budgetsToImport.length} budgets, ${categoriesToImport.length} categories.${expensesAdded > 0 || debtsAdded > 0 ? ` Processed ${expensesAdded} recurring expenses & ${debtsAdded} recurring dues.` : ''}`,
         });
       } else {
         toast({
           title: "No Data Found",
-          description: "Could not find any readable expense, due, recurring or budget records in the selected workbook.",
+          description: "Could not find any readable expense, due, recurring or budget records in the selected workbook. Please ensure sheet and column names match.",
           variant: "destructive",
         });
       }
     } catch (e) {
+      console.error('Excel import error:', e);
       toast({
         title: "Import Error",
         description: "Failed to parse and import the Excel spreadsheet. Please ensure the columns match the template.",
@@ -1060,6 +1184,20 @@ export function Settings() {
               notifyDueReminders: true,
             });
           });
+
+          queryClient.invalidateQueries({ queryKey: ['expenses'] });
+          queryClient.invalidateQueries({ queryKey: ['debts'] });
+          queryClient.invalidateQueries({ queryKey: ['recurring-expenses'] });
+          queryClient.invalidateQueries({ queryKey: ['recurring-debts'] });
+          queryClient.invalidateQueries({ queryKey: ['budgets'] });
+          queryClient.invalidateQueries({ queryKey: ['categories'] });
+          queryClient.invalidateQueries({ queryKey: ['settings'] });
+          queryClient.invalidateQueries({ queryKey: ['custom-charts'] });
+          queryClient.invalidateQueries({ queryKey: ['notifications'] });
+
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('database-updated'));
+          }
 
           toast({
             title: "Database Reset",
@@ -2111,7 +2249,36 @@ export function Settings() {
                 />
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Import expenses and dues spreadsheets. Automatically maps dates, amounts, categories, and payment modes.
+                Import expenses, dues, recurring rules, and custom categories. Automatically maps dates, frequencies, and amounts.
+              </p>
+            </div>
+
+            <Separator />
+
+            {/* Pre-packaged Sample Test Files */}
+            <div className="space-y-2">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Sample Test Datasets</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <a
+                  href="/sample-backup-full.xlsx"
+                  download="pocket-ledger-sample-full.xlsx"
+                  className="flex items-center justify-start py-2 px-3 text-xs font-bold rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors"
+                >
+                  <FileSpreadsheet className="w-4 h-4 mr-2 shrink-0 text-emerald-500" />
+                  <span className="truncate">Sample Excel (.xlsx)</span>
+                </a>
+
+                <a
+                  href="/sample-backup-full.json"
+                  download="pocket-ledger-sample-full.json"
+                  className="flex items-center justify-start py-2 px-3 text-xs font-bold rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors"
+                >
+                  <Download className="w-4 h-4 mr-2 shrink-0 text-primary" />
+                  <span className="truncate">Sample JSON (.json)</span>
+                </a>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Ready-to-use sample dataset featuring 95+ expenses, 13 recurring rules, 7 recurring dues, 14 dues & receivables, 15 categories, and 8 budgets.
               </p>
             </div>
           </CardContent>
