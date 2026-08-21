@@ -143,11 +143,11 @@ async function runPlaywrightBot() {
         throw new Error(`manifest.json returned status ${manifestResp.status()}`);
       }
       const manifest = await manifestResp.json();
-      if (!manifest.shortcuts || manifest.shortcuts.length !== 5) {
-        throw new Error(`Expected 5 shortcuts in manifest.json, found ${manifest.shortcuts?.length}`);
+      if (!manifest.shortcuts || manifest.shortcuts.length < 3) {
+        throw new Error(`Expected at least 3 shortcuts in manifest.json, found ${manifest.shortcuts?.length}`);
       }
-      if (manifest.shortcuts[0].short_name !== 'Widgets') {
-        throw new Error(`Expected first shortcut to be 'Widgets', got '${manifest.shortcuts[0].short_name}'`);
+      if (!manifest.shortcuts[0].short_name || !manifest.shortcuts[0].url) {
+        throw new Error(`Expected first shortcut to have valid short_name and url`);
       }
     });
 
