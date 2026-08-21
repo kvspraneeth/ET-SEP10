@@ -1,11 +1,13 @@
 {
-  "name": "PocketLedger - Beta",
+  "name": "Pocket Ledger",
   "short_name": "Pocket Ledger",
-  "description": "Track expenses, manage budgets and dues, and analyze spending patterns with Glass Widgets and Smart Prompts",
+  "id": "/?v=3.0.0",
+  "version": "3.0.0",
+  "description": "Next-Gen Personal Expense Tracker & Smart Budget Copilot with Fluid Glass UI and Smart Prompts",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#090d16",
   "theme_color": "#8b5cf6",
   "orientation": "portrait-primary",
   "categories": [

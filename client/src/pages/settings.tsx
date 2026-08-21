@@ -2412,7 +2412,7 @@ export function Settings() {
 
       {/* App Info Footer */}
       <div className="flex flex-col items-center justify-center pt-2 gap-1 text-xs text-muted-foreground">
-        <span>Pocket Ledger(Beta) · PWA Offline First</span>
+        <span>Pocket Ledger · v3.0 Evolution · PWA Offline First</span>
         <div className="px-3 py-1 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground flex items-center space-x-1">
           <span>Made with</span>
           <span className="text-rose-500">❤️</span>

@@ -1,128 +1,207 @@
-# Budget Pilot V2
+<div align="center">
 
-![Budget Pilot Hero](Budget_pilot_thumbnail.png)
+# ✦ Pocket Ledger
+### *Next-Gen Personal Expense Intelligence & Smart Finance Copilot*
 
-📲 Download Android App
-Install Budget Pilot on your Android device
+[![Live Web App](https://img.shields.io/badge/Live%20PWA-Netlify-00C7B7?style=for-the-badge&logo=netlify&logoColor=white)](https://budgetpilotv2.netlify.app/)
+[![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-Fluid%20Glass-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Dexie.js](https://img.shields.io/badge/Dexie.js-IndexedDB%20Offline-7C3AED?style=for-the-badge&logo=databricks&logoColor=white)](https://dexie.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-[![Download APK](https://img.shields.io/badge/Android-Download%20APK-success?style=for-the-badge&logo=android)](https://budgetpilotv2.netlify.app/BudgetPilot-v2.apk)
+<br />
 
-After downloading:
+<p align="center">
+  <img src="docs/images/pro-hero-banner.png" alt="Pocket Ledger V3 Evolution Hero Banner" width="100%" style="border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,0.85);" />
+</p>
 
-Open the APK file.
-Allow installation from unknown sources if prompted.
-Install Budget Pilot.
-Launch and start tracking your expenses.
-
-Note: Android may display a warning because the APK is not published through Google Play Store.
-
-[![Live Demo](https://img.shields.io/badge/Netlify-Live%20Demo-brightgreen?style=flat&logo=netlify&logoColor=white)](https://budget-pilot-v2.netlify.app)
-[![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=flat&logo=react&logoColor=white)](https://reactjs.org)
-[![Vite](https://img.shields.io/badge/Vite-5.4.19-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev)
-[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.4.17-38B2AC?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
-
----
-
-## 🚀 What is Budget Pilot V2?
-
-Budget Pilot V2 is a modern personal finance dashboard built as a full-stack web app with a polished mobile-first UI. It makes tracking expenses, managing budgets, and analyzing spending easy, fast, and visually delightful.
-
-- Smart quick-add controls for common spending categories
-- Budget progress tracking with dynamic progress bars
-- Interactive analytics with charts and spending breakdowns
-- Offline-capable PWA support + local storage powered by Dexie
-- Server-ready architecture with Express, Drizzle ORM, Passport auth, and PostgreSQL-ready storage
-
-> Live demo: [Click Here!](https://budgetpilotv2.netlify.app/)
+<p align="center">
+  <b>Fluid Glassmorphic UI</b> • <b>SpeedBar 1-Tap Logging</b> • <b>Custom Chart Studio</b> • <b>Smart Notification Hub</b> • <b>100% Offline Sovereignty</b>
+</p>
 
 ---
 
-## ✨ Highlights
+</div>
 
-- **Beautiful mobile-first UI** using Tailwind CSS, Radix UI, and Framer Motion
-- **Quick expense entry** with category shortcuts and inline editing
-- **Budget management** with monthly/weekly/yearly targets and progress indicators
-- **Spending analytics** powered by Recharts for instant visual insight
-- **Settings + personalization** for currency, theme, and data controls
-- **PWA-ready** with manifest and service worker support
+## 🌌 The V3 Evolution: A Quantum Leap
 
-![Finance Dashboard](bp_2.png)
+**Pocket Ledger** is a complete ground-up evolution of personal financial tracking. Re-imagined from the core to eliminate transaction friction, it combines **Fluid Glassmorphic aesthetics**, **instant micro-transaction capture**, **deep visual analytics**, and **sub-millisecond local-first database performance**.
+
+Designed for speed, clarity, and aesthetic pleasure on OLED and modern mobile screens, Pocket Ledger turns daily budgeting into a tactile, effortless experience.
 
 ---
 
-## 🧩 Key Features
+## 📱 Flagship Dark Mode Showcase
 
-- Dashboard overview with stats, budgets, and recent expenses
-- Quick-add category chips for fast expense entry
-- Expense list with edit and view-all navigation
-- Detailed budget creation, category selection, and progress tracking
-- Interactive charts page for spending analysis
-- Settings page with theme and currency options
-- Built-in form validation using React Hook Form + Zod
+<div align="center">
+  <img src="docs/images/pro-showcase-grid.png" alt="Pocket Ledger Flagship Dark Mode Suite" width="100%" style="border-radius: 18px; box-shadow: 0 20px 45px rgba(0,0,0,0.75);" />
+</div>
 
----
+<br />
 
-## 🛠️ Tech Stack
-
-- Frontend: `React`, `Vite`, `TypeScript`, `Tailwind CSS`, `Radix UI`
-- Data / state: `@tanstack/react-query`, `Dexie`, `Drizzle ORM`
-- Backend: `Express`, `Passport`, `dotenv`
-- Charts: `Recharts`
-- PWA: `manifest.json`, `service worker`
+| Flagship View | Core Purpose | Architectural & UX Highlights |
+| :--- | :--- | :--- |
+| **🏠 Live Dashboard** | Real-time financial command center | Safe spend daily velocity meter, monthly burn rate gauge, instant dues matrix & quick re-log stream |
+| **💳 Ledger & Filters** | High-density transaction journal | Instant multi-tag search, fast filter chips, monthly date grouping, inline edit & rollback |
+| **📊 Visual Analytics** | Interactive spending intelligence | Recharts donut distributions, daily spending trajectory, cashflow progression & Custom Chart Studio |
+| **📱 Glass Widgets Studio** | Rapid micro-logging interface | SpeedBar 1-tap hot chips, 6 glassmorphic presets (*Frosted, Neon, Obsidian, Aurora, Rose, Crystal*) |
+| **🔔 Smart Alerts Hub** | Proactive financial notifications | Real-time dues countdowns, budget threshold warnings, sound FX & intelligent habit reminders |
+| **⚙️ Theme & Backups** | Deep personalization & sovereignty | 5 AMOLED pitch-dark presets, 6 light themes, custom accent palettes & 2-way Excel (.xlsx) / JSON sync |
 
 ---
 
-## 📁 Repo Structure
+## 💎 1. Fluid Glassmorphism & Theming Engine
 
-- `client/` — React app source
-- `client/src/components/` — UI components and pages
-- `client/public/` — PWA manifest and static assets
-- `server/` — Express server, authentication, and routes
-- `shared/` — shared schema and types
-- `drizzle.config.ts` — database config
-- `netlify.toml` — Netlify deployment settings
+<div align="center">
+  <img src="docs/images/fluid-glass-showcase.png" alt="Fluid Glassmorphism and Theming Engine" width="100%" style="border-radius: 16px; margin: 16px 0;" />
+</div>
+
+Pocket Ledger features a custom-engineered **Fluid Glass UI Design System** tailored for modern high-refresh-rate OLED displays:
+
+- **Dynamic 24px Backdrop Sheen**: Multi-layered background blur with luminous neon border highlights and translucent frosted cards.
+- **6 Fluid Glass Presets**:
+  - `Frosted Glass`: Classic premium frosted crystal with soft ambient diffusion.
+  - `Neon Glow`: High-contrast cyber-glow with luminous violet and cyan edge backlights.
+  - `Obsidian Dark`: Deep pitch-black stealth surfaces tailored for minimal battery consumption.
+  - `Aurora Teal`: Radiant emerald and arctic cyan gradients.
+  - `Rose Quartz`: Soft sunset pink and crimson undertones.
+  - `Crystal Clear`: High-transparency minimalism with crisp white specular highlights.
+- **5 Pure AMOLED Dark Modes**: Switch effortlessly between *Charcoal Dark*, *Deep Pitch OLED (True Black)*, *Midnight Navy*, *Cyberpunk Indigo*, and *Emerald Night*.
+- **Tactile Physics & Micro-Springs**: Instant touch feedback with smooth spring compressions and seamless gesture navigation.
 
 ---
 
-## 🚧 Run locally
+## 📊 2. Visual Analytics & Custom Chart Studio
+
+<div align="center">
+  <img src="docs/images/charts-studio-showcase.png" alt="Custom Chart Studio and Analytics Engine" width="100%" style="border-radius: 16px; margin: 16px 0;" />
+</div>
+
+Transform raw financial entries into actionable, visual intelligence with our integrated **Chart Studio**:
+
+- **Custom Chart Builder**: Create and save customized graphs on the fly:
+  - **Chart Types**: Interactive Donut Charts, Area Fill Trends, Multi-Bar Comparisons, Line Progressions, and Radar Distribution Maps.
+  - **Flexible Dimensions**: Group spending by Category, Payment Method (UPI, Credit Card, Cash, NetBanking), Account, Day, Week, or Month.
+  - **Dynamic Time Framing**: Seamlessly aggregate metrics across *Today*, *This Week*, *This Month*, *Quarter*, *Year-to-Date*, or *Custom Date Ranges*.
+- **Burn-Rate & Safe Spend Velocity**:
+  - Live calculation of **Safe Daily Spend Allowance** (`Remaining Budget ÷ Days Left`).
+  - Monthly projected spend trajectory based on real-time spending velocity.
+  - Proactive milestone warnings at 75%, 90%, and 100% budget utilization.
+
+---
+
+## ⚡ 3. SpeedBar & 1-Tap Micro Logging
+
+- **Under 2-Second Capture**: Log routine everyday expenses (Chai `₹20`, Lunch `₹150`, Fuel `₹200`, Groceries `₹300`) with a single tap.
+- **Smart Frequent Stream**: Automatically learns your most frequent recurring transactions and places them at the top of your dashboard for zero-friction re-logging.
+- **Multi-Currency Intelligence**: Native currency formatting with instant switching across **INR (₹)**, **USD ($)**, **EUR (€)**, **GBP (£)**, **JPY (¥)**, and more.
+
+---
+
+## 🔔 4. Intelligent Notification Hub & Recurring Automation
+
+- **Recurring Rules Engine**: Automate monthly rent, recurring subscriptions, SIP investments, and EMI schedules with customizable frequencies (*Daily, Weekly, Monthly, Yearly*).
+- **Proactive Dues & Receivables**: Keep track of pending lendings and borrowings with automatic due date countdowns.
+- **Interactive Audio Feedback & Sound FX**: Audio haptics and toast alerts for milestone triggers and reminder acknowledgements.
+
+---
+
+## 🔒 5. Zero-Cloud Local Sovereignty & Two-Way Excel Sync
+
+Your financial data belongs exclusively to you. Pocket Ledger operates with **100% local data privacy**:
+
+- **Dexie.js IndexedDB Engine**: Lightning-fast sub-millisecond queries with zero network latency and complete offline persistence.
+- **Two-Way Excel (.xlsx) Engine**: 1-click import and export powered by `ExcelJS` with automatic category mapping, formula integrity, and custom column recognition.
+- **Full JSON Snapshots**: Instant portable database backup and restore across devices.
+
+---
+
+## 📱 Progressive Web App (PWA) Features
+
+Pocket Ledger is engineered as an installable **PWA (Progressive Web App)** with native app capabilities:
+
+- **Home Screen App Shortcuts**:
+  - ➕ **Add Expense**: Instantly launches transaction entry dialog.
+  - 🔄 **Dues & Receivables**: Direct jump to pending balances and settlement matrix.
+  - 📊 **Spending Charts**: Instant access to Analytics and Custom Chart Studio.
+  - 🎯 **Budget Limits**: Check category caps and thresholds.
+  - ✨ **Glass Widgets Studio**: Open SpeedBar loggers and glass widgets.
+- **Service Worker Caching**: Instant cold-start load times even without an active internet connection.
+
+---
+
+## 🛠️ Architecture & Tech Stack
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                      Pocket Ledger                       │
+├────────────────────────────┬─────────────────────────────┤
+│  Frontend & UI Framework   │  Data & Storage Engine      │
+│  • React 18.3 + TypeScript │  • Dexie.js (IndexedDB)     │
+│  • Vite 5 + Tailwind CSS   │  • TanStack React Query v5  │
+│  • Radix UI Primitives     │  • ExcelJS Spreadsheet Engine│
+│  • Framer Motion Physics   │  • Zero-Cloud Offline Cache │
+├────────────────────────────┼─────────────────────────────┤
+│  Visualization & Analytics │  Mobile PWA Capabilities    │
+│  • Recharts Visual Library │  • Web App Manifest v3.0    │
+│  • Custom Chart Studio     │  • App Shortcuts & Badging  │
+│  • Safe Spend Velocity     │  • Background Service Worker│
+└────────────────────────────┴─────────────────────────────┘
+```
+
+---
+
+## 🚀 Quick Start Guide
+
+### Prerequisites
+- **Node.js**: v18.0.0 or higher
+- **npm** or **yarn**
+
+### Local Development
 
 ```bash
+# 1. Clone the repository
+git clone https://github.com/kvspraneeth/ET-SEP10.git
+cd ET-SEP10
+
+# 2. Install dependencies
 npm install
+
+# 3. Start development server
 npm run dev
 ```
 
-Then open the local development URL shown in your terminal.
+Open `http://localhost:5000` in your mobile device browser or desktop.
 
-### Build for production
+### Production Build
 
 ```bash
+# Build optimized production bundle
 npm run build
+
+# Start production server
 npm start
 ```
 
 ---
 
-## 🌐 Netlify Deployment
+## 🌐 Live Deployment
 
-This repo includes `netlify.toml` for automatic Netlify publish settings:
+Pocket Ledger is continuously deployed on **Netlify**:
 
-- build command: `vite build`
-- publish directory: `dist`
-- redirect all routes to `index.html`
-
-> Live app: [Budget-Pilot](https://budgetpilotv2.netlify.app/)
-
----
-
-## 💡 Want to improve it?
-
-- Add Google OAuth login and user accounts
-- Connect live Postgres or Neon database for shared budgets
-- Add expense export/import (CSV / Excel)
-- Add push notifications or reminders.
+- **Live URL**: [https://budgetpilotv2.netlify.app](https://budgetpilotv2.netlify.app/)
+- **Build Command**: `vite build`
+- **Publish Directory**: `dist`
 
 ---
 
 ## 📄 License
 
-MIT License
+Distributed under the [MIT License](LICENSE).
+
+<div align="center">
+  <br />
+  <sub>Crafted with ❤️ for total financial clarity, liquid glass aesthetics, and complete data privacy.</sub>
+</div>

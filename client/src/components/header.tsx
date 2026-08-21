@@ -17,9 +17,9 @@ export function Header({ onOpenNotifications, onOpenWidgets }: HeaderProps) {
       <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-3 min-w-0">
           <div className="w-10 h-10 bg-primary/15 text-primary rounded-2xl flex items-center justify-center shadow-inner shrink-0 ring-1 ring-primary/25 overflow-hidden">
-            <img 
-              src="/icons/v3_maskable_512.png" 
-              alt="Pocket Ledger" 
+            <img
+              src="/icons/v3_maskable_512.png"
+              alt="Pocket Ledger"
               className="w-full h-full object-cover"
               onError={(e) => {
                 // Fallback to Wallet icon if image not available
@@ -34,7 +34,7 @@ export function Header({ onOpenNotifications, onOpenWidgets }: HeaderProps) {
                 Pocket Ledger
               </h1>
               <span className="text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20 tracking-wider shrink-0">
-                Beta(v3)
+                Beta
               </span>
             </div>
             <p className="text-xs text-muted-foreground truncate font-semibold">Smart Finance & Habits</p>
