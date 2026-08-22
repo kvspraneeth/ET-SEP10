@@ -211,14 +211,14 @@ export function MobileWidgetsStudio({ onOpenExpenseForm, onTabChange, standalone
           </p>
 
           {/* Quick Customizer Bar */}
-          <div className="pt-3 flex items-center gap-2 flex-wrap">
-            <div className="flex bg-muted/80 p-1 rounded-full border border-border backdrop-blur-md">
+          <div className="pt-3 flex flex-wrap items-center gap-2.5 max-w-full">
+            <div className="flex items-center gap-0.5 bg-muted/80 p-1 rounded-full border border-border/80 backdrop-blur-md max-w-full overflow-x-auto no-scrollbar shadow-inner shrink-0">
               {(['frosted', 'neon', 'obsidian', 'aurora', 'rose', 'crystal'] as GlassTheme[]).map(t => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => setGlassTheme(t)}
-                  className={`px-3 py-1 text-[11px] font-bold rounded-full capitalize transition-all tap-spring ${
+                  className={`px-3 py-1 text-[11px] font-bold rounded-full capitalize whitespace-nowrap shrink-0 transition-all tap-spring ${
                     glassTheme === t
                       ? 'bg-primary text-primary-foreground shadow-xs'
                       : 'text-muted-foreground hover:text-foreground'
@@ -233,7 +233,7 @@ export function MobileWidgetsStudio({ onOpenExpenseForm, onTabChange, standalone
               size="sm"
               variant={isFloatingDockActive ? 'default' : 'outline'}
               onClick={() => setIsFloatingDockActive(!isFloatingDockActive)}
-              className="h-8 text-xs font-bold rounded-full gap-1.5 tap-spring"
+              className="h-8 text-xs font-bold rounded-full gap-1.5 tap-spring shrink-0"
             >
               <Smartphone className="w-3.5 h-3.5" />
               <span>{isFloatingDockActive ? 'Floating Dock: ON' : 'Enable Floating Dock'}</span>
