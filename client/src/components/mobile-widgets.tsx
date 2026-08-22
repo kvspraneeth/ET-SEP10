@@ -211,29 +211,34 @@ export function MobileWidgetsStudio({ onOpenExpenseForm, onTabChange, standalone
           </p>
 
           {/* Quick Customizer Bar */}
-          <div className="pt-3 flex flex-wrap items-center gap-2.5 max-w-full">
-            <div className="flex items-center gap-0.5 bg-muted/80 p-1 rounded-full border border-border/80 backdrop-blur-md max-w-full overflow-x-auto no-scrollbar shadow-inner shrink-0">
-              {(['frosted', 'neon', 'obsidian', 'aurora', 'rose', 'crystal'] as GlassTheme[]).map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setGlassTheme(t)}
-                  className={`px-3 py-1 text-[11px] font-bold rounded-full capitalize whitespace-nowrap shrink-0 transition-all tap-spring ${
-                    glassTheme === t
-                      ? 'bg-primary text-primary-foreground shadow-xs'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
+          <div className="pt-2 space-y-3">
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                Glass Style Preset
+              </span>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 p-1.5 bg-muted/70 backdrop-blur-xl rounded-2xl border border-border/70 shadow-inner w-full max-w-2xl">
+                {(['frosted', 'neon', 'obsidian', 'aurora', 'rose', 'crystal'] as GlassTheme[]).map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setGlassTheme(t)}
+                    className={`py-1.5 px-2 text-xs font-bold rounded-xl capitalize transition-all tap-spring flex items-center justify-center text-center ${
+                      glassTheme === t
+                        ? 'bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/40'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <Button
               size="sm"
               variant={isFloatingDockActive ? 'default' : 'outline'}
               onClick={() => setIsFloatingDockActive(!isFloatingDockActive)}
-              className="h-8 text-xs font-bold rounded-full gap-1.5 tap-spring shrink-0"
+              className="h-8 text-xs font-bold rounded-xl gap-1.5 tap-spring shadow-xs"
             >
               <Smartphone className="w-3.5 h-3.5" />
               <span>{isFloatingDockActive ? 'Floating Dock: ON' : 'Enable Floating Dock'}</span>
